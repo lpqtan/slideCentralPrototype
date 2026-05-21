@@ -59,43 +59,58 @@ npm run lint
 
 The daemon handles AI-powered slide generation by spawning coding-agent CLIs. It must be running separately for the `daemon` backend strategy to work.
 
-Navigate to the Open Design repo in `referenceRepos/`:
+#### Prerequisites for Daemon
+
+- **pnpm** (`npm install -g pnpm`)
+- At least one supported coding-agent CLI on your `PATH`:
+  - Claude Code (`claude`)
+  - Codex CLI (`codex`)
+  - Gemini CLI (`gemini`)
+  - Cursor Agent (`cursor-agent`)
+  - OpenCode (`opencode`)
+  - See full list in `referenceRepos/open-design-main/README.md`
+
+#### Setup & Start
 
 ```bash
+# Navigate to the Open Design repo
 cd referenceRepos/open-design-main
-```
 
-#### First time setup
-
-```bash
+# First-time install (only once)
 pnpm install
-```
 
-#### Start both the daemon and the Open Design web app
-
-```bash
+# Start the daemon and web app
 pnpm tools-dev
 ```
 
-The daemon listens at **http://localhost:7456**. You can verify it's running:
+The daemon listens at **http://localhost:7456**. Verify:
 
 ```bash
 curl http://localhost:7456/api/health
 ```
 
-With the daemon running, go to Slide Central → **Settings** → select **Open Design Daemon** as the backend strategy.
+#### Troubleshooting Daemon
 
-#### Daemon setup notes
+If `pnpm tools-dev` fails:
+1. Ensure `pnpm` is installed: `npm install -g pnpm`
+2. Ensure Node.js ~24 is installed
+3. Try running the daemon directly: `cd apps/daemon && npx tsx src/server.ts`
+4. Check that at least one coding-agent CLI is on your `PATH`: `which claude` or `which codex`
 
-- At least one supported coding-agent CLI must be on your `PATH` (e.g., Claude Code, Codex CLI, Gemini CLI, OpenCode, Cursor Agent)
-- The daemon auto-detects installed agents on startup
-- See `referenceRepos/open-design-main/README.md` for a full list of supported agents
+#### Using the Daemon in Slide Central
+
+1. Start the daemon (see above)
+2. In Slide Central, go to **AI Settings**
+3. Select **Open Design Daemon** as the backend strategy
+4. Save settings
+
+The daemon must be running whenever you use the `daemon` strategy.
 
 ### 3. Direct LLM API (AI Backend — Option B)
 
 For development or when the daemon is not available, Slide Central can call LLM APIs directly.
 
-Go to **Settings** → select **Direct LLM API** → choose a provider and enter your API key.
+Go to **AI Settings** → select **Direct LLM API** → choose a provider and enter your API key.
 
 | Provider | Free Tier | Default Model | Key Needed |
 |----------|-----------|---------------|------------|
@@ -164,12 +179,12 @@ src/
 | Phase | Status | Description |
 |-------|--------|-------------|
 | 1 | Done | Scaffolding, brand tokens, app shell, landing page, settings |
-| 2 | — | Briefing wizard with real inputs |
-| 3 | — | Backend strategy layer + mock implementation |
+| 2 | Done | Briefing wizard with real inputs (context, message, narrative, template) |
+| 3 | Done | Backend strategy layer — mock strategy, strategy registry, prompt assembly, `/api/generate-outline`, `/api/health`, outline display page with inline editing |
 | 4 | — | Daemon backend integration |
 | 5 | — | Direct LLM backend integration |
-| 6 | — | Content editor |
-| 7 | — | Deck building + preview |
+| 6 | — | Content editor (per-slide body content) |
+| 7 | — | Deck building + HTML preview |
 | 8 | — | PPTX export |
 | 9 | — | Polish, persistence, history |
 

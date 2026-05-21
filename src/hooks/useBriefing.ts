@@ -23,7 +23,9 @@ export function useBriefing() {
   const [step, setStep] = useState<number>(1);
   const [briefing, setBriefing] = useState<BriefingData>(makeEmptyBriefing);
   const [deckId, setDeckId] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
+  // Load from localStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -37,9 +39,12 @@ export function useBriefing() {
     } catch {
       // ignore corrupted storage
     }
+    setLoaded(true);
   }, []);
 
+  // Persist briefing — only after loaded (state is real data, not initial empty)
   useEffect(() => {
+    if (!loaded) return;
     try {
       const existing = deckId || crypto.randomUUID();
       if (!deckId) setDeckId(existing);
@@ -58,12 +63,13 @@ export function useBriefing() {
     } catch {
       // ignore
     }
-  }, [briefing, deckId]);
+  }, [loaded, briefing, deckId]);
 
-  // Persist step separately
+  // Persist step — only after loaded
   useEffect(() => {
+    if (!loaded) return;
     localStorage.setItem(STEP_KEY, String(step));
-  }, [step]);
+  }, [loaded, step]);
 
   const setObjective = useCallback((o: Objective) => {
     setBriefing((prev) => ({ ...prev, objective: prev.objective === o ? null : o }));
