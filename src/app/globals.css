@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  /* Primary palette */
+  --color-cpf-green: #045941;
+  --color-cpf-green-deep: #034735;
+  --color-cpf-green-dim: #0b6b50;
+  --color-cpf-mint: #e8f1ed;
+  --color-cpf-paper: #f3f7f4;
+  --color-surface: #ffffff;
+
+  /* Text */
+  --color-fg: #1a1a1a;
+  --color-fg-soft: #3a3a3a;
+  --color-muted: #6b6b6b;
+
+  /* Borders */
+  --color-border: #d6e2dc;
+  --color-border-strong: #b7cdc2;
+
+  /* Secondary palette */
+  --color-pine-green: #134f4e;
+  --color-turquoise: #1aa594;
+  --color-lime: #a5cf4c;
+  --color-orange: #e69324;
+  --color-gold: #ffe07f;
+
+  /* Status colors */
+  --color-success: #a5cf4c;
+  --color-warn: #e69324;
+  --color-danger: #dc2626;
+
+  /* Fonts */
+  --font-display: "Roboto", system-ui, sans-serif;
+  --font-body: "Roboto", system-ui, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--color-fg);
+  background: var(--color-cpf-mint);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
