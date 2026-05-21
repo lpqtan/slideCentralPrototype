@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import type { Objective, Audience, DeckMode, NarrativeArc, LayoutId, BriefingData, SavedDeck } from "@/lib/types";
 
 const STORAGE_KEY = "slidecentral-current-briefing";
+const STEP_KEY = "slidecentral-current-step";
 
 function makeEmptyBriefing(): BriefingData {
   return {
@@ -19,11 +20,10 @@ function makeEmptyBriefing(): BriefingData {
 }
 
 export function useBriefing() {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<number>(1);
   const [briefing, setBriefing] = useState<BriefingData>(makeEmptyBriefing);
   const [deckId, setDeckId] = useState<string | null>(null);
 
-  // Load from localStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -32,12 +32,13 @@ export function useBriefing() {
         setBriefing(parsed.briefing);
         if (parsed.id) setDeckId(parsed.id);
       }
+      const savedStep = localStorage.getItem(STEP_KEY);
+      if (savedStep) setStep(Number(savedStep));
     } catch {
       // ignore corrupted storage
     }
   }, []);
 
-  // Persist on every change
   useEffect(() => {
     try {
       const existing = deckId || crypto.randomUUID();
@@ -59,7 +60,11 @@ export function useBriefing() {
     }
   }, [briefing, deckId]);
 
-  // --- Individual field setters ---
+  // Persist step separately
+  useEffect(() => {
+    localStorage.setItem(STEP_KEY, String(step));
+  }, [step]);
+
   const setObjective = useCallback((o: Objective) => {
     setBriefing((prev) => ({ ...prev, objective: prev.objective === o ? null : o }));
   }, []);
@@ -100,11 +105,17 @@ export function useBriefing() {
     }));
   }, []);
 
+  const setSelectedLayout = useCallback((id: LayoutId | null) => {
+    setBriefing((prev) => ({
+      ...prev,
+      selectedLayouts: id ? [id] : [],
+    }));
+  }, []);
+
   const setSlideCount = useCallback((count: number) => {
     setBriefing((prev) => ({ ...prev, slideCount: count }));
   }, []);
 
-  // --- Validation ---
   const canProceed = useCallback(() => {
     switch (step) {
       case 1:
@@ -114,7 +125,7 @@ export function useBriefing() {
       case 3:
         return briefing.narrativeArc !== null;
       case 4:
-        return true; // always valid, can skip
+        return true;
       default:
         return false;
     }
@@ -133,15 +144,14 @@ export function useBriefing() {
     setStep(Math.max(1, Math.min(4, s)));
   }, []);
 
-  // --- Reset ---
   const reset = useCallback(() => {
     setStep(1);
     setBriefing(makeEmptyBriefing());
     setDeckId(null);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STEP_KEY);
   }, []);
 
-  // --- Submit ---
   const submitBriefing = useCallback(() => {
     return { ...briefing, deckId };
   }, [briefing, deckId]);
@@ -161,6 +171,7 @@ export function useBriefing() {
     setAudienceAsk,
     setNarrativeArc,
     toggleLayout,
+    setSelectedLayout,
     setSlideCount,
     reset,
     submitBriefing,

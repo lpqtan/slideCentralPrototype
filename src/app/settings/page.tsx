@@ -1,32 +1,93 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
-const MOCK_STRATEGIES = [
+const STRATEGIES = [
   { id: "mock", label: "Mock", description: "Hardcoded responses for UI testing" },
   { id: "daemon", label: "Open Design Daemon", description: "localhost:7456 — full AI pipeline" },
   { id: "llm", label: "Direct LLM API", description: "OpenAI / Gemini / Groq / OpenRouter" },
-];
+] as const;
 
-const LLM_PROVIDERS = [
-  { id: "openai", label: "OpenAI", free: false, model: "gpt-4o-mini" },
-  { id: "gemini", label: "Gemini", free: true, model: "gemini-2.0-flash" },
-  { id: "groq", label: "Groq", free: true, model: "llama-3.3-70b" },
-  { id: "openrouter", label: "OpenRouter", free: true, model: "google/gemini-2.0-flash-001" },
-];
+const FREE_PROVIDERS = [
+  { id: "gemini", label: "Gemini", model: "gemini-2.0-flash" },
+  { id: "groq", label: "Groq", model: "llama-3.3-70b" },
+  { id: "openrouter", label: "OpenRouter", model: "google/gemini-2.0-flash-001" },
+] as const;
+
+const BYOK_PROVIDERS = [
+  { id: "openai", label: "OpenAI", model: "gpt-4o-mini" },
+] as const;
+
+interface SettingsState {
+  strategy: string;
+  provider: string;
+  apiKey: string;
+}
+
+const DEFAULT_SETTINGS: SettingsState = {
+  strategy: "mock",
+  provider: "gemini",
+  apiKey: "",
+};
+
+function loadSettings(): SettingsState {
+  try {
+    const raw = localStorage.getItem("slidecentral-settings");
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return DEFAULT_SETTINGS;
+}
 
 export default function SettingsPage() {
-  const [strategy, setStrategy] = useState("mock");
-  const [provider, setProvider] = useState("gemini");
-  const [apiKey, setApiKey] = useState("");
+  const [mounted, setMounted] = useState(false);
+  const [saved, setSaved] = useState<SettingsState>(DEFAULT_SETTINGS);
+  const [strategy, setStrategy] = useState(DEFAULT_SETTINGS.strategy);
+  const [provider, setProvider] = useState(DEFAULT_SETTINGS.provider);
+  const [apiKey, setApiKey] = useState(DEFAULT_SETTINGS.apiKey);
+
+  useEffect(() => {
+    const s = loadSettings();
+    setSaved(s);
+    setStrategy(s.strategy);
+    setProvider(s.provider);
+    setApiKey(s.apiKey);
+    setMounted(true);
+  }, []);
+
+  const hasChanges =
+    strategy !== saved.strategy ||
+    provider !== saved.provider ||
+    apiKey !== saved.apiKey;
+
+  const keyIsSet = saved.apiKey.length > 0;
+  const keyIsPopulated = apiKey.length > 0;
+
+  const save = () => {
+    const next: SettingsState = { strategy, provider, apiKey };
+    localStorage.setItem("slidecentral-settings", JSON.stringify(next));
+    window.location.reload();
+  };
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--color-fg)]">Settings</h1>
-        <p className="mt-1 text-sm text-[var(--color-fg-soft)]">
-          Configure the AI backend and API keys
-        </p>
+      {/* Header with back arrow */}
+      <div className="mb-6 flex items-center gap-4">
+        <Link
+          href="/briefing"
+          className="flex h-8 w-8 items-center justify-center rounded border border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-cpf-green)] hover:text-[var(--color-cpf-green)]"
+          title="Back to current deck"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 3L5 8L10 13" />
+          </svg>
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--color-fg)]">AI Settings</h1>
+          <p className="mt-1 text-sm text-[var(--color-fg-soft)]">
+            Configure the AI backend and provider keys
+          </p>
+        </div>
       </div>
 
       {/* Backend Strategy */}
@@ -35,20 +96,31 @@ export default function SettingsPage() {
           Backend Strategy
         </h2>
         <div className="grid grid-cols-3 gap-3">
-          {MOCK_STRATEGIES.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setStrategy(s.id)}
-              className={`rounded border p-4 text-left transition-colors ${
-                strategy === s.id
-                  ? "border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)]"
-                  : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
-              }`}
-            >
-              <div className="text-sm font-semibold text-[var(--color-fg)]">{s.label}</div>
-              <div className="mt-1 text-xs text-[var(--color-muted)]">{s.description}</div>
-            </button>
-          ))}
+          {STRATEGIES.map((s) => {
+            const isSaved = saved.strategy === s.id;
+            const isSelected = strategy === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setStrategy(s.id)}
+                className={`rounded border p-4 text-left transition-colors ${
+                  isSelected
+                    ? "border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] ring-1 ring-[var(--color-cpf-green)]"
+                    : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-[var(--color-fg)]">{s.label}</span>
+                  {isSaved && mounted && (
+                    <span className="rounded bg-[var(--color-cpf-green)]/15 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-cpf-green)]">
+                      Current
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 text-xs text-[var(--color-muted)]">{s.description}</div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -56,37 +128,89 @@ export default function SettingsPage() {
       {strategy === "llm" && (
         <div className="mb-8 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--color-muted)]">
-            LLM Provider
+            Provider
           </h2>
-          <div className="grid grid-cols-4 gap-3">
-            {LLM_PROVIDERS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setProvider(p.id)}
-                className={`rounded border p-4 text-left transition-colors ${
-                  provider === p.id
-                    ? "border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)]"
-                    : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-[var(--color-fg)]">{p.label}</span>
-                  {p.free && (
-                    <span className="rounded bg-[var(--color-lime)]/20 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-pine-green)]">
-                      FREE
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">{p.model}</div>
-              </button>
-            ))}
+
+          {/* Included (free tier) */}
+          <div className="mb-6">
+            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--color-muted)]">
+              Included
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {FREE_PROVIDERS.map((p) => {
+                const isSaved = saved.strategy === "llm" && saved.provider === p.id;
+                const isSelected = provider === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setProvider(p.id)}
+                    className={`rounded border p-4 text-left transition-colors ${
+                      isSelected
+                        ? "border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] ring-1 ring-[var(--color-cpf-green)]"
+                        : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-[var(--color-fg)]">{p.label}</span>
+                      {isSaved && (
+                        <span className="rounded bg-[var(--color-cpf-green)]/15 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-cpf-green)]">
+                          Current
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">
+                      {p.model}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* BYOK */}
+          <div>
+            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--color-muted)]">
+              Bring Your Own Key
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {BYOK_PROVIDERS.map((p) => {
+                const isSaved = saved.strategy === "llm" && saved.provider === p.id;
+                const isSelected = provider === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setProvider(p.id)}
+                    className={`rounded border p-4 text-left transition-colors ${
+                      isSelected
+                        ? "border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] ring-1 ring-[var(--color-cpf-green)]"
+                        : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-[var(--color-fg)]">{p.label}</span>
+                      {isSaved && (
+                        <span className="rounded bg-[var(--color-cpf-green)]/15 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-cpf-green)]">
+                          Current
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 font-mono text-[10px] text-[var(--color-muted)]">
+                      {p.model}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* API Key */}
-          <div className="mt-4">
+          <div className="mt-5 border-t border-[var(--color-border)] pt-5">
             <label className="mb-1 block text-sm font-medium text-[var(--color-fg-soft)]">
               API Key
             </label>
+            <p className="mb-2 text-xs text-[var(--color-muted)]">
+              Required for BYOK providers. Stored locally in your browser.
+            </p>
             <input
               type="password"
               value={apiKey}
@@ -94,6 +218,19 @@ export default function SettingsPage() {
               placeholder="sk-..."
               className="w-full rounded border border-[var(--color-border)] bg-[var(--color-cpf-paper)] px-3 py-2 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-cpf-green)] focus:outline-none"
             />
+            {keyIsSet && (
+              <div className="mt-2 flex items-center gap-2 text-xs">
+                <div className="h-2 w-2 rounded-full bg-[var(--color-cpf-green)]" />
+                <span className="text-[var(--color-cpf-green)]">
+                  Key saved
+                </span>
+              </div>
+            )}
+            {!keyIsSet && keyIsPopulated && (
+              <div className="mt-2 text-xs text-[var(--color-orange)]">
+                Save to store this key
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -116,17 +253,25 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Save */}
-      <button
-        onClick={() => {
-          const settings = { strategy, provider, apiKey };
-          localStorage.setItem("slidecentral-settings", JSON.stringify(settings));
-          alert("Settings saved to localStorage");
-        }}
-        className="self-end rounded bg-[var(--color-cpf-green)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)]"
-      >
-        Save Settings
-      </button>
+      {/* Save area */}
+      <div className="flex items-center justify-between self-end">
+        {hasChanges ? (
+          <span className="mr-4 text-xs text-[var(--color-orange)]">
+            Unsaved changes
+          </span>
+        ) : (
+          <span className="mr-4 text-xs text-[var(--color-cpf-green)]">
+            Up to date
+          </span>
+        )}
+        <button
+          onClick={save}
+          disabled={!hasChanges}
+          className="rounded bg-[var(--color-cpf-green)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Save Settings
+        </button>
+      </div>
 
       {/* Brand bar */}
       <div className="mt-auto flex items-center gap-2 pt-8">

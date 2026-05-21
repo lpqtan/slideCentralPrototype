@@ -42,34 +42,43 @@ export default function StepNarrative({ arc, onChange }: StepNarrativeProps) {
               </p>
 
               {/* Arc sequence visual */}
-              <div className="mt-4 flex items-center gap-1">
-                {narr.sequence.map((step, i) => (
-                  <div key={i} className="flex flex-1 items-center">
-                    <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                        isSelected
-                          ? "bg-[var(--color-cpf-green)] text-white"
-                          : "bg-[var(--color-border)] text-[var(--color-muted)]"
-                      }`}
-                    >
-                      {i + 1}
+              <div className="mt-4 flex items-center">
+                {narr.sequence.map((stepLabel, i) => {
+                  const isFirst = i === 0;
+                  const isLast = i === narr.sequence.length - 1;
+                  return (
+                    <div key={i} className="flex flex-1 flex-col items-center">
+                      <div className="flex w-full items-center">
+                        <div
+                          className={`h-[2px] flex-1 rounded-full ${
+                            isFirst ? "invisible" : ""
+                          } ${
+                            isSelected ? "bg-[var(--color-cpf-green)]" : "bg-[var(--color-border)]"
+                          }`}
+                        />
+                        <div
+                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                            isSelected
+                              ? "bg-[var(--color-cpf-green)] text-white"
+                              : "bg-[var(--color-border)] text-[var(--color-muted)]"
+                          }`}
+                        >
+                          {i + 1}
+                        </div>
+                        <div
+                          className={`h-[2px] flex-1 rounded-full ${
+                            isLast ? "invisible" : ""
+                          } ${
+                            isSelected ? "bg-[var(--color-cpf-green)]" : "bg-[var(--color-border)]"
+                          }`}
+                        />
+                      </div>
+                      <span className="mt-1 text-center text-[10px] leading-tight text-[var(--color-muted)]">
+                        {stepLabel}
+                      </span>
                     </div>
-                    {i < narr.sequence.length - 1 && (
-                      <div
-                        className={`mx-1 h-[2px] flex-1 rounded-full ${
-                          isSelected ? "bg-[var(--color-cpf-green)]" : "bg-[var(--color-border)]"
-                        }`}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-2 flex gap-1">
-                {narr.sequence.map((step, i) => (
-                  <div key={i} className="flex-1 text-center text-[10px] text-[var(--color-muted)]">
-                    {step}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </button>
           );

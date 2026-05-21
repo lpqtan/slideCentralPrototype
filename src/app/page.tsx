@@ -1,8 +1,17 @@
 "use client";
 
-import Link from "next/link";
+import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
+  const router = useRouter();
+
+  const startNewDeck = useCallback(() => {
+    localStorage.removeItem("slidecentral-current-briefing");
+    localStorage.removeItem("slidecentral-current-step");
+    router.push("/briefing");
+  }, [router]);
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-10 py-20">
       {/* Brand header */}
@@ -36,12 +45,12 @@ export default function HomePage() {
       </div>
 
       {/* CTA */}
-      <Link
-        href="/briefing"
+      <button
+        onClick={startNewDeck}
         className="rounded bg-[var(--color-cpf-green)] px-8 py-3 text-lg font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)]"
       >
         Start New Deck
-      </Link>
+      </button>
 
       {/* Saved decks placeholder */}
       <div className="mt-8 w-full max-w-2xl rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">

@@ -1,15 +1,21 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useBriefing } from "@/hooks/useBriefing";
+import { useDeckStore } from "@/hooks/useDeckStore";
 import StepIndicator from "@/components/shared/StepIndicator";
 import StepContext from "@/components/wizard/StepContext";
 import StepMessage from "@/components/wizard/StepMessage";
 import StepNarrative from "@/components/wizard/StepNarrative";
 import StepTemplate from "@/components/wizard/StepTemplate";
+import type { SlideOutline } from "@/lib/types";
 
 const STEP_LABELS = ["Context", "Message", "Narrative", "Template"];
 
 export default function BriefingPage() {
+  const router = useRouter();
+  const { save } = useDeckStore();
   const {
     step,
     briefing,
@@ -22,16 +28,62 @@ export default function BriefingPage() {
     setKeyMessage,
     setAudienceAsk,
     setNarrativeArc,
-    toggleLayout,
+    setSelectedLayout,
     setSlideCount,
     reset,
     submitBriefing,
   } = useBriefing();
 
-  const handleGenerate = () => {
-    const data = submitBriefing();
-    console.log("Briefing submitted:", data);
-    // In Phase 3: call the generation API
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setError("");
+
+    try {
+      // Read settings from localStorage
+      const settingsRaw = localStorage.getItem("slidecentral-settings");
+      const settings = settingsRaw ? JSON.parse(settingsRaw) : { strategy: "mock" };
+
+      const data = submitBriefing();
+      const currentDeckId = data.deckId ?? crypto.randomUUID();
+
+      const res = await fetch("/api/generate-outline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          briefing: data,
+          strategy: settings.strategy ?? "mock",
+          provider: settings.provider,
+          apiKey: settings.apiKey,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to generate outline");
+
+      const outline = json.outline as SlideOutline[];
+
+      // Save to deck store
+      save({
+        id: currentDeckId,
+        name: data.keyMessage.slice(0, 60),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        briefing: data,
+        outline,
+        slides: null,
+        htmlContent: null,
+        status: "outline",
+      });
+
+      router.push(`/outline?deckId=${encodeURIComponent(currentDeckId)}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -58,6 +110,11 @@ export default function BriefingPage() {
 
       {/* Step content */}
       <div className="flex min-h-[400px] flex-col rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:p-8">
+        {error && (
+          <div className="mb-4 rounded border border-[var(--color-orange)]/50 bg-[var(--color-orange)]/10 p-3 text-xs text-[var(--color-orange)]">
+            {error}
+          </div>
+        )}
         {step === 1 && (
           <StepContext
             objective={briefing.objective}
@@ -82,7 +139,10 @@ export default function BriefingPage() {
           <StepNarrative arc={briefing.narrativeArc} onChange={setNarrativeArc} />
         )}
         {step === 4 && (
-          <StepTemplate selected={briefing.selectedLayouts} onToggle={toggleLayout} />
+          <StepTemplate
+            selected={briefing.selectedLayouts[0] ?? null}
+            onSelect={setSelectedLayout}
+          />
         )}
       </div>
 
@@ -96,15 +156,7 @@ export default function BriefingPage() {
           Back
         </button>
 
-        <div className="flex gap-3">
-          {step === 4 && (
-            <button
-              onClick={handleGenerate}
-              className="rounded border border-[var(--color-border)] px-5 py-2 text-sm font-medium text-[var(--color-fg-soft)] transition-colors hover:bg-[var(--color-cpf-mint)]"
-            >
-              Skip
-            </button>
-          )}
+        <div>
           {step < 4 ? (
             <button
               onClick={nextStep}
@@ -116,9 +168,10 @@ export default function BriefingPage() {
           ) : (
             <button
               onClick={handleGenerate}
-              className="rounded bg-[var(--color-cpf-green)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)]"
+              disabled={generating}
+              className="rounded bg-[var(--color-cpf-green)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)] disabled:cursor-wait disabled:opacity-60"
             >
-              Generate Outline
+              {generating ? "Generating..." : "Generate Outline"}
             </button>
           )}
         </div>

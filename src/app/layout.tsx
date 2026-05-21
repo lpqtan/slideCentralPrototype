@@ -39,16 +39,10 @@ export default function RootLayout({
             </Link>
             <nav className="flex items-center gap-4">
               <Link
-                href="/briefing"
-                className="text-sm text-[var(--color-fg-soft)] transition-colors hover:text-[var(--color-cpf-green)]"
-              >
-                New Deck
-              </Link>
-              <Link
                 href="/settings"
                 className="rounded border border-[var(--color-border)] px-3 py-1 text-sm font-medium text-[var(--color-fg-soft)] transition-colors hover:border-[var(--color-cpf-green)]"
               >
-                Settings
+                AI Settings
               </Link>
             </nav>
           </div>

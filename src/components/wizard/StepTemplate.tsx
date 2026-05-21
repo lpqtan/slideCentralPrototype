@@ -1,84 +1,69 @@
 "use client";
 
-import { LAYOUTS } from "@/lib/layouts";
 import type { LayoutId } from "@/lib/types";
 
+const PRESET_DECKS = [
+  {
+    id: "cpf" as LayoutId,
+    name: "CPF Theme",
+    description: "Standard CPF corporate deck with branded layouts, design bars, motif, and slide counter footer",
+    count: 16,
+  },
+  {
+    id: "business" as LayoutId,
+    name: "Business Theme",
+    description: "Clean business presentation with data-focused layouts for reporting and proposals",
+    count: 12,
+  },
+];
+
 interface StepTemplateProps {
-  selected: LayoutId[];
-  onToggle: (id: LayoutId) => void;
+  selected: LayoutId | null;
+  onSelect: (id: LayoutId | null) => void;
 }
 
-export default function StepTemplate({ selected, onToggle }: StepTemplateProps) {
-  const toggleSelectAll = () => {
-    if (selected.length === LAYOUTS.length) {
-      // Deselect all
-    } else {
-      selected.forEach((id) => onToggle(id));
-    }
-  };
-
-  const allSelected = selected.length === LAYOUTS.length;
-
+export default function StepTemplate({ selected, onSelect }: StepTemplateProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-[var(--color-muted)]">
-            Preset Templates
-          </label>
-          <p className="text-xs text-[var(--color-muted)]">
-            Select layouts to include. Leave all unselected to let the AI choose freely.
-            <br />
-            This step is optional — you can skip it.
-          </p>
-        </div>
-        <button
-          onClick={toggleSelectAll}
-          className="shrink-0 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:border-[var(--color-cpf-green)]"
-        >
-          {allSelected ? "Deselect All" : "Select All"}
-        </button>
+      <div>
+        <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-[var(--color-muted)]">
+          Preset Slide Decks
+        </label>
+        <p className="text-xs text-[var(--color-muted)]">
+          Optionally start from a preset deck. The AI will adapt it to your content.
+          Leave unselected to let the AI build freely.
+        </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {LAYOUTS.map((layout) => {
-          const isSelected = selected.includes(layout.id);
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {PRESET_DECKS.map((deck) => {
+          const isSelected = selected === deck.id;
           return (
             <button
-              key={layout.id}
-              onClick={() => onToggle(layout.id)}
-              className={`rounded border p-3 text-left transition-colors ${
+              key={deck.id}
+              onClick={() => onSelect(isSelected ? null : deck.id)}
+              className={`rounded border p-5 text-left transition-colors ${
                 isSelected
                   ? "border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] ring-1 ring-[var(--color-cpf-green)]"
                   : "border-[var(--color-border)] bg-[var(--color-cpf-paper)] hover:border-[var(--color-border-strong)]"
               }`}
             >
-              {/* Mini preview placeholder */}
-              <div
-                className={`mb-2 flex h-16 items-center justify-center rounded border text-[9px] font-medium uppercase tracking-wider ${
-                  layout.dark
-                    ? "border-transparent bg-[var(--color-cpf-green)] text-[var(--color-cpf-mint)]"
-                    : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)]"
-                }`}
-              >
-                {layout.dark ? "Dark" : "Light"}
-                {layout.dark && <div className="ml-1 h-2 w-2 rounded-full bg-white/30" />}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-[var(--color-fg)]">{deck.name}</span>
+                <span className="shrink-0 rounded-full bg-[var(--color-border)] px-2 py-0.5 font-mono text-[10px] text-[var(--color-muted)]">
+                  {deck.count} slides
+                </span>
               </div>
-              <span className="block text-xs font-semibold text-[var(--color-fg)]">
-                {layout.name}
-              </span>
-              <span className="mt-0.5 block text-[10px] text-[var(--color-muted)]">
-                {layout.useCases[0]}
-              </span>
+              <p className="mt-2 text-xs text-[var(--color-muted)]">{deck.description}</p>
             </button>
           );
         })}
       </div>
 
       <div className="text-center text-xs text-[var(--color-muted)]">
-        {selected.length === 0
-          ? "No templates selected — AI will choose layouts freely"
-          : `${selected.length} of ${LAYOUTS.length} layouts selected`}
+        {selected === null
+          ? "No preset selected — AI will build from scratch"
+          : "1 preset selected"}
       </div>
     </div>
   );
