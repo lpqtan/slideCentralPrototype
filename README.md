@@ -80,7 +80,7 @@ cd referenceRepos/open-design-main
 pnpm install
 
 # Start the daemon and web app
-pnpm tools-dev
+pnpm tools-dev start web --daemon-port 7456
 ```
 
 The daemon listens at **http://localhost:7456**. Verify:

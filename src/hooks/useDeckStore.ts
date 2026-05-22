@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { SavedDeck, SlideOutline, SlideContent } from "@/lib/types";
+import type { SavedDeck, SlideOutline, SlideContent, GenerationSource } from "@/lib/types";
 
 const DECKS_KEY = "slidecentral-decks";
 
@@ -37,13 +37,14 @@ export function useDeckStore() {
     saveDecks(decks);
   }, []);
 
-  const updateOutline = useCallback((id: string, outline: SlideOutline[]) => {
+  const updateOutline = useCallback((id: string, outline: SlideOutline[], source?: GenerationSource) => {
     const decks = loadDecks();
     const idx = decks.findIndex((d) => d.id === id);
     if (idx >= 0) {
       decks[idx] = {
         ...decks[idx],
         outline,
+        source: source ?? decks[idx].source,
         status: "outline",
         updatedAt: Date.now(),
       };

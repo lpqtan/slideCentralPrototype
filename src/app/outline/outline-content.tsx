@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useDeckStore } from "@/hooks/useDeckStore";
-import type { SlideOutline } from "@/lib/types";
+import type { SlideOutline, GenerationSource } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
 
 interface EditableSlide extends SlideOutline {
@@ -15,13 +15,19 @@ function getLayoutName(id: string): string {
   return LAYOUTS.find((l) => l.id === id)?.name ?? id;
 }
 
-function loadSettings(): { strategy: string; provider: string; apiKey: string } {
-  try {
-    const raw = localStorage.getItem("slidecentral-settings");
-    return raw ? JSON.parse(raw) : { strategy: "mock", provider: "gemini", apiKey: "" };
-  } catch {
-    return { strategy: "mock", provider: "gemini", apiKey: "" };
+function sourceLabel(s: GenerationSource): string {
+  if (s.strategy === "mock") return "Mock";
+  if (s.strategy === "daemon" && s.agent) {
+    const name = s.agent.charAt(0).toUpperCase() + s.agent.slice(1);
+    const model = s.model ? ` (${s.model})` : "";
+    return `${name}${model} via Daemon`;
   }
+  if (s.strategy === "daemon") return "Daemon";
+  return s.strategy;
+}
+
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function OutlineContent() {
@@ -31,6 +37,7 @@ export default function OutlineContent() {
   const { getById, updateOutline } = useDeckStore();
 
   const [slides, setSlides] = useState<EditableSlide[]>([]);
+  const [source, setSource] = useState<GenerationSource | null>(null);
   const [editingField, setEditingField] = useState<{ slide: number; field: "title" | "prompt" } | null>(null);
   const [editValue, setEditValue] = useState("");
 
@@ -41,7 +48,6 @@ export default function OutlineContent() {
   // Regenerate state
   const [showRegenPrompt, setShowRegenPrompt] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState("");
-  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
     if (!deckId) {
@@ -56,6 +62,7 @@ export default function OutlineContent() {
           locked: false,
         }))
       );
+      setSource(deck.source ?? null);
     }
   }, [deckId, getById, router]);
 
@@ -175,60 +182,19 @@ export default function OutlineContent() {
 
   // --- Regenerate ---
 
-  const handleRegenerate = async () => {
-    setRegenerating(true);
-    try {
-      const deck = deckId ? getById(deckId) : undefined;
-      if (!deck) return;
+  const handleRegenerate = () => {
+    if (!deckId || !regenPrompt.trim()) return;
 
-      const lockedIds = slides.filter((s) => s.locked).map((s) => s.slideNumber);
-      const settings = loadSettings();
+    // Store locked slide numbers so the generating page can use them
+    const lockedIds = slides.filter((s) => s.locked).map((s) => s.slideNumber);
+    localStorage.setItem(
+      "slidecentral-regeneration-ctx",
+      JSON.stringify({ lockedSlideNumbers: lockedIds })
+    );
 
-      const res = await fetch("/api/generate-outline", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          briefing: deck.briefing,
-          strategy: settings.strategy ?? "mock",
-          provider: settings.provider,
-          apiKey: settings.apiKey,
-          existingOutline: slides,
-          lockedSlideNumbers: lockedIds,
-          regenerationPrompt: regenPrompt.trim() || undefined,
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Regeneration failed");
-
-      const newOutline = json.outline as SlideOutline[];
-
-      // Merge: keep locked slides exactly, fill unlocked positions with new content
-      let newIdx = 0;
-      const merged = slides.map((existing) => {
-        if (existing.locked) return existing;
-        const replacement = newOutline[newIdx++];
-        if (replacement) {
-          return {
-            ...existing,
-            title: replacement.title,
-            contentPrompt: replacement.contentPrompt,
-            suggestedLayout: replacement.suggestedLayout,
-            estimatedMinutes: replacement.estimatedMinutes,
-          };
-        }
-        return existing;
-      });
-
-      setSlides(merged);
-      persist(merged);
-      setRegenPrompt("");
-      setShowRegenPrompt(false);
-    } catch (err) {
-      console.error("Regeneration failed:", err);
-    } finally {
-      setRegenerating(false);
-    }
+    router.push(
+      `/generating?deckId=${encodeURIComponent(deckId)}&regenerationPrompt=${encodeURIComponent(regenPrompt.trim())}`
+    );
   };
 
   // --- Computed ---
@@ -259,8 +225,24 @@ export default function OutlineContent() {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--color-fg)]">Slide Outline</h1>
-          <p className="mt-1 text-sm text-[var(--color-fg-soft)]">
-            {slides.length} slides · ~{estimatedMinutes} min · {lockedCount} locked
+          <p className="mt-1 flex items-center gap-3 text-sm text-[var(--color-fg-soft)]">
+            <span>
+              {slides.length} slides · ~{estimatedMinutes} min · {lockedCount} locked
+            </span>
+            {source && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                  source.strategy === "mock"
+                    ? "border-[var(--color-border)] bg-[var(--color-border)]/30 text-[var(--color-muted)]"
+                    : "border-[var(--color-cpf-green)]/30 bg-[var(--color-cpf-green)]/10 text-[var(--color-cpf-green)]"
+                }`}
+              >
+                {source.strategy === "daemon" ? (
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-cpf-green)]" />
+                ) : null}
+                {sourceLabel(source)} @ {formatTime(source.timestamp)}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -314,10 +296,10 @@ export default function OutlineContent() {
             />
             <button
               onClick={handleRegenerate}
-              disabled={regenerating}
-              className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)] disabled:cursor-wait disabled:opacity-60"
+              disabled={!regenPrompt.trim()}
+              className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)] disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {regenerating ? "Regenerating..." : "Regenerate"}
+              Regenerate
             </button>
             <button
               onClick={() => {
@@ -465,6 +447,18 @@ export default function OutlineContent() {
           </div>
         ))}
       </div>
+
+      {/* Debug: Raw output */}
+      {source?.rawOutput && (
+        <details className="mt-6 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+          <summary className="cursor-pointer text-xs font-medium text-[var(--color-muted)] hover:text-[var(--color-fg-soft)]">
+            Debug: Raw Output
+          </summary>
+          <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
+            {source.rawOutput}
+          </pre>
+        </details>
+      )}
 
       {/* Brand bar */}
       <div className="mt-auto flex items-center gap-2 pt-8">

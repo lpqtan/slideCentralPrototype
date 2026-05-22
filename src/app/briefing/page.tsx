@@ -9,7 +9,6 @@ import StepContext from "@/components/wizard/StepContext";
 import StepMessage from "@/components/wizard/StepMessage";
 import StepNarrative from "@/components/wizard/StepNarrative";
 import StepTemplate from "@/components/wizard/StepTemplate";
-import type { SlideOutline } from "@/lib/types";
 
 const STEP_LABELS = ["Context", "Message", "Narrative", "Template"];
 
@@ -41,49 +40,24 @@ export default function BriefingPage() {
     setGenerating(true);
     setError("");
 
-    try {
-      // Read settings from localStorage
-      const settingsRaw = localStorage.getItem("slidecentral-settings");
-      const settings = settingsRaw ? JSON.parse(settingsRaw) : { strategy: "mock" };
+    const data = submitBriefing();
+    const currentDeckId = data.deckId ?? crypto.randomUUID();
 
-      const data = submitBriefing();
-      const currentDeckId = data.deckId ?? crypto.randomUUID();
+    // Save the briefing data so the generating page can read it
+    save({
+      id: currentDeckId,
+      name: data.keyMessage.slice(0, 60),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      briefing: data,
+      outline: null,
+      slides: null,
+      htmlContent: null,
+      source: null,
+      status: "briefing",
+    });
 
-      const res = await fetch("/api/generate-outline", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          briefing: data,
-          strategy: settings.strategy ?? "mock",
-          provider: settings.provider,
-          apiKey: settings.apiKey,
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to generate outline");
-
-      const outline = json.outline as SlideOutline[];
-
-      // Save to deck store
-      save({
-        id: currentDeckId,
-        name: data.keyMessage.slice(0, 60),
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        briefing: data,
-        outline,
-        slides: null,
-        htmlContent: null,
-        status: "outline",
-      });
-
-      router.push(`/outline?deckId=${encodeURIComponent(currentDeckId)}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setGenerating(false);
-    }
+    router.push(`/generating?deckId=${encodeURIComponent(currentDeckId)}`);
   };
 
   return (

@@ -1,6 +1,24 @@
 import { NextResponse } from "next/server";
 import { getStrategy } from "@/lib/strategies/registry";
-import type { BriefingData, SlideOutline } from "@/lib/types";
+import { findAgent, streamChat } from "@/lib/strategies/daemon";
+import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts";
+import type { BriefingData, SlideOutline, GenerationSource } from "@/lib/types";
+
+function extractJson(text: string): SlideOutline[] {
+  const jsonMatch = text.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    throw new Error("No JSON array found in daemon output");
+  }
+  try {
+    return JSON.parse(jsonMatch[0]) as SlideOutline[];
+  } catch {
+    const cleaned = jsonMatch[0]
+      .replace(/\/\/.*$/gm, "")
+      .replace(/,\s*\]/g, "]")
+      .replace(/,\s*\}/g, "}");
+    return JSON.parse(cleaned) as SlideOutline[];
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +28,7 @@ export async function POST(request: Request) {
       strategy,
       provider,
       apiKey,
+      model,
       existingOutline,
       lockedSlideNumbers,
       regenerationPrompt,
@@ -18,6 +37,7 @@ export async function POST(request: Request) {
       strategy: string;
       provider?: string;
       apiKey?: string;
+      model?: string;
       existingOutline?: SlideOutline[];
       lockedSlideNumbers?: number[];
       regenerationPrompt?: string;
@@ -27,31 +47,54 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing briefing data" }, { status: 400 });
     }
 
-    const backend = getStrategy(strategy ?? "mock");
+    const activeStrategy = strategy ?? "mock";
+    let outline: SlideOutline[];
+    let rawOutput: string | undefined;
+    const source: GenerationSource = {
+      strategy: activeStrategy,
+      timestamp: Date.now(),
+    };
 
-    let outline = await backend.generateOutline(briefing, {
-      provider,
-      apiKey,
-    });
+    if (activeStrategy === "daemon") {
+      // Use daemon directly to capture raw output
+      const agentId = provider ?? (await findAgent());
+      source.agent = agentId;
+      source.model = model ?? "deepseek-chat";
+      const systemPrompt =
+        buildSystemPrompt() +
+        "\n\nIMPORTANT: Return ONLY a JSON array. No markdown, no explanation.";
+      const userPrompt = buildUserPrompt(briefing);
 
-    // If regenerating with a prompt, modify the outline slightly
+      rawOutput = await streamChat(agentId, userPrompt, systemPrompt);
+      outline = extractJson(rawOutput);
+    } else {
+      const backend = getStrategy(activeStrategy);
+      outline = await backend.generateOutline(briefing, { provider, apiKey });
+    }
+
+    // If regenerating with a prompt, modify the outline
     if (regenerationPrompt && existingOutline) {
       const locked = new Set(lockedSlideNumbers ?? []);
       outline = outline.map((slide) => {
-        const existing = existingOutline.find((s) => s.slideNumber === slide.slideNumber);
+        const existing = existingOutline.find(
+          (s) => s.slideNumber === slide.slideNumber
+        );
         if (existing && locked.has(existing.slideNumber)) {
           return existing;
         }
-        // Vary the content prompt based on the regeneration prompt
         return {
           ...slide,
           contentPrompt:
-            `${slide.contentPrompt} (refined: ${regenerationPrompt.slice(0, 40)}...)`,
+            activeStrategy === "mock"
+              ? `${slide.contentPrompt} (refined: ${regenerationPrompt.slice(0, 40)}...)`
+              : slide.contentPrompt,
         };
       });
     }
 
-    return NextResponse.json({ outline });
+    source.rawOutput = rawOutput;
+
+    return NextResponse.json({ outline, source });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });

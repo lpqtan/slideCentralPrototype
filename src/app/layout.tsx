@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import DaemonStatusPill from "@/components/shared/DaemonStatusPill";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ export default function RootLayout({
               </span>
             </Link>
             <nav className="flex items-center gap-4">
+              <DaemonStatusPill />
               <Link
                 href="/settings"
                 className="rounded border border-[var(--color-border)] px-3 py-1 text-sm font-medium text-[var(--color-fg-soft)] transition-colors hover:border-[var(--color-cpf-green)]"

@@ -19,16 +19,43 @@ const BYOK_PROVIDERS = [
   { id: "openai", label: "OpenAI", model: "gpt-4o-mini" },
 ] as const;
 
+const DAEMON_AGENTS = [
+  { id: "opencode", label: "OpenCode", description: "Open source coding agent" },
+  { id: "claude", label: "Claude Code", description: "Anthropic's coding agent" },
+  { id: "codex", label: "Codex CLI", description: "OpenAI's coding agent" },
+  { id: "gemini", label: "Gemini CLI", description: "Google's coding agent" },
+  { id: "cursor-agent", label: "Cursor Agent", description: "Cursor's coding agent" },
+  { id: "qwen", label: "Qwen Code", description: "Alibaba's coding agent" },
+  { id: "opencode", label: "OpenCode", description: "Default — open source coding agent" },
+] as const;
+
+// Deduplicate by id
+const DAEMON_AGENTS_UNIQUE = DAEMON_AGENTS.filter(
+  (a, i, arr) => arr.findIndex((x) => x.id === a.id) === i
+);
+
+const FREE_MODELS = [
+  { id: "deepseek-chat", label: "DeepSeek V3", description: "Free — general purpose" },
+  { id: "deepseek-r1", label: "DeepSeek R1", description: "Free — reasoning" },
+  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", description: "Free tier — fast" },
+  { id: "llama-3.3-70b", label: "Llama 3.3 70B", description: "Free — Meta" },
+  { id: "qwen-max", label: "Qwen Max", description: "Free — Alibaba" },
+] as const;
+
 interface SettingsState {
   strategy: string;
   provider: string;
   apiKey: string;
+  daemonAgent: string;
+  daemonModel: string;
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
   strategy: "mock",
   provider: "gemini",
   apiKey: "",
+  daemonAgent: "opencode",
+  daemonModel: "deepseek-chat",
 };
 
 function loadSettings(): SettingsState {
@@ -45,6 +72,19 @@ export default function SettingsPage() {
   const [strategy, setStrategy] = useState(DEFAULT_SETTINGS.strategy);
   const [provider, setProvider] = useState(DEFAULT_SETTINGS.provider);
   const [apiKey, setApiKey] = useState(DEFAULT_SETTINGS.apiKey);
+  const [daemonAgent, setDaemonAgent] = useState(DEFAULT_SETTINGS.daemonAgent);
+  const [daemonModel, setDaemonModel] = useState(DEFAULT_SETTINGS.daemonModel);
+
+  const [daemonStatus, setDaemonStatus] = useState<"checking" | "up" | "down">("checking");
+  const [daemonError, setDaemonError] = useState("");
+
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    output?: string;
+    durationMs?: number;
+    error?: string;
+  } | null>(null);
 
   useEffect(() => {
     const s = loadSettings();
@@ -52,19 +92,49 @@ export default function SettingsPage() {
     setStrategy(s.strategy);
     setProvider(s.provider);
     setApiKey(s.apiKey);
+    setDaemonAgent(s.daemonAgent ?? "opencode");
+    setDaemonModel(s.daemonModel ?? "deepseek-chat");
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    setDaemonStatus("checking");
+    setDaemonError("");
+    const controller = new AbortController();
+    fetch("/api/health", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ strategy: "daemon" }),
+      signal: controller.signal,
+    })
+      .then((r) => r.json())
+      .then((data: { healthy: boolean }) => {
+        if (!controller.signal.aborted) {
+          setDaemonStatus(data.healthy ? "up" : "down");
+        }
+      })
+      .catch((err: Error) => {
+        if (!controller.signal.aborted) {
+          setDaemonStatus("down");
+          setDaemonError(err.message ?? "Cannot reach daemon");
+        }
+      });
+    return () => controller.abort();
+  }, [mounted]);
 
   const hasChanges =
     strategy !== saved.strategy ||
     provider !== saved.provider ||
-    apiKey !== saved.apiKey;
+    apiKey !== saved.apiKey ||
+    daemonAgent !== (saved.daemonAgent ?? "opencode") ||
+    daemonModel !== (saved.daemonModel ?? "deepseek-chat");
 
   const keyIsSet = saved.apiKey.length > 0;
   const keyIsPopulated = apiKey.length > 0;
 
   const save = () => {
-    const next: SettingsState = { strategy, provider, apiKey };
+    const next: SettingsState = { strategy, provider, apiKey, daemonAgent, daemonModel };
     localStorage.setItem("slidecentral-settings", JSON.stringify(next));
     window.location.reload();
   };
@@ -231,26 +301,209 @@ export default function SettingsPage() {
                 Save to store this key
               </div>
             )}
+            </div>
+
+            {/* Model selector */}
+            <div className="border-t border-[var(--color-border)] pt-4">
+              <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--color-muted)]">
+                Model
+              </h3>
+              <p className="mb-3 text-[10px] text-[var(--color-muted)]">
+                Choose which model the agent uses. All listed models are free tier.
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {FREE_MODELS.map((m) => {
+                  const isSaved = saved.strategy === "daemon" && saved.daemonModel === m.id;
+                  const isSelected = daemonModel === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => setDaemonModel(m.id)}
+                      className={`rounded border p-3 text-left transition-colors ${
+                        isSelected
+                          ? "border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] ring-1 ring-[var(--color-cpf-green)]"
+                          : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[var(--color-fg)]">{m.label}</span>
+                        {isSaved && mounted && (
+                          <span className="rounded bg-[var(--color-cpf-green)]/15 px-1 py-0.5 text-[9px] font-medium text-[var(--color-cpf-green)]">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-[var(--color-muted)]">{m.description}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Test Connection */}
+            <div className="mt-4 border-t border-[var(--color-border)] pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-medium text-[var(--color-fg-soft)]">
+                    Test Connection
+                  </h3>
+                  <p className="mt-0.5 text-[10px] text-[var(--color-muted)]">
+                    Sends a simple prompt through the daemon to verify the agent works.
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setTesting(true);
+                    setTestResult(null);
+                    try {
+                      const res = await fetch("/api/test-daemon", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ agentId: daemonAgent }),
+                      });
+                      const data = await res.json() as {
+                        success: boolean;
+                        output?: string;
+                        agent?: string;
+                        durationMs?: number;
+                        error?: string;
+                      };
+                      setTestResult({
+                        success: data.success,
+                        output: data.output,
+                        durationMs: data.durationMs,
+                        error: data.error,
+                      });
+                    } catch (err) {
+                      setTestResult({
+                        success: false,
+                        error: err instanceof Error ? err.message : "Request failed",
+                      });
+                    } finally {
+                      setTesting(false);
+                    }
+                  }}
+                  disabled={testing}
+                  className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:border-[var(--color-cpf-green)] disabled:cursor-wait disabled:opacity-60"
+                >
+                  {testing ? "Testing..." : "Test Connection"}
+                </button>
+              </div>
+
+              {testResult && (
+                <div
+                  className={`mt-3 rounded border p-3 text-xs ${
+                    testResult.success
+                      ? "border-[var(--color-cpf-green)]/40 bg-[var(--color-cpf-mint)]"
+                      : "border-red-300 bg-red-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={
+                        testResult.success ? "text-[var(--color-cpf-green)]" : "text-red-600"
+                      }
+                    >
+                      {testResult.success ? "Test passed" : "Test failed"}
+                    </span>
+                    {testResult.durationMs != null && (
+                      <span className="text-[var(--color-muted)]">
+                        in {(testResult.durationMs / 1000).toFixed(1)}s
+                      </span>
+                    )}
+                  </div>
+                  {testResult.output && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-[var(--color-muted)] hover:text-[var(--color-fg-soft)]">
+                        Raw output
+                      </summary>
+                      <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-surface)] p-2 font-mono text-[10px] text-[var(--color-fg)] border border-[var(--color-border)]">
+                        {testResult.output}
+                      </pre>
+                    </details>
+                  )}
+                  {testResult.error && (
+                    <p className="mt-1 text-red-500">{testResult.error}</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
       )}
 
-      {/* Daemon Status (shown when daemon strategy selected) */}
+      {/* Daemon + Agent (shown when daemon strategy selected) */}
       {strategy === "daemon" && (
-        <div className="mb-8 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--color-muted)]">
-            Daemon Status
-          </h2>
-          <div className="flex items-center gap-3">
-            <div className="h-3 w-3 rounded-full bg-[var(--color-muted)]" />
-            <span className="text-sm text-[var(--color-muted)]">
-              Daemon status check available in Phase 3
-            </span>
+        <>
+          {/* Daemon agent picker */}
+          <div className="mb-8 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--color-muted)]">
+              Coding Agent
+            </h2>
+            <p className="mb-3 text-xs text-[var(--color-muted)]">
+              The daemon spawns this agent to read your files and generate slides.
+              Must be installed and on your <code className="rounded bg-[var(--color-cpf-mint)] px-1 py-0.5 font-mono text-[10px]">PATH</code>.
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {DAEMON_AGENTS_UNIQUE.map((a) => {
+                const isSaved = saved.strategy === "daemon" && saved.daemonAgent === a.id;
+                const isSelected = daemonAgent === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => setDaemonAgent(a.id)}
+                    className={`rounded border p-4 text-left transition-colors ${
+                      isSelected
+                        ? "border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] ring-1 ring-[var(--color-cpf-green)]"
+                        : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-[var(--color-fg)]">{a.label}</span>
+                      {isSaved && mounted && (
+                        <span className="rounded bg-[var(--color-cpf-green)]/15 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-cpf-green)]">
+                          Current
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--color-muted)]">{a.description}</div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <p className="mt-2 text-xs text-[var(--color-muted)]">
-            The Open Design daemon should be running at localhost:7456
-          </p>
-        </div>
+
+          {/* Daemon Status */}
+          <div className="mb-8 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--color-muted)]">
+              Daemon Status
+            </h2>
+            <div className="flex items-center gap-3">
+              <div
+                className={`h-3 w-3 rounded-full ${
+                  daemonStatus === "checking"
+                    ? "bg-[var(--color-muted)] animate-pulse"
+                    : daemonStatus === "up"
+                      ? "bg-[var(--color-cpf-green)]"
+                      : "bg-red-500"
+                }`}
+              />
+              <span className="text-sm text-[var(--color-fg-soft)]">
+                {daemonStatus === "checking" && "Checking..."}
+                {daemonStatus === "up" && "Daemon is running"}
+                {daemonStatus === "down" && "Daemon is not reachable"}
+              </span>
+            </div>
+            {daemonError && (
+              <p className="mt-2 text-xs text-red-500">{daemonError}</p>
+            )}
+            <p className="mt-2 text-xs text-[var(--color-muted)]">
+              Expected at localhost:7456. Run{" "}
+              <code className="rounded bg-[var(--color-cpf-mint)] px-1 py-0.5 font-mono text-[10px]">pnpm tools-dev</code>{" "}
+              in{" "}
+              <code className="rounded bg-[var(--color-cpf-mint)] px-1 py-0.5 font-mono text-[10px]">referenceRepos/open-design-main</code>.
+            </p>
+          </div>
+        </>
       )}
 
       {/* Save area */}

@@ -80,6 +80,15 @@ export interface AppSettings {
   llmModel: string;
 }
 
+/** Tracks how the outline was generated */
+export interface GenerationSource {
+  strategy: string;
+  agent?: string;
+  model?: string;
+  timestamp: number;
+  rawOutput?: string;
+}
+
 /** A saved deck in localStorage */
 export interface SavedDeck {
   id: string;
@@ -90,6 +99,7 @@ export interface SavedDeck {
   outline: SlideOutline[] | null;
   slides: SlideContent[] | null;
   htmlContent: string | null;
+  source: GenerationSource | null;
   status: DeckStatus;
 }
 

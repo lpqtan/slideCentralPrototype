@@ -57,6 +57,7 @@ export function useBriefing() {
         outline: null,
         slides: null,
         htmlContent: null,
+        source: null,
         status: "briefing",
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));

@@ -1,6 +1,7 @@
 import type { BackendStrategy, StrategyOptions } from "./types";
 import type { BriefingData, SlideOutline } from "@/lib/types";
 import { generateMockOutline } from "./mock";
+import daemonStrategy from "./daemon";
 
 const strategies: Record<string, BackendStrategy> = {
   mock: {
@@ -15,15 +16,7 @@ const strategies: Record<string, BackendStrategy> = {
     },
   },
 
-  daemon: {
-    id: "daemon",
-    async generateOutline(_briefing: BriefingData): Promise<SlideOutline[]> {
-      throw new Error("Daemon backend not implemented — available in Phase 4");
-    },
-    async healthCheck(): Promise<boolean> {
-      return false;
-    },
-  },
+  daemon: daemonStrategy,
 
   llm: {
     id: "llm",
