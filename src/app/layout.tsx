@@ -23,7 +23,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-[var(--color-cpf-mint)] text-[var(--color-fg)] antialiased">
+      <body className="grid h-dvh grid-rows-[auto_auto_1fr] bg-[var(--color-cpf-mint)] text-[var(--color-fg)] antialiased" suppressHydrationWarning>
         {/* Design bar */}
         <div className="h-[3px] bg-[var(--color-cpf-green)]" />
 
@@ -50,7 +50,7 @@ export default function RootLayout({
           </div>
         </header>
 
-        <main className="mx-auto flex max-w-5xl flex-1 flex-col px-6 py-8">
+        <main className="mx-auto flex w-full max-w-5xl flex-col overflow-auto px-6 py-8">
           {children}
         </main>
       </body>

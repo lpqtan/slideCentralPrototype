@@ -9,6 +9,7 @@ import StepContext from "@/components/wizard/StepContext";
 import StepMessage from "@/components/wizard/StepMessage";
 import StepNarrative from "@/components/wizard/StepNarrative";
 import StepTemplate from "@/components/wizard/StepTemplate";
+import { createMockDeck } from "@/lib/mock-deck";
 
 const STEP_LABELS = ["Context", "Message", "Narrative", "Template"];
 
@@ -43,7 +44,22 @@ export default function BriefingPage() {
     const data = submitBriefing();
     const currentDeckId = data.deckId ?? crypto.randomUUID();
 
-    // Save the briefing data so the generating page can read it
+    const settingsRaw = localStorage.getItem("slidecentral-settings");
+    const settings = settingsRaw
+      ? JSON.parse(settingsRaw)
+      : { strategy: "mock" };
+
+    if (settings.strategy === "mock") {
+      // Use pre-built demo deck — skip generating pipeline
+      const demo = createMockDeck();
+      demo.id = currentDeckId;
+      demo.briefing = data;
+      save(demo);
+      router.push(`/outline?deckId=${encodeURIComponent(currentDeckId)}`);
+      return;
+    }
+
+    // Save briefing for daemon/llm generating page
     save({
       id: currentDeckId,
       name: data.keyMessage.slice(0, 60),

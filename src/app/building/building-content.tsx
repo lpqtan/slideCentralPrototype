@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDeckStore } from "@/hooks/useDeckStore";
-import type { SlideOutline, GenerationSource } from "@/lib/types";
+import type { GenerationSource } from "@/lib/types";
 
 interface StatusEvent {
   formattedTime: string;
@@ -11,12 +11,11 @@ interface StatusEvent {
   stage: string;
 }
 
-export default function GeneratingContent() {
+export default function BuildingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deckId = searchParams.get("deckId");
-  const regenPrompt = searchParams.get("regenerationPrompt");
-  const { getById, updateOutline } = useDeckStore();
+  const { getById, setDeckHtml } = useDeckStore();
 
   const [events, setEvents] = useState<StatusEvent[]>([]);
   const [textDeltas, setTextDeltas] = useState("");
@@ -24,7 +23,7 @@ export default function GeneratingContent() {
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
   const [settings, setSettings] = useState<{ strategy: string; daemonAgent: string; daemonModel: string }>({
-    strategy: "mock",
+    strategy: "daemon",
     daemonAgent: "opencode",
     daemonModel: "opencode/big-pickle",
   });
@@ -49,41 +48,26 @@ export default function GeneratingContent() {
     }
 
     const settingsRaw = localStorage.getItem("slidecentral-settings");
-    const settings = settingsRaw
+    const s = settingsRaw
       ? JSON.parse(settingsRaw)
-      : { strategy: "mock", daemonAgent: "opencode", daemonModel: "opencode/big-pickle" };
+      : { strategy: "daemon", daemonAgent: "opencode", daemonModel: "opencode/big-pickle" };
+    setSettings(s);
 
-    setSettings(settings);
-
-    const lockedIds: number[] = [];
-    if (regenPrompt) {
-      try {
-        const ctx = localStorage.getItem("slidecentral-regeneration-ctx");
-        if (ctx) {
-          const parsed = JSON.parse(ctx) as { lockedSlideNumbers?: number[] };
-          if (parsed.lockedSlideNumbers) lockedIds.push(...parsed.lockedSlideNumbers);
-          localStorage.removeItem("slidecentral-regeneration-ctx");
-        }
-      } catch { /* ignore */ }
-    }
+    const slides = deck.slides ?? deck.outline?.map((o) => ({
+      ...o,
+      bodyContent: "",
+    })) ?? [];
 
     const run = async () => {
       try {
-        const res = await fetch("/api/generate-outline-stream", {
+        const res = await fetch("/api/build-deck-stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            slides,
             briefing: deck.briefing,
-            strategy: settings.strategy ?? "mock",
-            provider:
-              settings.strategy === "daemon"
-                ? (settings.daemonAgent ?? "opencode")
-                : settings.provider,
-            model: settings.strategy === "daemon" ? (settings.daemonModel ?? "opencode/big-pickle") : undefined,
-            apiKey: settings.apiKey,
-            existingOutline: regenPrompt ? (deck.outline ?? undefined) : undefined,
-            lockedSlideNumbers: lockedIds.length > 0 ? lockedIds : undefined,
-            regenerationPrompt: regenPrompt || undefined,
+            agentId: s.daemonAgent ?? "opencode",
+            model: s.daemonModel ?? "opencode/big-pickle",
           }),
         });
 
@@ -111,7 +95,6 @@ export default function GeneratingContent() {
             } else if (line.startsWith("data: ")) {
               currentData = line.slice(6);
             } else if (line === "" && currentData) {
-              // Process event
               if (currentEvent === "status") {
                 try {
                   const parsed = JSON.parse(currentData);
@@ -127,21 +110,16 @@ export default function GeneratingContent() {
               if (currentEvent === "text_delta") {
                 try {
                   const parsed = JSON.parse(currentData) as { delta?: string };
-                  if (parsed.delta) {
-                    setTextDeltas((prev) => prev + parsed.delta);
-                  }
+                  if (parsed.delta) setTextDeltas((prev) => prev + parsed.delta);
                 } catch { /* ignore */ }
               }
 
               if (currentEvent === "complete") {
                 try {
-                  const parsed = JSON.parse(currentData) as {
-                    outline: SlideOutline[];
-                    source: GenerationSource;
-                  };
+                  const parsed = JSON.parse(currentData) as { html: string; source?: GenerationSource };
                   // Save to deck store
-                  updateOutline(deckId, parsed.outline, parsed.source);
-                  router.push(`/outline?deckId=${encodeURIComponent(deckId)}`);
+                  setDeckHtml(deckId, parsed.html);
+                  router.push(`/preview?deckId=${encodeURIComponent(deckId)}`);
                   return;
                 } catch { /* ignore */ }
               }
@@ -150,9 +128,7 @@ export default function GeneratingContent() {
                 try {
                   const parsed = JSON.parse(currentData) as { message?: string };
                   setError(parsed.message ?? "Unknown error");
-                } catch {
-                  setError("Unknown error");
-                }
+                } catch { setError("Unknown error"); }
                 return;
               }
 
@@ -167,26 +143,22 @@ export default function GeneratingContent() {
     };
 
     run();
-  }, [deckId, getById, router, regenPrompt, updateOutline]);
+  }, [deckId, getById, router, setDeckHtml]);
 
   return (
     <div className="flex flex-1 flex-col">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--color-fg)]">
-          {regenPrompt ? "Refining Outline" : "Generating Outline"}
-        </h1>
+        <h1 className="text-2xl font-bold text-[var(--color-fg)]">Building Deck</h1>
         <p className="mt-1 flex items-center gap-3 text-sm text-[var(--color-fg-soft)]">
-          <span>{error ? "An error occurred" : "Please wait while the AI works..."}</span>
-          {settings.strategy === "daemon" && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-cpf-green)]/30 bg-[var(--color-cpf-green)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--color-cpf-green)]">
-              {settings.daemonAgent ?? "?"} / {(settings.daemonModel ?? "?").replace(/^opencode\//, "").replace(/^opencode-go\//, "")}
-            </span>
-          )}
+          <span>{error ? "An error occurred" : "Building slides with AI..."}</span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-cpf-green)]/30 bg-[var(--color-cpf-green)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--color-cpf-green)]">
+            {settings.daemonAgent ?? "?"} / {(settings.daemonModel ?? "?").replace(/^opencode\//, "").replace(/^opencode-go\//, "")}
+          </span>
         </p>
       </div>
 
-      {/* Spinner + timer */}
+      {/* Spinner */}
       <div className="mb-6 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
         <div className="flex items-center gap-4">
           {error ? (
@@ -199,7 +171,7 @@ export default function GeneratingContent() {
           <div>
             <p className="text-sm font-semibold text-[var(--color-fg)]">
               {error
-                ? "Generation failed"
+                ? "Build failed"
                 : events.length > 0
                   ? events[events.length - 1].message
                   : "Initializing..."}
@@ -209,18 +181,17 @@ export default function GeneratingContent() {
             </p>
           </div>
         </div>
-
         {error && (
           <button
-            onClick={() => router.push("/briefing")}
+            onClick={() => router.push("/outline")}
             className="mt-4 rounded border border-[var(--color-border)] px-4 py-2 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:bg-[var(--color-cpf-mint)]"
           >
-            Back to Briefing
+            Back to Outline
           </button>
         )}
       </div>
 
-      {/* Event timeline */}
+      {/* Activity Log */}
       {events.length > 0 && (
         <div className="mb-6 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">
@@ -236,7 +207,7 @@ export default function GeneratingContent() {
                   className={
                     ev.stage === "error"
                       ? "text-red-500"
-                      : ev.stage === "parsing"
+                      : ev.stage === "fetching"
                         ? "text-[var(--color-cpf-green)]"
                         : "text-[var(--color-fg-soft)]"
                   }
@@ -249,11 +220,11 @@ export default function GeneratingContent() {
         </div>
       )}
 
-      {/* Text deltas (collapsible) */}
+      {/* Agent output */}
       {textDeltas && (
         <details className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)] hover:text-[var(--color-fg-soft)]">
-            Raw Agent Output
+            Agent Output
           </summary>
           <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
             {textDeltas}
@@ -265,7 +236,7 @@ export default function GeneratingContent() {
       <div className="mt-auto flex items-center gap-2 pt-8">
         <div className="h-[3px] w-12 rounded-full bg-[var(--color-cpf-green)]" />
         <span className="font-mono text-xs text-[var(--color-muted)]">
-          Slide Central · CPF
+          Building · CPF
         </span>
       </div>
     </div>

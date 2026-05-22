@@ -35,11 +35,11 @@ const DAEMON_AGENTS_UNIQUE = DAEMON_AGENTS.filter(
 );
 
 const FREE_MODELS = [
-  { id: "deepseek-chat", label: "DeepSeek V3", description: "Free — general purpose" },
-  { id: "deepseek-r1", label: "DeepSeek R1", description: "Free — reasoning" },
-  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", description: "Free tier — fast" },
-  { id: "llama-3.3-70b", label: "Llama 3.3 70B", description: "Free — Meta" },
-  { id: "qwen-max", label: "Qwen Max", description: "Free — Alibaba" },
+  { id: "opencode/big-pickle", label: "Big Pickle", description: "Free — general purpose" },
+  { id: "opencode/deepseek-v4-flash-free", label: "DeepSeek V4 Flash", description: "Free — fast" },
+  { id: "opencode/nemotron-3-super-free", label: "Nemotron 3 Super", description: "Free — reasoning" },
+  { id: "opencode/gemini-3-flash", label: "Gemini 3 Flash", description: "Free — Google" },
+  { id: "opencode/qwen3.6-plus", label: "Qwen 3.6 Plus", description: "Free — Alibaba" },
 ] as const;
 
 interface SettingsState {
@@ -55,7 +55,7 @@ const DEFAULT_SETTINGS: SettingsState = {
   provider: "gemini",
   apiKey: "",
   daemonAgent: "opencode",
-  daemonModel: "deepseek-chat",
+  daemonModel: "opencode/big-pickle",
 };
 
 function loadSettings(): SettingsState {
@@ -93,7 +93,7 @@ export default function SettingsPage() {
     setProvider(s.provider);
     setApiKey(s.apiKey);
     setDaemonAgent(s.daemonAgent ?? "opencode");
-    setDaemonModel(s.daemonModel ?? "deepseek-chat");
+    setDaemonModel(s.daemonModel ?? "opencode/big-pickle");
     setMounted(true);
   }, []);
 
@@ -128,7 +128,7 @@ export default function SettingsPage() {
     provider !== saved.provider ||
     apiKey !== saved.apiKey ||
     daemonAgent !== (saved.daemonAgent ?? "opencode") ||
-    daemonModel !== (saved.daemonModel ?? "deepseek-chat");
+    daemonModel !== (saved.daemonModel ?? "opencode/big-pickle");
 
   const keyIsSet = saved.apiKey.length > 0;
   const keyIsPopulated = apiKey.length > 0;
@@ -301,10 +301,52 @@ export default function SettingsPage() {
                 Save to store this key
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Daemon + Agent (shown when daemon strategy selected) */}
+      {strategy === "daemon" && (
+        <>
+          {/* Daemon agent picker */}
+          <div className="mb-8 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--color-muted)]">
+              Coding Agent
+            </h2>
+            <p className="mb-3 text-xs text-[var(--color-muted)]">
+              The daemon spawns this agent to read your files and generate slides.
+              Must be installed and on your <code className="rounded bg-[var(--color-cpf-mint)] px-1 py-0.5 font-mono text-[10px]">PATH</code>.
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {DAEMON_AGENTS_UNIQUE.map((a) => {
+                const isSaved = saved.strategy === "daemon" && saved.daemonAgent === a.id;
+                const isSelected = daemonAgent === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => setDaemonAgent(a.id)}
+                    className={`rounded border p-4 text-left transition-colors ${
+                      isSelected
+                        ? "border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] ring-1 ring-[var(--color-cpf-green)]"
+                        : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-[var(--color-fg)]">{a.label}</span>
+                      {isSaved && mounted && (
+                        <span className="rounded bg-[var(--color-cpf-green)]/15 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-cpf-green)]">
+                          Current
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--color-muted)]">{a.description}</div>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Model selector */}
-            <div className="border-t border-[var(--color-border)] pt-4">
+            <div className="mt-4 border-t border-[var(--color-border)] pt-4">
               <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--color-muted)]">
                 Model
               </h3>
@@ -427,48 +469,6 @@ export default function SettingsPage() {
                   )}
                 </div>
               )}
-            </div>
-          </div>
-      )}
-
-      {/* Daemon + Agent (shown when daemon strategy selected) */}
-      {strategy === "daemon" && (
-        <>
-          {/* Daemon agent picker */}
-          <div className="mb-8 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--color-muted)]">
-              Coding Agent
-            </h2>
-            <p className="mb-3 text-xs text-[var(--color-muted)]">
-              The daemon spawns this agent to read your files and generate slides.
-              Must be installed and on your <code className="rounded bg-[var(--color-cpf-mint)] px-1 py-0.5 font-mono text-[10px]">PATH</code>.
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              {DAEMON_AGENTS_UNIQUE.map((a) => {
-                const isSaved = saved.strategy === "daemon" && saved.daemonAgent === a.id;
-                const isSelected = daemonAgent === a.id;
-                return (
-                  <button
-                    key={a.id}
-                    onClick={() => setDaemonAgent(a.id)}
-                    className={`rounded border p-4 text-left transition-colors ${
-                      isSelected
-                        ? "border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] ring-1 ring-[var(--color-cpf-green)]"
-                        : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-[var(--color-fg)]">{a.label}</span>
-                      {isSaved && mounted && (
-                        <span className="rounded bg-[var(--color-cpf-green)]/15 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-cpf-green)]">
-                          Current
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-1 text-xs text-[var(--color-muted)]">{a.description}</div>
-                  </button>
-                );
-              })}
             </div>
           </div>
 

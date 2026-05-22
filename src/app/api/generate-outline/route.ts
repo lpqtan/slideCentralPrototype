@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       // Use daemon directly to capture raw output
       const agentId = provider ?? (await findAgent());
       source.agent = agentId;
-      source.model = model ?? "deepseek-chat";
+      source.model = model ?? "opencode/big-pickle";
       const systemPrompt =
         buildSystemPrompt() +
         "\n\nIMPORTANT: Return ONLY a JSON array. No markdown, no explanation.";

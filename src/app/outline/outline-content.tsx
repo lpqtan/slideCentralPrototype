@@ -4,11 +4,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useDeckStore } from "@/hooks/useDeckStore";
-import type { SlideOutline, GenerationSource } from "@/lib/types";
+import type { SlideOutline, GenerationSource, SlideContent } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
+import { buildDeckHtml } from "@/lib/deck-builder";
 
 interface EditableSlide extends SlideOutline {
   locked: boolean;
+  bodyContent: string;
 }
 
 function getLayoutName(id: string): string {
@@ -34,11 +36,11 @@ export default function OutlineContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deckId = searchParams.get("deckId");
-  const { getById, updateOutline } = useDeckStore();
+  const { getById, updateOutline, setDeckSlides, setDeckHtml } = useDeckStore();
 
   const [slides, setSlides] = useState<EditableSlide[]>([]);
   const [source, setSource] = useState<GenerationSource | null>(null);
-  const [editingField, setEditingField] = useState<{ slide: number; field: "title" | "prompt" } | null>(null);
+  const [editingField, setEditingField] = useState<{ slide: number; field: "title" | "prompt" | "body" } | null>(null);
   const [editValue, setEditValue] = useState("");
 
   // Drag state
@@ -60,6 +62,7 @@ export default function OutlineContent() {
         deck.outline.map((s) => ({
           ...s,
           locked: false,
+          bodyContent: "",
         }))
       );
       setSource(deck.source ?? null);
@@ -92,12 +95,21 @@ export default function OutlineContent() {
         contentPrompt: s.contentPrompt,
         estimatedMinutes: s.estimatedMinutes,
       }));
+      const cleanContent: SlideContent[] = updated.map((s) => ({
+        slideNumber: s.slideNumber,
+        title: s.title,
+        suggestedLayout: s.suggestedLayout,
+        contentPrompt: s.contentPrompt,
+        estimatedMinutes: s.estimatedMinutes,
+        bodyContent: s.bodyContent ?? "",
+      }));
       updateOutline(deckId, clean);
+      setDeckSlides(deckId, cleanContent);
     },
-    [deckId, updateOutline]
+    [deckId, updateOutline, setDeckSlides]
   );
 
-  const startEdit = (slide: number, field: "title" | "prompt", currentValue: string) => {
+  const startEdit = (slide: number, field: "title" | "prompt" | "body", currentValue: string) => {
     setEditingField({ slide, field });
     setEditValue(currentValue);
   };
@@ -109,7 +121,10 @@ export default function OutlineContent() {
         if (editingField.field === "title") {
           return { ...s, title: editValue };
         }
-        return { ...s, contentPrompt: editValue };
+        if (editingField.field === "prompt") {
+          return { ...s, contentPrompt: editValue };
+        }
+        return { ...s, bodyContent: editValue };
       }
       return s;
     });
@@ -185,7 +200,6 @@ export default function OutlineContent() {
   const handleRegenerate = () => {
     if (!deckId || !regenPrompt.trim()) return;
 
-    // Store locked slide numbers so the generating page can use them
     const lockedIds = slides.filter((s) => s.locked).map((s) => s.slideNumber);
     localStorage.setItem(
       "slidecentral-regeneration-ctx",
@@ -195,6 +209,31 @@ export default function OutlineContent() {
     router.push(
       `/generating?deckId=${encodeURIComponent(deckId)}&regenerationPrompt=${encodeURIComponent(regenPrompt.trim())}`
     );
+  };
+
+  const handleBuildDeck = () => {
+    if (!deckId) return;
+    const contentSlides: SlideContent[] = slides.map((s) => ({
+      slideNumber: s.slideNumber,
+      title: s.title,
+      suggestedLayout: s.suggestedLayout,
+      contentPrompt: s.contentPrompt,
+      estimatedMinutes: s.estimatedMinutes,
+      bodyContent: s.bodyContent ?? "",
+    }));
+    setDeckSlides(deckId, contentSlides);
+
+    const settingsRaw = localStorage.getItem("slidecentral-settings");
+    const settings = settingsRaw ? JSON.parse(settingsRaw) : { strategy: "mock" };
+
+    if (settings.strategy === "mock") {
+      const html = buildDeckHtml(contentSlides);
+      setDeckHtml(deckId, html);
+      router.push(`/preview?deckId=${encodeURIComponent(deckId)}`);
+      return;
+    }
+
+    router.push(`/building?deckId=${encodeURIComponent(deckId)}`);
   };
 
   // --- Computed ---
@@ -266,9 +305,7 @@ export default function OutlineContent() {
             Back to Briefing
           </Link>
           <button
-            onClick={() => {
-              /* Phase 7: build deck */
-            }}
+            onClick={handleBuildDeck}
             className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)]"
           >
             Build Deck
@@ -405,6 +442,38 @@ export default function OutlineContent() {
                     {slide.contentPrompt}
                   </p>
                 )}
+
+                {/* Body content */}
+                <div className="mt-2">
+                  {editingField?.slide === slide.slideNumber && editingField.field === "body" ? (
+                    <textarea
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={commitEdit}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") setEditingField(null);
+                      }}
+                      rows={4}
+                      placeholder="Enter slide body content — one point per line for bullet slides..."
+                      className="w-full rounded border border-[var(--color-cpf-green)] bg-[var(--color-cpf-paper)] px-2 py-1 text-xs text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none"
+                    />
+                  ) : slide.bodyContent ? (
+                    <div
+                      className="cursor-pointer whitespace-pre-wrap rounded border border-dashed border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-fg-soft)] hover:border-[var(--color-cpf-green)]"
+                      onClick={() => startEdit(slide.slideNumber, "body", slide.bodyContent)}
+                    >
+                      {slide.bodyContent}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => startEdit(slide.slideNumber, "body", "")}
+                      className="w-full cursor-text rounded border border-dashed border-[var(--color-border)] px-2 py-1 text-left text-[10px] text-[var(--color-muted)] hover:border-[var(--color-cpf-green)] hover:text-[var(--color-fg-soft)]"
+                    >
+                      + Add body content (bullet points, one per line)
+                    </button>
+                  )}
+                </div>
 
                 {/* Meta */}
                 <div className="mt-2 flex items-center gap-3">

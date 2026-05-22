@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         if (activeStrategy === "daemon") {
           const agentId = provider ?? (await findAgent());
           source.agent = agentId;
-          source.model = model ?? "deepseek-chat";
+          source.model = model ?? "opencode/big-pickle";
 
           sse(controller, "status", { stage: "generating", message: `Agent '${agentId}' starting with ${source.model}...` });
 
