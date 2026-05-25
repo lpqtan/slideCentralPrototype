@@ -1,24 +1,9 @@
 import { NextResponse } from "next/server";
 import { getStrategy } from "@/lib/strategies/registry";
 import { findAgent, streamChat } from "@/lib/strategies/daemon";
+import { extractJson } from "@/lib/strategies/llm";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts";
 import type { BriefingData, SlideOutline, GenerationSource } from "@/lib/types";
-
-function extractJson(text: string): SlideOutline[] {
-  const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) {
-    throw new Error("No JSON array found in daemon output");
-  }
-  try {
-    return JSON.parse(jsonMatch[0]) as SlideOutline[];
-  } catch {
-    const cleaned = jsonMatch[0]
-      .replace(/\/\/.*$/gm, "")
-      .replace(/,\s*\]/g, "]")
-      .replace(/,\s*\}/g, "}");
-    return JSON.parse(cleaned) as SlideOutline[];
-  }
-}
 
 export async function POST(request: Request) {
   try {

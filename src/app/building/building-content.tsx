@@ -11,6 +11,16 @@ interface StatusEvent {
   stage: string;
 }
 
+function badgeLabel(settings: { strategy: string; provider?: string; daemonAgent?: string; daemonModel?: string; apiKey?: string }): string {
+  if (settings.strategy === "llm") {
+    const p = settings.provider ?? "gemini";
+    return p.charAt(0).toUpperCase() + p.slice(1);
+  }
+  const agent = settings.daemonAgent ?? "?";
+  const model = (settings.daemonModel ?? "?").replace(/^opencode\//, "").replace(/^opencode-go\//, "");
+  return `${agent} / ${model}`;
+}
+
 export default function BuildingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -22,8 +32,16 @@ export default function BuildingContent() {
   const [error, setError] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
-  const [settings, setSettings] = useState<{ strategy: string; daemonAgent: string; daemonModel: string }>({
-    strategy: "daemon",
+  const [settings, setSettings] = useState<{
+    strategy: string;
+    provider: string;
+    apiKey: string;
+    daemonAgent: string;
+    daemonModel: string;
+  }>({
+    strategy: "mock",
+    provider: "gemini",
+    apiKey: "",
     daemonAgent: "opencode",
     daemonModel: "opencode/big-pickle",
   });
@@ -50,7 +68,7 @@ export default function BuildingContent() {
     const settingsRaw = localStorage.getItem("slidecentral-settings");
     const s = settingsRaw
       ? JSON.parse(settingsRaw)
-      : { strategy: "daemon", daemonAgent: "opencode", daemonModel: "opencode/big-pickle" };
+      : { strategy: "llm", provider: "gemini", apiKey: "", daemonAgent: "opencode", daemonModel: "opencode/big-pickle" };
     setSettings(s);
 
     const slides = deck.slides ?? deck.outline?.map((o) => ({
@@ -66,8 +84,10 @@ export default function BuildingContent() {
           body: JSON.stringify({
             slides,
             briefing: deck.briefing,
-            agentId: s.daemonAgent ?? "opencode",
-            model: s.daemonModel ?? "opencode/big-pickle",
+            strategy: s.strategy ?? "mock",
+            provider: s.strategy === "daemon" ? (s.daemonAgent ?? "opencode") : (s.provider ?? "gemini"),
+            model: s.strategy === "daemon" ? (s.daemonModel ?? "opencode/big-pickle") : "gemini-3.5-flash",
+            apiKey: s.apiKey,
           }),
         });
 
@@ -117,7 +137,6 @@ export default function BuildingContent() {
               if (currentEvent === "complete") {
                 try {
                   const parsed = JSON.parse(currentData) as { html: string; source?: GenerationSource };
-                  // Save to deck store
                   setDeckHtml(deckId, parsed.html);
                   router.push(`/preview?deckId=${encodeURIComponent(deckId)}`);
                   return;
@@ -153,7 +172,7 @@ export default function BuildingContent() {
         <p className="mt-1 flex items-center gap-3 text-sm text-[var(--color-fg-soft)]">
           <span>{error ? "An error occurred" : "Building slides with AI..."}</span>
           <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-cpf-green)]/30 bg-[var(--color-cpf-green)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--color-cpf-green)]">
-            {settings.daemonAgent ?? "?"} / {(settings.daemonModel ?? "?").replace(/^opencode\//, "").replace(/^opencode-go\//, "")}
+            {badgeLabel(settings)}
           </span>
         </p>
       </div>

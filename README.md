@@ -6,81 +6,110 @@ Generate CPF-branded presentations with AI — from briefing to polished deck.
 
 Slide Central is a standalone Next.js web application that guides users through a structured briefing process and uses AI to generate slide outlines, content prompts, and fully rendered HTML slide decks. Decks can be previewed in-browser and exported as `.pptx` PowerPoint files.
 
-It replaces the Open Design web UI with a custom-branded experience while leveraging the Open Design daemon (or direct LLM APIs) as the AI processing engine.
+Three AI backends are supported: **Mock** (pre-built demo), **Direct LLM API** (Gemini, Groq, OpenRouter, OpenAI), and **Open Design Daemon** (spawns coding agents like OpenCode with full file-system access for deck building).
 
 ## Prerequisites
 
 - **Node.js** 18+ (tested with latest LTS)
 - **npm** 9+
-- (Optional) **Open Design daemon** — for AI-powered generation via agent CLIs
+- (Optional) **pnpm** — for Open Design daemon
+- (Optional) **Open Design daemon** — for agent-based generation via OpenCode, Claude Code, etc.
 
 ## Quick Start
 
 ```bash
-# Clone and enter the project
 git clone https://github.com/lpqtan/slideCentralPrototype.git
 cd slideCentralPrototype
-
-# Install dependencies
 npm install
-
-# Start the Next.js development server
 npm run dev
 ```
 
-The app will be available at **http://localhost:3000**.
+Opens at **http://localhost:3000**.
 
-## Starting Each Component
+## Adding API Keys
 
-### 1. The Next.js Web App (Slide Central)
+API keys are stored **locally in your browser** via localStorage. Nothing is sent to a server.
 
-This is the main user-facing application. It runs on its own.
+### Via the UI (Recommended)
 
-```bash
-npm run dev
-```
+1. Open http://localhost:3000/settings
+2. Select **Direct LLM API** as the backend strategy
+3. Choose your provider (Gemini, Groq, OpenRouter, or OpenAI)
+4. Enter your API key in the **API Key** field
+5. Click **Save Settings**
 
-Open http://localhost:3000. The landing page shows a **Start New Deck** button leading into the briefing wizard.
+The key is saved in your browser's localStorage. A green dot + "Key saved" confirms it's stored.
 
-#### Build for production
+### Via Environment Variables
 
-```bash
-npm run build
-npm start
-```
-
-#### Lint
+As a fallback if no key is set in the UI:
 
 ```bash
-npm run lint
+export GEMINI_API_KEY="your-key-here"
+export GROQ_API_KEY="your-key-here"
+export OPENAI_API_KEY="your-key-here"
+export OPENROUTER_API_KEY="your-key-here"
 ```
 
-### 2. Open Design Daemon (AI Backend — Option A)
+### Getting Free Keys
 
-The daemon handles AI-powered slide generation by spawning coding-agent CLIs. It must be running separately for the `daemon` backend strategy to work.
+| Provider | Get Key From | Free Tier? |
+|----------|-------------|------------|
+| **Gemini** | [Google AI Studio](https://aistudio.google.com/apikey) | Yes |
+| **Groq** | [Groq Console](https://console.groq.com/keys) | Yes |
+| **OpenRouter** | [OpenRouter](https://openrouter.ai/keys) | Yes (free models) |
+| **OpenAI** | [Platform dashboard](https://platform.openai.com/api-keys) | No (paid) |
 
-#### Prerequisites for Daemon
+---
 
-- **pnpm** (`npm install -g pnpm`)
-- At least one supported coding-agent CLI on your `PATH`:
+## AI Backend Strategies
+
+### Mock (Default — No Setup)
+
+Pre-built 8-slide demo deck about CPF member engagement. Select **Mock** in AI Settings. Immediately generates the demo outline. Build Deck goes straight to preview — no AI call needed.
+
+### Direct LLM API (Option A — Free Tier)
+
+Calls LLM APIs directly using Open Design-style layered prompts (6-layer system prompt with identity charter, anti-slop rules, slide architecture, archetypes, quality self-audit, and output format).
+
+**Setup:**
+1. Get a free API key from [Google AI Studio](https://aistudio.google.com/apikey)
+2. Open http://localhost:3000/settings
+3. Select **Direct LLM API**
+4. Choose **Gemini** (default: `gemini-3.5-flash`)
+5. Paste your key in the **API Key** field
+6. Click **Save Settings**
+
+Now "Generate Outline" will call Gemini directly. Real-time text streaming appears on the generating page.
+
+**Supported providers:**
+
+| Provider | Default Model | Streaming | JSON Mode |
+|----------|--------------|-----------|-----------|
+| Gemini | `gemini-3.5-flash` | Yes (real-time) | Native |
+| Groq | `llama-3.3-70b` | Yes | `response_format` |
+| OpenRouter | `google/gemini-2.0-flash-001` | Yes | Regex fallback |
+| OpenAI | `gpt-4o-mini` | Yes | `response_format` |
+
+### Open Design Daemon (Option B — Full Pipeline)
+
+Uses the Open Design daemon to spawn coding agents (OpenCode, Claude Code, etc.) with full file-system access. For **outline generation**, sends prompts through the agent. For **deck building**, creates a project with the `simple-deck` skill, uploads brand spec + instructions + outline, and lets the agent generate complete HTML decks using the OD framework.
+
+**Prerequisites:**
+- **pnpm:** `npm install -g pnpm`
+- A coding-agent CLI on your `PATH`. The daemon auto-detects installed agents:
+  - **OpenCode** (`opencode`) — default
   - Claude Code (`claude`)
   - Codex CLI (`codex`)
   - Gemini CLI (`gemini`)
   - Cursor Agent (`cursor-agent`)
-  - OpenCode (`opencode`)
-  - See full list in `referenceRepos/open-design-main/README.md`
 
-#### Setup & Start
+**Setup & Start:**
 
 ```bash
-# Navigate to the Open Design repo
 cd referenceRepos/open-design-main
-
-# First-time install (only once)
-pnpm install
-
-# Start the daemon and web app
-pnpm tools-dev start web --daemon-port 7456
+pnpm install                                   # first time only
+pnpm tools-dev                                 # starts daemon + web app
 ```
 
 The daemon listens at **http://localhost:7456**. Verify:
@@ -89,51 +118,63 @@ The daemon listens at **http://localhost:7456**. Verify:
 curl http://localhost:7456/api/health
 ```
 
-#### Troubleshooting Daemon
+**Using it in Slide Central:**
+1. Start the daemon (see above)
+2. Open http://localhost:3000/settings
+3. Select **Open Design Daemon**
+4. Pick a **Coding Agent** (e.g. OpenCode)
+5. Pick a **Model** (e.g. `opencode/big-pickle` — your daemon's `/api/agents` endpoint lists available models)
+6. Click **Test Connection** to verify the agent works
+7. **Save Settings**
+
+**Troubleshooting Daemon:**
 
 If `pnpm tools-dev` fails:
 1. Ensure `pnpm` is installed: `npm install -g pnpm`
 2. Ensure Node.js ~24 is installed
 3. Try running the daemon directly: `cd apps/daemon && npx tsx src/server.ts`
-4. Check that at least one coding-agent CLI is on your `PATH`: `which claude` or `which codex`
+4. Check agents: `curl http://localhost:7456/api/agents` — look for `"available": true`
+5. Check your agent CLI is on `PATH`: `which opencode` or `which claude`
 
-#### Using the Daemon in Slide Central
+---
 
-1. Start the daemon (see above)
-2. In Slide Central, go to **AI Settings**
-3. Select **Open Design Daemon** as the backend strategy
-4. Save settings
+## Full User Flow
 
-The daemon must be running whenever you use the `daemon` strategy.
-
-### 3. Direct LLM API (AI Backend — Option B)
-
-For development or when the daemon is not available, Slide Central can call LLM APIs directly.
-
-Go to **AI Settings** → select **Direct LLM API** → choose a provider and enter your API key.
-
-| Provider | Free Tier | Default Model | Key Needed |
-|----------|-----------|---------------|------------|
-| **Gemini** | Yes | `gemini-2.0-flash` | Free from [Google AI Studio](https://aistudio.google.com/apikey) |
-| **Groq** | Yes | `llama-3.3-70b` | Free from [Groq Console](https://console.groq.com/keys) |
-| **OpenRouter** | Free models | `google/gemini-2.0-flash-001` | Free from [OpenRouter](https://openrouter.ai/keys) |
-| **OpenAI** | No (paid) | `gpt-4o-mini` | [Platform dashboard](https://platform.openai.com/api-keys) |
-
-Set the API key in macOS/Linux:
-
-```bash
-# Used as default if no key is set in Settings UI
-export GEMINI_API_KEY="your-key-here"
-export GROQ_API_KEY="your-key-here"
-export OPENAI_API_KEY="your-key-here"
-export OPENROUTER_API_KEY="your-key-here"
+```
+Landing Page
+  → Start New Deck
+    → Briefing Wizard (4 steps)
+      Step 1: Objective, Audience, Mode
+      Step 2: Key Message, The Ask, Slide Count
+      Step 3: Narrative Arc (Proposal / Status / Teaching)
+      Step 4: Optional preset deck theme
+    → Generate Outline
+      → /generating (loading page with activity log + real-time text)
+        → /outline (edit titles, content prompts, reorder slides, lock/unlock)
+          → Build Deck
+            → /building (OD pipeline: creates project, uploads files, agent generates HTML)
+              → /preview (interactive deck with keyboard nav)
+                → Download PPTX
 ```
 
-### 4. Mock Backend (Development Mode — Option C)
+**When Mock is selected:** both Generate Outline and Build Deck skip the AI pipeline and use pre-built/client-side generation for instant results.
 
-For UI development without any AI dependencies, the **Mock** strategy returns hardcoded responses. This lets you test and build the frontend without running a daemon or paying API costs.
+---
 
-Select **Mock** in Settings. Available immediately — no setup needed.
+## Production Build
+
+```bash
+npm run build
+npm start
+```
+
+Lint:
+
+```bash
+npm run lint
+```
+
+---
 
 ## Project Structure
 
@@ -141,37 +182,43 @@ Select **Mock** in Settings. Available immediately — no setup needed.
 src/
 ├── app/
 │   ├── globals.css              # Tailwind v4 + CPF brand @theme tokens
-│   ├── layout.tsx               # Root layout (design bar, header nav, Roboto font)
-│   ├── page.tsx                 # Landing page
-│   ├── briefing/
-│   │   └── page.tsx             # Multi-step briefing wizard
-│   ├── slides/[id]/
-│   │   ├── page.tsx             # Content editor (Phase 4)
-│   │   └── preview/page.tsx     # Deck preview iframe (Phase 5)
-│   ├── settings/
-│   │   └── page.tsx             # Backend strategy + provider + API key
-│   └── api/                     # Next.js API routes (Phases 3+)
+│   ├── layout.tsx               # Root layout (design bar, header nav, grid layout)
+│   ├── page.tsx                 # Landing page with saved deck cards
+│   ├── briefing/page.tsx        # 4-step briefing wizard
+│   ├── generating/              # Outline generation loading page (SSE consumer)
+│   ├── outline/                 # Outline editor (titles, content, drag-and-drop, lock)
+│   ├── building/                # Deck building loading page (OD pipeline SSE)
+│   ├── preview/                 # Deck preview iframe + PPTX download
+│   ├── settings/page.tsx        # AI settings: strategy, agent, model, API key
+│   └── api/
+│       ├── health/route.ts          # Strategy health check
+│       ├── generate-outline/route.ts    # JSON outline endpoint
+│       ├── generate-outline-stream/route.ts  # SSE outline endpoint
+│       ├── build-deck-stream/route.ts   # OD deck building SSE endpoint
+│       ├── export-pptx/route.ts     # PowerPoint export
+│       └── test-daemon/route.ts     # Daemon connection test
 ├── lib/
 │   ├── types.ts                 # Shared TypeScript types
 │   ├── brands.ts                # CPF colour/font constants + posture rules
 │   ├── instructions.ts          # Objectives, audiences, modes, narrative arcs
 │   ├── layouts.ts               # 16 CPF layout definitions
-│   └── strategies/              # Backend strategy implementations
-│       ├── types.ts             # Strategy interface
-│       ├── registry.ts          # Strategy factory
-│       ├── mock.ts              # Mock strategy
-│       ├── daemon.ts            # OD daemon client
-│       └── llm.ts               # Direct LLM client
+│   ├── prompts.ts               # Original prompt assembly (used by daemon path)
+│   ├── prompts-od.ts            # OD-style 6-layer prompt assembly (used by LLM path)
+│   ├── deck-builder.ts          # Client-side HTML deck generator
+│   ├── mock-deck.ts             # Pre-built 8-slide demo deck
+│   └── strategies/
+│       ├── types.ts             # BackendStrategy interface
+│       ├── registry.ts          # Strategy factory (mock / daemon / llm)
+│       ├── mock.ts              # Mock strategy — hardcoded outlines
+│       ├── daemon.ts            # OD daemon client — SSE, chat, project creation
+│       └── llm.ts               # Direct LLM client — Gemini, Groq, OpenRouter, OpenAI
 ├── components/
-│   ├── wizard/                  # Wizard step components
-│   ├── editor/                  # Slide editing components
-│   ├── preview/                 # Deck preview + navigation
-│   ├── settings/                # Settings UI components
-│   └── shared/                  # Shared UI (StepIndicator, StatusBadge, etc.)
+│   ├── wizard/                  # StepContext, StepMessage, StepNarrative, StepTemplate
+│   └── shared/                  # StepIndicator, DaemonStatusPill
 └── hooks/
-    ├── useBriefing.ts           # Wizard state management
-    ├── useDeckStore.ts          # localStorage deck CRUD
-    └── useStrategy.ts           # Active backend strategy
+    ├── useBriefing.ts           # Wizard state + localStorage persistence
+    ├── useDeckStore.ts          # Deck CRUD in localStorage
+    └── useDaemonStatus.ts       # Polls daemon health every 30s
 ```
 
 ## Development Phases
@@ -179,18 +226,18 @@ src/
 | Phase | Status | Description |
 |-------|--------|-------------|
 | 1 | Done | Scaffolding, brand tokens, app shell, landing page, settings |
-| 2 | Done | Briefing wizard with real inputs (context, message, narrative, template) |
-| 3 | Done | Backend strategy layer — mock strategy, strategy registry, prompt assembly, `/api/generate-outline`, `/api/health`, outline display page with inline editing |
-| 4 | — | Daemon backend integration |
-| 5 | — | Direct LLM backend integration |
-| 6 | — | Content editor (per-slide body content) |
-| 7 | — | Deck building + HTML preview |
-| 8 | — | PPTX export |
-| 9 | — | Polish, persistence, history |
+| 2 | Done | Briefing wizard (context, message, narrative, template) |
+| 3 | Done | Backend strategy layer, mock strategy, outline display with editing |
+| 4 | Done | Daemon backend — SSE chat, agent spawning, health check |
+| 5 | Done | Direct LLM API — OD-style prompts, proxy streaming, 4 providers |
+| 6 | Done | Content editor — inline body editing, drag-and-drop reorder, lock/unlock |
+| 7 | Done | Deck building — OD pipeline (project + skill + brand + agent), /preview |
+| 8 | Done | PPTX export — pptxgenjs with CPF branding |
+| 9 | — | Polish, deck history, landing page refinements |
 
 ## Reference Repos
 
-The `referenceRepos/` directory contains two projects used as design and architectural reference. These are gitignored and not part of the Slide Central build.
+The `referenceRepos/` directory is gitignored and not part of the Slide Central build. It contains:
 
 - `corporate-template-main/` — CPF slide template with 16 layouts, brand spec, PPTX generator
 - `open-design-main/` — Open Design platform (daemon, web app, skills, design systems)

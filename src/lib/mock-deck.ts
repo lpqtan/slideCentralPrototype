@@ -20,6 +20,7 @@ export function createMockDeck(): SavedDeck {
       contentPrompt: "",
       estimatedMinutes: 1,
       bodyContent: "CPF Board Digital Transformation\nQuarterly Strategy Review",
+      imageUrl: "",
     },
     {
       slideNumber: 2,
@@ -33,6 +34,7 @@ export function createMockDeck(): SavedDeck {
         "Email open rates fell from 34% to 22%\n" +
         "In-person service visits increased 8% — reversing the digitisation trend\n" +
         "Member satisfaction scores dipped below target for first time in 3 years",
+      imageUrl: "",
     },
     {
       slideNumber: 3,
@@ -50,6 +52,7 @@ export function createMockDeck(): SavedDeck {
         "- Personalised financial planning tools\n" +
         "- Real-time notifications on policy changes\n" +
         "- Chat and video support options",
+      imageUrl: "",
     },
     {
       slideNumber: 4,
@@ -62,6 +65,7 @@ export function createMockDeck(): SavedDeck {
         "22% Email Open Rate → 40% Target\n" +
         "40% Paper Comms → 10% Target\n" +
         "3.2/5 Satisfaction → 4.0/5 Target",
+      imageUrl: "",
     },
     {
       slideNumber: 5,
@@ -75,6 +79,7 @@ export function createMockDeck(): SavedDeck {
         "Phase 3: AI-Powered Chat Support (Q1 2027)\n" +
         "Phase 4: Digital-First Communications Hub (Q2 2027)\n" +
         "Phase 5: Continuous Analytics & Feedback Loop (Ongoing)",
+      imageUrl: "",
     },
     {
       slideNumber: 6,
@@ -85,6 +90,7 @@ export function createMockDeck(): SavedDeck {
       bodyContent:
         "3.4x ROI\n" +
         "S$2.4m investment yields S$8.2m in operational savings over 3 years through reduced paper, postage, and in-person service costs",
+      imageUrl: "",
     },
     {
       slideNumber: 7,
@@ -98,6 +104,7 @@ export function createMockDeck(): SavedDeck {
         "Month 7-9: Dashboard rollout • 50% paper reduction • Training\n" +
         "Month 10-12: Chat support launch • Full digital comms • Analytics\n" +
         "Month 13+: Continuous improvement • Annual review",
+      imageUrl: "",
     },
     {
       slideNumber: 8,
@@ -110,6 +117,7 @@ export function createMockDeck(): SavedDeck {
         "2. Nominate programme lead by 30 June\n" +
         "3. Commit to quarterly progress reviews\n\n" +
         "Thank you. Questions?",
+      imageUrl: "",
     },
   ];
 

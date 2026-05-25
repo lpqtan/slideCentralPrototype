@@ -1,6 +1,7 @@
 import type { BackendStrategy, StrategyOptions } from "./types";
 import type { BriefingData, SlideOutline } from "@/lib/types";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts";
+import { extractJson } from "./llm";
 
 const DAEMON_URL = process.env.DAEMON_URL ?? "http://localhost:7456";
 
@@ -139,24 +140,6 @@ export async function streamChat(
   if (!output.trim()) throw new Error("Daemon returned empty output");
 
   return output;
-}
-
-function extractJson(text: string): SlideOutline[] {
-  // Try to find a JSON array in the output
-  const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) {
-    throw new Error("No JSON array found in daemon output");
-  }
-  try {
-    return JSON.parse(jsonMatch[0]) as SlideOutline[];
-  } catch {
-    // Try cleaning common LLM artifacts
-    const cleaned = jsonMatch[0]
-      .replace(/\/\/.*$/gm, "")
-      .replace(/,\s*\]/g, "]")
-      .replace(/,\s*\}/g, "}");
-    return JSON.parse(cleaned) as SlideOutline[];
-  }
 }
 
 const daemonStrategy: BackendStrategy = {

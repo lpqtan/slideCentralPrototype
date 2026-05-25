@@ -1,11 +1,7 @@
 import { findAgent, parseSseStream } from "@/lib/strategies/daemon";
-import type { SlideContent, BriefingData } from "@/lib/types";
+import type { SlideContent } from "@/lib/types";
 
 const DAEMON_URL = process.env.DAEMON_URL ?? "http://localhost:7456";
-
-function escapeHtml(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
 
 async function daemonPost(path: string, body: unknown) {
   const res = await fetch(`${DAEMON_URL}${path}`, {
@@ -37,12 +33,12 @@ export async function POST(request: Request) {
         const body = await request.json();
         const {
           slides,
-          briefing,
+          strategy: strategyId,
           agentId,
           model,
         } = body as {
           slides: SlideContent[];
-          briefing: BriefingData;
+          strategy?: string;
           agentId?: string;
           model?: string;
         };
@@ -53,12 +49,28 @@ export async function POST(request: Request) {
           return;
         }
 
+        // ── LLM / Mock — use client-side deck builder ─────
+        if (strategyId !== "daemon") {
+          sse(controller, "status", { stage: "setup", message: "Building slides from outline..." });
+          for (let i = 1; i <= 4; i++) {
+            if (aborted) break;
+            await new Promise((r) => setTimeout(r, 150));
+            sse(controller, "status", { stage: "building", message: `Rendering slide ${i * (Math.ceil(slides.length / 4))} of ${slides.length}...` });
+          }
+
+          const { buildDeckHtml } = await import("@/lib/deck-builder");
+          const html = buildDeckHtml(slides);
+          sse(controller, "complete", { html });
+          controller.close();
+          return;
+        }
+
+        // ── Daemon — full OD pipeline ─────────────────────
         const agent = agentId ?? (await findAgent());
         const projectId = `deck-${Date.now().toString(36)}`;
 
         sse(controller, "status", { stage: "setup", message: "Creating project..." });
 
-        // 1. Create project with deck skill
         await daemonPost("/api/projects", {
           id: projectId,
           name: "CPF Presentation",
@@ -68,7 +80,6 @@ export async function POST(request: Request) {
 
         sse(controller, "status", { stage: "setup", message: "Uploading outline..." });
 
-        // 2. Upload outline as formatted markdown
         const outlineMd = slides
           .map(
             (s, i) =>
@@ -86,7 +97,6 @@ export async function POST(request: Request) {
 
         sse(controller, "status", { stage: "setup", message: "Uploading brand spec..." });
 
-        // 3. Upload brand instructions
         const brandSpec = `# CPF Brand Spec
 ## Primary Palette
 - CPF Green: #045941
@@ -113,7 +123,13 @@ export async function POST(request: Request) {
 7. Slide counter footer: "Slide X of YY" in mono font
 8. Section divider has motif/green band at bottom 25%
 9. Cover and closing are dark green with mint footer band
-10. British English throughout`;
+10. The CPF logo (logo-cpf-green.png and logo-cpf-white.png) MUST appear on EVERY slide:
+    - Cover/Closing: white logo, bottom-right corner
+    - Section divider: green logo, top-right corner
+    - Content slides: green logo, bottom-right footer area
+    - Use <img> tags with CSS classes .logo-mark.br (bottom-right) or .logo-mark.tr (top-right)
+    - Read logo-cpf-green.png and logo-cpf-white.png from project files for base64 data URIs
+11. British English throughout`;
 
         await daemonPost(`/api/projects/${projectId}/files`, {
           name: "brand-spec.md",
@@ -122,7 +138,6 @@ export async function POST(request: Request) {
 
         sse(controller, "status", { stage: "setup", message: "Uploading content principles..." });
 
-        // 4. Upload content principles
         const instructions = `# Slide Creation Principles
 1. Each slide title states an insight, not a label
 2. One idea per slide
@@ -136,9 +151,26 @@ export async function POST(request: Request) {
           content: instructions,
         });
 
+        sse(controller, "status", { stage: "setup", message: "Uploading CPF logo assets..." });
+
+        // Upload logo files (base64 encoded)
+        const { LOGO_GREEN_URI, LOGO_WHITE_URI } = await import("@/lib/logos");
+        const greenB64 = LOGO_GREEN_URI.replace("data:image/png;base64,", "");
+        const whiteB64 = LOGO_WHITE_URI.replace("data:image/png;base64,", "");
+
+        await daemonPost(`/api/projects/${projectId}/files`, {
+          name: "logo-cpf-green.png",
+          content: greenB64,
+          encoding: "base64",
+        });
+        await daemonPost(`/api/projects/${projectId}/files`, {
+          name: "logo-cpf-white.png",
+          content: whiteB64,
+          encoding: "base64",
+        });
+
         sse(controller, "status", { stage: "building", message: `Agent '${agent}' building deck...` });
 
-        // 5. Build the prompt
         const systemPrompt = `You are an expert presentation designer for CPF (Central Provident Fund Board).
 
 ## CRITICAL: Framework Must Be Copied Verbatim
@@ -170,7 +202,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 #deck{display:flex;width:100%;height:1080px;overflow:hidden}
 .slide{flex:0 0 1920px;width:1920px;height:1080px;position:relative;overflow:hidden}
 .slide:not(.active){display:none!important}
-/* SLOT: per-deck styles — typography, layout classes, dark/light themes */
+/* SLOT: per-deck styles */
 SLOT: per-deck styles
 </style>
 </head>
@@ -178,7 +210,7 @@ SLOT: per-deck styles
 <div class="deck-shell" id="shell">
 <div class="stage" id="stage">
 <div id="deck">
-<!-- SLOT: slides — <section class="slide active"> blocks -->
+<!-- SLOT: slides -->
 SLOT: slides
 </div>
 </div>
@@ -220,24 +252,26 @@ SLOT: slides
 \`\`\`
 
 ## Task
-1. Read outline.md, brand-spec.md, instructions.md from the project files
+1. Read outline.md, brand-spec.md, instructions.md, logo-cpf-green.png, and logo-cpf-white.png from the project files
 2. Replace SLOT: slides with properly styled <section class="slide active"> blocks
-3. Replace SLOT: per-deck styles with CPF-themed CSS (dark covers, mint content slides, title styles, design bars, etc.)
-4. Each slide must match the brand rules in brand-spec.md
-5. Follow the content principles in instructions.md
-6. The first slide must be class="slide active"
+3. Replace SLOT: per-deck styles with CPF-themed CSS including .logo-mark classes
+4. Every slide MUST include the CPF logo as specified in brand-spec.md rule 10
+5. Each slide must match the brand rules in brand-spec.md
+6. Follow the content principles in instructions.md
+7. The first slide must be class="slide active"
+
+## SPEED: Generate Slides in Parallel
+Process slide groups concurrently using multiple write operations:
+- Group 1: Cover slide + first content slide (write immediately)
+- Group 2: Remaining slides — write 3-4 at a time in parallel
+- Do NOT write slides sequentially one-by-one. Batch them.
 
 Write the complete index.html to the project. Replace ONLY the SLOT markers.`;
 
         const userPrompt = `Build a CPF-branded slide deck from the outline in outline.md.
 
-**Key Message:** ${escapeHtml(briefing.keyMessage || "CPF Presentation")}
-**Audience:** ${briefing.audience || "general"}
-**Narrative Arc:** ${briefing.narrativeArc || "general"}
-
 Read outline.md, brand-spec.md, and instructions.md first. Then build the complete index.html.`;
 
-        // 6. Start agent
         const chatRes = await fetch(`${DAEMON_URL}/api/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
@@ -273,14 +307,8 @@ Read outline.md, brand-spec.md, and instructions.md first. Then build the comple
           }
 
           if (ev.event === "stdout") {
-            try {
-              const p = JSON.parse(ev.data) as { chunk?: string };
-              if (p.chunk) {
-                sse(controller, "text_delta", { delta: p.chunk });
-              }
-            } catch { /* skip */ }
+            try { const p = JSON.parse(ev.data) as { chunk?: string }; if (p.chunk) sse(controller, "text_delta", { delta: p.chunk }); } catch { /* skip */ }
           }
-
           if (ev.event === "error") {
             try { agentError = (JSON.parse(ev.data) as { message?: string }).message ?? "Daemon error"; } catch { agentError = "Daemon error"; }
             break;
@@ -292,7 +320,6 @@ Read outline.md, brand-spec.md, and instructions.md first. Then build the comple
 
         sse(controller, "status", { stage: "fetching", message: "Fetching generated deck..." });
 
-        // 7. Fetch the generated HTML
         const fileRes = await fetch(`${DAEMON_URL}/api/projects/${projectId}/files/index.html`);
         let html: string;
         if (fileRes.ok) {

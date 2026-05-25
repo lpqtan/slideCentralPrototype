@@ -11,7 +11,36 @@ export default function PreviewContent() {
   const deckId = searchParams.get("deckId");
   const { getById } = useDeckStore();
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const blobRef = { current: null as string | null };
+
+  const handleDownloadPptx = async () => {
+    setDownloading(true);
+    try {
+      const deck = deckId ? getById(deckId) : undefined;
+      const html = deck?.htmlContent ?? "";
+
+      const res = await fetch("/api/export-pptx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ html }),
+      });
+
+      if (!res.ok) throw new Error("Export failed");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "presentation.pptx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PPTX export failed:", err);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (!deckId) {
@@ -56,18 +85,17 @@ export default function PreviewContent() {
             Back to Outline
           </Link>
           <button
-            onClick={() => {
-              /* Phase 8: PPTX export */
-            }}
-            className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)]"
+            onClick={handleDownloadPptx}
+            disabled={downloading}
+            className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)] disabled:cursor-wait disabled:opacity-60"
           >
-            Download PPTX
+            {downloading ? "Downloading..." : "Download PPTX"}
           </button>
         </div>
       </div>
 
       {/* Iframe */}
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-hidden border border-[var(--color-border)]">
         <iframe
           src={blobUrl}
           sandbox="allow-scripts allow-same-origin"

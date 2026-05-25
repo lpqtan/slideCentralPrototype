@@ -41,6 +41,12 @@ export default function RootLayout({
             <nav className="flex items-center gap-4">
               <DaemonStatusPill />
               <Link
+                href="/workspace"
+                className="text-sm text-[var(--color-fg-soft)] transition-colors hover:text-[var(--color-cpf-green)]"
+              >
+                Workspace
+              </Link>
+              <Link
                 href="/settings"
                 className="rounded border border-[var(--color-border)] px-3 py-1 text-sm font-medium text-[var(--color-fg-soft)] transition-colors hover:border-[var(--color-cpf-green)]"
               >

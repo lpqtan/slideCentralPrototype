@@ -23,10 +23,12 @@ export default function GeneratingContent() {
   const [error, setError] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
-  const [settings, setSettings] = useState<{ strategy: string; daemonAgent: string; daemonModel: string }>({
+  const [settings, setSettings] = useState<{ strategy: string; daemonAgent: string; daemonModel: string; provider: string; apiKey: string }>({
     strategy: "mock",
     daemonAgent: "opencode",
     daemonModel: "opencode/big-pickle",
+    provider: "gemini",
+    apiKey: "",
   });
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function GeneratingContent() {
     const settingsRaw = localStorage.getItem("slidecentral-settings");
     const settings = settingsRaw
       ? JSON.parse(settingsRaw)
-      : { strategy: "mock", daemonAgent: "opencode", daemonModel: "opencode/big-pickle" };
+      : { strategy: "mock", daemonAgent: "opencode", daemonModel: "opencode/big-pickle", provider: "gemini", apiKey: "" };
 
     setSettings(settings);
 
@@ -183,6 +185,11 @@ export default function GeneratingContent() {
               {settings.daemonAgent ?? "?"} / {(settings.daemonModel ?? "?").replace(/^opencode\//, "").replace(/^opencode-go\//, "")}
             </span>
           )}
+          {settings.strategy === "llm" && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-cpf-green)]/30 bg-[var(--color-cpf-green)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--color-cpf-green)]">
+              {settings.provider ?? "?"}
+            </span>
+          )}
         </p>
       </div>
 
@@ -249,16 +256,16 @@ export default function GeneratingContent() {
         </div>
       )}
 
-      {/* Text deltas (collapsible) */}
+      {/* Text deltas — always visible */}
       {textDeltas && (
-        <details className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)] hover:text-[var(--color-fg-soft)]">
+        <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">
             Raw Agent Output
-          </summary>
-          <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
+          </h2>
+          <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
             {textDeltas}
           </pre>
-        </details>
+        </div>
       )}
 
       {/* Brand bar */}

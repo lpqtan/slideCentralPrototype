@@ -1,5 +1,6 @@
 import type { SlideContent } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
+import { LOGO_GREEN_URI, LOGO_WHITE_URI } from "@/lib/logos";
 
 function getLayoutClass(id: string): string {
   switch (id) {
@@ -36,6 +37,7 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
     <div class="title-rule"></div>
     ${lines.length > 0 ? `<p class="subtitle">${lines.map(escapeHtml).join("<br/>")}</p>` : ""}
   </div>
+  <img class="logo-mark br" src="${LOGO_WHITE_URI}" alt="CPF" />
   <div class="cover-band">
     <div class="band-meta">CPF Board</div>
   </div>
@@ -44,6 +46,7 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
 
   if (slide.layoutOverride === "section-divider" || slide.suggestedLayout === "section-divider") {
     return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <img class="logo-mark tr" src="${LOGO_GREEN_URI}" alt="CPF" />
   <div class="divider-frame">
     <div class="chapter-tag">Section</div>
     <h2 class="h-chapter">${escapeHtml(slide.title)}</h2>
@@ -93,6 +96,7 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
     <div class="title-rule"></div>
     ${lines.length > 0 ? `<p class="subtitle">${lines.map(escapeHtml).join("<br/>")}</p>` : ""}
   </div>
+  <img class="logo-mark br" src="${LOGO_WHITE_URI}" alt="CPF" />
   <div class="cover-band">
     <div class="band-meta">Thank you</div>
   </div>
@@ -114,11 +118,13 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
       <div class="title-rule"></div>
     </header>
     <div class="frame-body">
+      ${slide.imageUrl ? `<div class="deck-image"><img src="${escapeHtml(slide.imageUrl)}" alt="Slide image" /></div>` : ""}
       ${lines.length > 0 ? `<ul class="bullets">
 ${lines.map((l) => `        <li>${escapeHtml(l)}</li>`).join("\n")}
       </ul>` : `<p class="lead" style="margin-bottom:3cqh">${escapeHtml(slide.contentPrompt)}</p>`}
     </div>
   </div>
+  <img class="logo-mark br" src="${LOGO_GREEN_URI}" alt="CPF" style="width:80px;height:auto" />
   <div class="slide-foot">
     <span>${escapeHtml(slide.title)}</span>
     <span class="counter"></span>
@@ -183,6 +189,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 .big-stat-label{font-family:var(--font-body);font-weight:300;font-size:28px;max-width:20em;opacity:.85}
 .quote-text{font-family:var(--font-display);font-weight:300;font-style:italic;font-size:42px;line-height:1.4;max-width:24em;margin:0 auto;position:absolute;inset:120px 80px 120px 80px;display:flex;align-items:center}
 .quote-cite{position:absolute;bottom:80px;right:80px;font-family:var(--font-mono);font-size:16px;opacity:.7}
+.logo-mark{position:absolute;z-index:2}
+.logo-mark.br{bottom:55px;right:30px}
+.logo-mark.tr{top:30px;right:30px}
+.deck-image{margin-bottom:2cqh}
+.deck-image img{max-width:100%;max-height:30cqh;border-radius:4px}
 `;
 
 export function buildDeckHtml(slides: SlideContent[]): string {

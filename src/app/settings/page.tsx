@@ -5,14 +5,16 @@ import Link from "next/link";
 
 const STRATEGIES = [
   { id: "mock", label: "Mock", description: "Hardcoded responses for UI testing" },
+  { id: "opencode-direct", label: "Local OpenCode", description: "Calls opencode CLI directly — no daemon" },
   { id: "daemon", label: "Open Design Daemon", description: "localhost:7456 — full AI pipeline" },
   { id: "llm", label: "Direct LLM API", description: "OpenAI / Gemini / Groq / OpenRouter" },
 ] as const;
 
 const FREE_PROVIDERS = [
-  { id: "gemini", label: "Gemini", model: "gemini-2.0-flash" },
+  { id: "gemini", label: "Gemini 2.5 Flash Lite", model: "gemini-2.5-flash-lite" },
+  { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", model: "gemini-3.5-flash" },
   { id: "groq", label: "Groq", model: "llama-3.3-70b" },
-  { id: "openrouter", label: "OpenRouter", model: "google/gemini-2.0-flash-001" },
+  { id: "openrouter", label: "OpenRouter", model: "openrouter/free" },
 ] as const;
 
 const BYOK_PROVIDERS = [
@@ -165,7 +167,7 @@ export default function SettingsPage() {
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--color-muted)]">
           Backend Strategy
         </h2>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           {STRATEGIES.map((s) => {
             const isSaved = saved.strategy === s.id;
             const isSelected = strategy === s.id;

@@ -94,13 +94,21 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* CTA */}
-      <button
-        onClick={startNewDeck}
-        className="mx-auto rounded bg-[var(--color-cpf-green)] px-8 py-3 text-lg font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)]"
-      >
-        Start New Deck
-      </button>
+      {/* CTAs */}
+      <div className="mx-auto flex gap-3">
+        <button
+          onClick={startNewDeck}
+          className="rounded bg-[var(--color-cpf-green)] px-8 py-3 text-lg font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)]"
+        >
+          Start New Deck
+        </button>
+        <button
+          onClick={() => router.push("/chat-briefing")}
+          className="rounded border border-[var(--color-cpf-green)] px-6 py-3 text-lg font-medium text-[var(--color-cpf-green)] transition-colors hover:bg-[var(--color-cpf-mint)]"
+        >
+          Chat Briefing
+        </button>
+      </div>
 
       {/* Saved decks */}
       <div className="mx-auto w-full max-w-2xl">

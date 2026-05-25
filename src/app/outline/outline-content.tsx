@@ -11,6 +11,7 @@ import { buildDeckHtml } from "@/lib/deck-builder";
 interface EditableSlide extends SlideOutline {
   locked: boolean;
   bodyContent: string;
+  imageUrl: string;
 }
 
 function getLayoutName(id: string): string {
@@ -63,6 +64,7 @@ export default function OutlineContent() {
           ...s,
           locked: false,
           bodyContent: "",
+          imageUrl: "",
         }))
       );
       setSource(deck.source ?? null);
@@ -102,6 +104,7 @@ export default function OutlineContent() {
         contentPrompt: s.contentPrompt,
         estimatedMinutes: s.estimatedMinutes,
         bodyContent: s.bodyContent ?? "",
+        imageUrl: s.imageUrl ?? "",
       }));
       updateOutline(deckId, clean);
       setDeckSlides(deckId, cleanContent);
@@ -195,6 +198,22 @@ export default function OutlineContent() {
     persist(updated);
   };
 
+  const addSlide = () => {
+    const newSlide: EditableSlide = {
+      slideNumber: slides.length + 1,
+      title: "Untitled Slide",
+      suggestedLayout: "bullet-list" as SlideOutline["suggestedLayout"],
+      contentPrompt: "Describe the content for this slide",
+      estimatedMinutes: 1.5,
+      locked: false,
+      bodyContent: "",
+      imageUrl: "",
+    };
+    const updated = [...slides, newSlide];
+    setSlides(updated);
+    persist(updated);
+  };
+
   // --- Regenerate ---
 
   const handleRegenerate = () => {
@@ -220,8 +239,8 @@ export default function OutlineContent() {
       contentPrompt: s.contentPrompt,
       estimatedMinutes: s.estimatedMinutes,
       bodyContent: s.bodyContent ?? "",
+      imageUrl: s.imageUrl ?? "",
     }));
-    setDeckSlides(deckId, contentSlides);
 
     const settingsRaw = localStorage.getItem("slidecentral-settings");
     const settings = settingsRaw ? JSON.parse(settingsRaw) : { strategy: "mock" };
@@ -285,6 +304,12 @@ export default function OutlineContent() {
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={addSlide}
+            className="rounded border border-[var(--color-cpf-green)] px-3 py-2 text-xs font-medium text-[var(--color-cpf-green)] transition-colors hover:bg-[var(--color-cpf-mint)]"
+          >
+            + Add Slide
+          </button>
           <button
             onClick={toggleLockAll}
             className="rounded border border-[var(--color-border)] px-3 py-2 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:border-[var(--color-cpf-green)]"
@@ -471,6 +496,45 @@ export default function OutlineContent() {
                       className="w-full cursor-text rounded border border-dashed border-[var(--color-border)] px-2 py-1 text-left text-[10px] text-[var(--color-muted)] hover:border-[var(--color-cpf-green)] hover:text-[var(--color-fg-soft)]"
                     >
                       + Add body content (bullet points, one per line)
+                    </button>
+                  )}
+                </div>
+
+                {/* Image URL */}
+                <div className="mt-1">
+                  {slide.imageUrl ? (
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-[10px] text-[var(--color-muted)]">
+                        Image: {slide.imageUrl}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const updated = slides.map((s) =>
+                            s.slideNumber === slide.slideNumber ? { ...s, imageUrl: "" } : s
+                          );
+                          setSlides(updated);
+                          persist(updated);
+                        }}
+                        className="shrink-0 text-[10px] text-red-400 hover:text-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        const url = prompt("Enter image URL:");
+                        if (url) {
+                          const updated = slides.map((s) =>
+                            s.slideNumber === slide.slideNumber ? { ...s, imageUrl: url } : s
+                          );
+                          setSlides(updated);
+                          persist(updated);
+                        }
+                      }}
+                      className="text-[10px] text-[var(--color-muted)] hover:text-[var(--color-cpf-green)]"
+                    >
+                      + Add image URL
                     </button>
                   )}
                 </div>

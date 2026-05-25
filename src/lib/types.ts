@@ -40,7 +40,7 @@ export type LayoutId =
   | "closing";
 
 /** Backend strategy identifiers */
-export type StrategyId = "mock" | "daemon" | "llm";
+export type StrategyId = "mock" | "daemon" | "llm" | "opencode-direct";
 
 /** LLM provider identifiers */
 export type LLMProviderId = "openai" | "gemini" | "groq" | "openrouter";
@@ -70,6 +70,7 @@ export interface BriefingData {
 export interface SlideContent extends SlideOutline {
   bodyContent: string;
   layoutOverride?: LayoutId;
+  imageUrl?: string;
 }
 
 /** Application settings persisted in localStorage */

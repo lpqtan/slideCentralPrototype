@@ -1,21 +1,9 @@
 import { getStrategy } from "@/lib/strategies/registry";
 import { findAgent, parseSseStream } from "@/lib/strategies/daemon";
+import { streamProvider, extractJson } from "@/lib/strategies/llm";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts";
+import { buildSystemPrompt as buildOdSystemPrompt, buildUserPrompt as buildOdUserPrompt } from "@/lib/prompts-od";
 import type { BriefingData, SlideOutline, GenerationSource } from "@/lib/types";
-
-function extractJson(text: string): SlideOutline[] {
-  const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error("No JSON array found in daemon output");
-  try {
-    return JSON.parse(jsonMatch[0]) as SlideOutline[];
-  } catch {
-    const cleaned = jsonMatch[0]
-      .replace(/\/\/.*$/gm, "")
-      .replace(/,\s*\]/g, "]")
-      .replace(/,\s*\}/g, "}");
-    return JSON.parse(cleaned) as SlideOutline[];
-  }
-}
 
 export async function POST(request: Request) {
   const encoder = new TextEncoder();
@@ -63,7 +51,7 @@ export async function POST(request: Request) {
 
         sse(controller, "status", { stage: "connecting", message: `Connecting to ${activeStrategy}...` });
 
-        let outline: SlideOutline[];
+        let outline: SlideOutline[] | undefined;
         let rawOutput: string | undefined;
 
         // ── Daemon ──────────────────────────────────────
@@ -166,6 +154,59 @@ export async function POST(request: Request) {
           }
         }
 
+        // ── Daemon ──────────────────────────────────────
+        if (activeStrategy === "daemon") {
+          // ... (unchanged)
+        }
+
+        // ── LLM API ─────────────────────────────────────
+        else if (activeStrategy === "llm") {
+          const llmProvider = provider ?? "gemini";
+          source.agent = llmProvider;
+          source.model = model;
+
+          sse(controller, "status", { stage: "generating", message: `Calling ${llmProvider} API...` });
+
+          const systemPrompt = buildOdSystemPrompt();
+          const userPrompt = buildOdUserPrompt(briefing);
+
+          let output = "";
+          let streamFailed = false;
+
+          try {
+            for await (const ev of streamProvider(
+              llmProvider,
+              model,
+              apiKey,
+              systemPrompt,
+              userPrompt
+            )) {
+              if (aborted) break;
+              if (ev.type === "text") {
+                output += ev.text;
+                sse(controller, "text_delta", { delta: ev.text });
+              }
+              if (ev.type === "error") throw new Error(ev.message);
+            }
+          } catch {
+            streamFailed = true;
+          }
+
+          if (streamFailed || !output.trim()) {
+            // Fallback to non-streaming
+            const backend = getStrategy(activeStrategy);
+            outline = await backend.generateOutline(briefing, { provider, apiKey, model });
+            source.agent = provider ?? "gemini";
+            sse(controller, "complete", { outline, source });
+            controller.close();
+            return;
+          }
+
+          rawOutput = output;
+          sse(controller, "status", { stage: "parsing", message: "Parsing outline..." });
+          outline = extractJson(rawOutput);
+        }
+
         // ── Mock / Other ───────────────────────────────
         else {
           for (let i = 1; i <= 4; i++) {
@@ -189,6 +230,10 @@ export async function POST(request: Request) {
               };
             });
           }
+        }
+
+        if (!outline) {
+          throw new Error("No outline generated");
         }
 
         source.rawOutput = rawOutput;
