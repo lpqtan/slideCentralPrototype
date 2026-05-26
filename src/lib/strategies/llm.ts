@@ -49,14 +49,45 @@ const PROVIDERS: Record<string, ProviderConfig> = {
 };
 
 export function extractJson(text: string): SlideOutline[] {
-  const cleaned = text
+  let cleaned = text
     .replace(/```json\n?/gi, "")
     .replace(/```\n?/g, "")
+    .replace(/\r\n/g, "\n")
     .trim();
+
+  // Handle opencode NDJSON streaming output (--format json)
+  // Each line is a separate JSON event: {"type":"text","part":{"text":"{\"outline\":[...]}"}}
+  const lines = cleaned.split("\n");
+  for (const line of lines) {
+    try {
+      const ev = JSON.parse(line) as Record<string, unknown>;
+      if (ev.type === "text" && ev.part && typeof ev.part === "object") {
+        const part = ev.part as Record<string, unknown>;
+        if (typeof part.text === "string") {
+          const innerJson = JSON.parse(part.text) as { outline?: SlideOutline[] } | SlideOutline[];
+          if (Array.isArray(innerJson)) return innerJson;
+          if (innerJson.outline && Array.isArray(innerJson.outline)) return innerJson.outline;
+        }
+      }
+    } catch { /* not a JSON line, continue */ }
+  }
+
+  // Unwrap opencode --format json envelope (e.g. {"output":"...","error":""})
+  try {
+    const wrapper = JSON.parse(cleaned) as Record<string, unknown>;
+    const inner = wrapper.output ?? wrapper.content ?? wrapper.text ?? wrapper.result;
+    if (typeof inner === "string" && inner.trim()) {
+      cleaned = inner.trim();
+    }
+  } catch { /* not a JSON wrapper, continue */ }
+
+  // Skip text prefix before first JSON character
+  const jsonStart = cleaned.search(/[\{\[]/);
+  const jsonText = jsonStart >= 0 ? cleaned.slice(jsonStart) : cleaned;
 
   // Try direct parse first (handles { "outline": [...] } or bare [...])
   try {
-    const parsed = JSON.parse(cleaned) as { outline?: SlideOutline[] } | SlideOutline[];
+    const parsed = JSON.parse(jsonText) as { outline?: SlideOutline[] } | SlideOutline[];
     if (Array.isArray(parsed)) return parsed;
     if (parsed.outline && Array.isArray(parsed.outline)) return parsed.outline;
   } catch { /* continue */ }
@@ -65,13 +96,13 @@ export function extractJson(text: string): SlideOutline[] {
   let depth = 0;
   let start = -1;
   let end = -1;
-  for (let i = 0; i < cleaned.length; i++) {
-    if (cleaned[i] === "[" && depth === 0) {
+  for (let i = 0; i < jsonText.length; i++) {
+    if (jsonText[i] === "[" && depth === 0) {
       if (start === -1) start = i;
       depth++;
-    } else if (cleaned[i] === "[") {
+    } else if (jsonText[i] === "[") {
       depth++;
-    } else if (cleaned[i] === "]") {
+    } else if (jsonText[i] === "]") {
       depth--;
       if (depth === 0 && start !== -1) {
         end = i + 1;
@@ -81,7 +112,7 @@ export function extractJson(text: string): SlideOutline[] {
   }
 
   if (start === -1) throw new Error("No JSON array found in LLM output");
-  const json = end !== -1 ? cleaned.slice(start, end) : cleaned.slice(start);
+  const json = end !== -1 ? jsonText.slice(start, end) : jsonText.slice(start);
 
   try {
     return JSON.parse(json) as SlideOutline[];
