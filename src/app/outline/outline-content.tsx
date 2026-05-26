@@ -381,96 +381,74 @@ export default function OutlineContent() {
         Drag slides to reorder. Click titles or prompts to edit inline.
       </p>
 
+      {/* Info banner */}
+      <div className="mb-4 flex gap-3 rounded border-l-4 border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] p-4">
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-cpf-green)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p className="text-xs leading-relaxed text-[var(--color-cpf-green)]">
+          SlideCentral has drafted a slide structure based on your brief. Review the content prompt for each slide, then add your own content below it.
+        </p>
+      </div>
+
       {/* Slides */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         {displaySlides.map(({ slide, isDragging, isDropTarget }, displayIdx) => (
           <div
             key={slide.slideNumber}
             draggable
             onDragStart={() => {
-              // Find the real index of this slide in the original slides array
               const realIdx = slides.findIndex((s) => s.slideNumber === slide.slideNumber);
               handleDragStart(realIdx);
             }}
             onDragOver={(e) => handleDragOver(e, displayIdx)}
             onDrop={handleDrop}
             onDragEnd={handleDragEnd}
-            className={`group rounded border bg-[var(--color-surface)] p-4 transition-all duration-150 cursor-grab active:cursor-grabbing ${
+            className={`group flex overflow-hidden rounded border transition-all duration-150 ${
               isDragging
                 ? "opacity-30 scale-[0.98]"
                 : isDropTarget && dragIndex !== null
                   ? "border-[var(--color-cpf-green)] border-dashed ring-1 ring-[var(--color-cpf-green)]/40"
                   : slide.locked
-                    ? "border-[var(--color-orange)]/40 bg-[var(--color-orange)]/[0.03]"
-                    : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
+                    ? "border-[var(--color-orange)]/50 bg-[var(--color-orange)]/[0.02]"
+                    : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)]"
             }`}
           >
-            <div className="flex items-start gap-3">
-              {/* Drag handle + slide number */}
-              <div className="flex shrink-0 flex-col items-center gap-0.5 pt-0.5">
-                <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white ${
-                    slide.locked ? "bg-[var(--color-orange)]" : "bg-[var(--color-cpf-green)]"
-                  }`}
-                >
-                  {slide.locked ? "\uD83D\uDD12" : slide.slideNumber}
+            {/* Left accent bar */}
+            <div
+              className={`w-1 shrink-0 ${
+                slide.locked ? "bg-[var(--color-orange)]" : "bg-[var(--color-cpf-green)]"
+              }`}
+            />
+
+            <div className="min-w-0 flex-1 p-5">
+              {/* Top row: number badge, title, layout, drag handle */}
+              <div className="mb-3 flex items-start gap-3">
+                <div className="shrink-0 rounded bg-[var(--color-cpf-mint)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--color-muted)]">
+                  {slide.locked ? "\uD83D\uDD12" : `Slide ${slide.slideNumber}`}
                 </div>
-                <span className="text-[9px] text-[var(--color-muted)] select-none">
-                  &#x2630;
-                </span>
-              </div>
 
-              {/* Content */}
-              <div className="min-w-0 flex-1">
-                {/* Title */}
-                {editingField?.slide === slide.slideNumber && editingField.field === "title" ? (
-                  <input
-                    autoFocus
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={commitEdit}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitEdit();
-                      if (e.key === "Escape") setEditingField(null);
-                    }}
-                    className="w-full rounded border border-[var(--color-cpf-green)] bg-[var(--color-cpf-paper)] px-2 py-1 text-sm font-bold text-[var(--color-fg)] focus:outline-none"
-                  />
-                ) : (
-                  <h3
-                    className="cursor-text text-sm font-bold text-[var(--color-fg)] hover:text-[var(--color-cpf-green)]"
-                    onClick={() => startEdit(slide.slideNumber, "title", slide.title)}
-                  >
-                    {slide.title}
-                  </h3>
-                )}
-
-                {/* Content prompt */}
-                {editingField?.slide === slide.slideNumber && editingField.field === "prompt" ? (
-                  <textarea
-                    autoFocus
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={commitEdit}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") setEditingField(null);
-                    }}
-                    rows={2}
-                    className="mt-1 w-full rounded border border-[var(--color-cpf-green)] bg-[var(--color-cpf-paper)] px-2 py-1 text-xs text-[var(--color-fg)] focus:outline-none"
-                  />
-                ) : (
-                  <p
-                    className="mt-1 cursor-text text-xs text-[var(--color-muted)] hover:text-[var(--color-fg-soft)]"
-                    onClick={() =>
-                      startEdit(slide.slideNumber, "prompt", slide.contentPrompt)
-                    }
-                  >
-                    {slide.contentPrompt}
-                  </p>
-                )}
-
-                {/* Body content */}
-                <div className="mt-2">
-                  {editingField?.slide === slide.slideNumber && editingField.field === "body" ? (
+                <div className="min-w-0 flex-1">
+                  {editingField?.slide === slide.slideNumber && editingField.field === "title" ? (
+                    <input
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={commitEdit}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitEdit();
+                        if (e.key === "Escape") setEditingField(null);
+                      }}
+                      className="w-full rounded border border-[var(--color-cpf-green)] bg-[var(--color-cpf-paper)] px-2 py-1 text-sm font-bold text-[var(--color-fg)] focus:outline-none"
+                    />
+                  ) : (
+                    <h3
+                      className="cursor-text text-sm font-bold text-[var(--color-fg)] hover:text-[var(--color-cpf-green)]"
+                      onClick={() => startEdit(slide.slideNumber, "title", slide.title)}
+                    >
+                      {slide.title}
+                    </h3>
+                  )}
+                  {/* Content prompt with label prefix */}
+                  {editingField?.slide === slide.slideNumber && editingField.field === "prompt" ? (
                     <textarea
                       autoFocus
                       value={editValue}
@@ -479,102 +457,132 @@ export default function OutlineContent() {
                       onKeyDown={(e) => {
                         if (e.key === "Escape") setEditingField(null);
                       }}
-                      rows={4}
-                      placeholder="Enter slide body content — one point per line for bullet slides..."
-                      className="w-full rounded border border-[var(--color-cpf-green)] bg-[var(--color-cpf-paper)] px-2 py-1 text-xs text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none"
+                      rows={2}
+                      className="mt-1 w-full rounded border border-[var(--color-cpf-green)] bg-[var(--color-cpf-paper)] px-2 py-1 text-xs text-[var(--color-fg)] focus:outline-none"
                     />
-                  ) : slide.bodyContent ? (
-                    <div
-                      className="cursor-pointer whitespace-pre-wrap rounded border border-dashed border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-fg-soft)] hover:border-[var(--color-cpf-green)]"
-                      onClick={() => startEdit(slide.slideNumber, "body", slide.bodyContent)}
-                    >
-                      {slide.bodyContent}
-                    </div>
                   ) : (
-                    <button
-                      onClick={() => startEdit(slide.slideNumber, "body", "")}
-                      className="w-full cursor-text rounded border border-dashed border-[var(--color-border)] px-2 py-1 text-left text-[10px] text-[var(--color-muted)] hover:border-[var(--color-cpf-green)] hover:text-[var(--color-fg-soft)]"
+                    <p
+                      className="mt-1 cursor-text text-xs italic text-[var(--color-muted)] hover:text-[var(--color-fg-soft)]"
+                      onClick={() =>
+                        startEdit(slide.slideNumber, "prompt", slide.contentPrompt)
+                      }
                     >
-                      + Add body content (bullet points, one per line)
-                    </button>
+                      Content prompt: {slide.contentPrompt}
+                    </p>
                   )}
                 </div>
 
-                {/* Image URL */}
-                <div className="mt-1">
-                  {slide.imageUrl ? (
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-[10px] text-[var(--color-muted)]">
-                        Image: {slide.imageUrl}
-                      </span>
-                      <button
-                        onClick={() => {
-                          const updated = slides.map((s) =>
-                            s.slideNumber === slide.slideNumber ? { ...s, imageUrl: "" } : s
-                          );
-                          setSlides(updated);
-                          persist(updated);
-                        }}
-                        className="shrink-0 text-[10px] text-red-400 hover:text-red-600"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        const url = prompt("Enter image URL:");
-                        if (url) {
-                          const updated = slides.map((s) =>
-                            s.slideNumber === slide.slideNumber ? { ...s, imageUrl: url } : s
-                          );
-                          setSlides(updated);
-                          persist(updated);
-                        }
-                      }}
-                      className="text-[10px] text-[var(--color-muted)] hover:text-[var(--color-cpf-green)]"
-                    >
-                      + Add image URL
-                    </button>
-                  )}
-                </div>
-
-                {/* Meta */}
-                <div className="mt-2 flex items-center gap-3">
-                  <span className="rounded bg-[var(--color-cpf-mint)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-cpf-green)]">
+                <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+                  <span className="rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-muted)]">
                     {getLayoutName(slide.suggestedLayout)}
                   </span>
-                  <span className="font-mono text-[10px] text-[var(--color-muted)]">
-                    ~{slide.estimatedMinutes} min
+                  <span className="cursor-grab select-none text-xs text-[var(--color-muted)] opacity-40 hover:opacity-100">
+                    &#x2630;
                   </span>
-                  {slide.locked && (
-                    <span className="text-[10px] text-[var(--color-orange)]">
-                      Locked
-                    </span>
-                  )}
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex shrink-0 flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                <button
-                  onClick={() => toggleLock(slide.slideNumber)}
-                  className={`rounded border px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                    slide.locked
-                      ? "border-[var(--color-orange)]/50 text-[var(--color-orange)] hover:bg-[var(--color-orange)]/10"
-                      : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-cpf-green)]"
-                  }`}
-                  title={slide.locked ? "Unlock" : "Lock"}
-                >
-                  {slide.locked ? "Unlock" : "Lock"}
-                </button>
-                <button
-                  onClick={() => deleteSlide(slide.slideNumber)}
-                  className="rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-muted)] transition-colors hover:border-red-300 hover:text-red-600"
-                  title="Delete"
-                >
-                  Delete
-                </button>
+              {/* Body content */}
+              <div className="mb-1">
+                {editingField?.slide === slide.slideNumber && editingField.field === "body" ? (
+                  <textarea
+                    autoFocus
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={commitEdit}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setEditingField(null);
+                    }}
+                    rows={4}
+                    placeholder="Enter slide body content — one point per line for bullet slides..."
+                    className="w-full rounded border border-[var(--color-cpf-green)] bg-[var(--color-cpf-paper)] px-3 py-2 text-xs text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none"
+                  />
+                ) : slide.bodyContent ? (
+                  <div
+                    className="cursor-pointer whitespace-pre-wrap rounded border border-dashed border-[var(--color-border)] px-3 py-2 text-xs text-[var(--color-fg-soft)] hover:border-[var(--color-cpf-green)]"
+                    onClick={() => startEdit(slide.slideNumber, "body", slide.bodyContent)}
+                  >
+                    {slide.bodyContent}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => startEdit(slide.slideNumber, "body", "")}
+                    className="w-full cursor-text rounded border border-dashed border-[var(--color-border)] px-3 py-2 text-left text-[10px] text-[var(--color-muted)] hover:border-[var(--color-cpf-green)] hover:text-[var(--color-fg-soft)]"
+                  >
+                    + Add body content (bullet points, one per line)
+                  </button>
+                )}
+              </div>
+
+              {/* Image URL */}
+              <div className="mb-1">
+                {slide.imageUrl ? (
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-[10px] text-[var(--color-muted)]">
+                      Image: {slide.imageUrl}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const updated = slides.map((s) =>
+                          s.slideNumber === slide.slideNumber ? { ...s, imageUrl: "" } : s
+                        );
+                        setSlides(updated);
+                        persist(updated);
+                      }}
+                      className="shrink-0 text-[10px] text-red-400 hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const url = prompt("Enter image URL:");
+                      if (url) {
+                        const updated = slides.map((s) =>
+                          s.slideNumber === slide.slideNumber ? { ...s, imageUrl: url } : s
+                        );
+                        setSlides(updated);
+                        persist(updated);
+                      }
+                    }}
+                    className="text-[10px] text-[var(--color-muted)] hover:text-[var(--color-cpf-green)]"
+                  >
+                    + Add image URL
+                  </button>
+                )}
+              </div>
+
+              {/* Bottom row: estimated time, locked indicator, actions */}
+              <div className="mt-2 flex items-center gap-3">
+                <span className="font-mono text-[10px] text-[var(--color-muted)]">
+                  ~{slide.estimatedMinutes} min
+                </span>
+                {slide.locked && (
+                  <span className="rounded bg-[var(--color-orange)]/10 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-orange)]">
+                    Locked
+                  </span>
+                )}
+                <div className="ml-auto flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  <button
+                    onClick={() => toggleLock(slide.slideNumber)}
+                    className={`rounded border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                      slide.locked
+                        ? "border-[var(--color-orange)]/50 text-[var(--color-orange)] hover:bg-[var(--color-orange)]/10"
+                        : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-cpf-green)]"
+                    }`}
+                    title={slide.locked ? "Unlock" : "Lock"}
+                  >
+                    {slide.locked ? "Unlock" : "Lock"}
+                  </button>
+                  <button
+                    onClick={() => deleteSlide(slide.slideNumber)}
+                    className="rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-muted)] transition-colors hover:border-red-300 hover:text-red-600"
+                    title="Delete"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           </div>
