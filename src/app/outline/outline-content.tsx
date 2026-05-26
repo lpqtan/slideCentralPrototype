@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useDeckStore } from "@/hooks/useDeckStore";
+import { useHistory } from "@/hooks/useHistory";
 import type { SlideOutline, GenerationSource, SlideContent } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
 import { buildDeckHtml } from "@/lib/deck-builder";
@@ -39,7 +40,10 @@ export default function OutlineContent() {
   const deckId = searchParams.get("deckId");
   const { getById, updateOutline, setDeckSlides, setDeckHtml } = useDeckStore();
 
-  const [slides, setSlides] = useState<EditableSlide[]>([]);
+  const history = useHistory<EditableSlide[]>([]);
+  const slides = history.state;
+  const setSlides = (updated: EditableSlide[]) => history.push(updated);
+  const setSlidesInit = (updated: EditableSlide[]) => history.push(updated, true);
   const [source, setSource] = useState<GenerationSource | null>(null);
   const [editingField, setEditingField] = useState<{ slide: number; field: "title" | "prompt" | "body" } | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -59,7 +63,7 @@ export default function OutlineContent() {
     }
     const deck = getById(deckId);
     if (deck?.outline) {
-      setSlides(
+      setSlidesInit(
         deck.outline.map((s) => ({
           ...s,
           locked: false,
@@ -343,12 +347,6 @@ export default function OutlineContent() {
           >
             Back to Briefing
           </Link>
-          <button
-            onClick={handleBuildDeck}
-            className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)]"
-          >
-            Build Deck
-          </button>
         </div>
       </div>
 
@@ -645,12 +643,38 @@ export default function OutlineContent() {
         </details>
       )}
 
-      {/* Brand bar */}
-      <div className="mt-auto flex items-center gap-2 pt-8">
-        <div className="h-[3px] w-12 rounded-full bg-[var(--color-cpf-green)]" />
-        <span className="font-mono text-xs text-[var(--color-muted)]">
-          Slide {slides.length > 0 ? `1 of ${slides.length}` : "—"} · CPF
-        </span>
+      {/* Bottom bar */}
+      <div className="mt-auto flex items-center justify-between gap-4 pt-6">
+        <div className="flex items-center gap-2">
+          <div className="h-[3px] w-12 rounded-full bg-[var(--color-cpf-green)]" />
+          <span className="font-mono text-xs text-[var(--color-muted)]">
+            Slide {slides.length > 0 ? `1 of ${slides.length}` : "—"} · CPF
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={history.undo}
+            disabled={!history.canUndo}
+            className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm px-2 py-2 text-xs text-[var(--color-muted)] transition-colors hover:border-[var(--color-cpf-green)] disabled:cursor-not-allowed disabled:opacity-30"
+            title="Undo (Ctrl+Z)"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l4-4M3 10l4 4"/></svg>
+          </button>
+          <button
+            onClick={history.redo}
+            disabled={!history.canRedo}
+            className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm px-2 py-2 text-xs text-[var(--color-muted)] transition-colors hover:border-[var(--color-cpf-green)] disabled:cursor-not-allowed disabled:opacity-30"
+            title="Redo (Ctrl+Shift+Z)"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4"/></svg>
+          </button>
+          <button
+            onClick={handleBuildDeck}
+            className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)]"
+          >
+            Build Deck
+          </button>
+        </div>
       </div>
     </div>
   );
