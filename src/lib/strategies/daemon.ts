@@ -1,6 +1,6 @@
 import type { BackendStrategy, StrategyOptions } from "./types";
 import type { BriefingData, SlideOutline } from "@/lib/types";
-import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts";
+import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts-od";
 import { extractJson } from "./llm";
 
 const DAEMON_URL = process.env.DAEMON_URL ?? "http://localhost:7456";

@@ -10,63 +10,45 @@ function fmtId(id: string): string {
 export function buildSystemPrompt(): string {
   return `# Slide Outline Architect
 
-CRITICAL: Your ONLY output is a valid JSON object. No markdown fences, no explanation text, no conversational filler — JUST the JSON object, nothing else.
+CRITICAL: Your ONLY output is a valid JSON object. No markdown fences, no explanation text, no conversational filler.
 
-## Output Format (MUST follow exactly)
+## contentPrompt — THE ACTUAL SLIDE TEXT
 
-You MUST return a JSON object with an "outline" array:
+The contentPrompt field is the body text that appears ON the slide — not a description, not a presenter note. Write it as bullet points or prose. Use specific data, numbers, facts.
 
-{"outline":[{"slideNumber":1,"title":"The Opportunity Ahead","suggestedLayout":"cover","contentPrompt":"Describe the context behind the key message","estimatedMinutes":1},{"slideNumber":2,"title":"Our Members Are Telling Us Something","suggestedLayout":"bullet-list","contentPrompt":"Provide supporting data","estimatedMinutes":1.5}]}
+WRONG: "Describe the engagement problem"
+RIGHT: "Active portal users dropped from 1.2M to 1.06M in 12 months. Mobile app MAU declined 18%. Email open rates fell from 34% to 22%."
 
-- Top-level MUST be an object with an "outline" key
-- outline is an array of slide objects
-- Each slide: slideNumber (int), title (string), suggestedLayout (string from layouts below), contentPrompt (string), estimatedMinutes (number 1-3)
-- Title sequence must read as an executive summary
-- No trailing commas, no comments, no markdown
+## Output Format
 
-## Content Philosophy
+Return a JSON object with an "outline" array:
 
-- **No filler.** Never pad with placeholder text, dummy sections, or stat-slop.
-- **Real copy only.** If you don't have a specific value, leave an honest placeholder like \`—\` or \`[specific metric here]\`. Never invent statistics.
+{"outline":[{"slideNumber":1,"title":"Member Engagement Is Down 12% YoY","suggestedLayout":"bullet-list","contentPrompt":"Active portal users dropped from 1.2M to 1.06M in 12 months\\nMobile app MAU declined 18%\\nEmail open rates fell from 34% to 22%","estimatedMinutes":1.5}]}
 
-## Slide Architecture Rules
+Each slide: slideNumber, title (insight, not label), suggestedLayout (from layouts below), contentPrompt (actual slide body text, not a description), estimatedMinutes (1-3). No trailing commas, no comments.
 
-1. **One idea per slide.** Two ideas = two slides.
-2. **Density:** Cover headlines ≤ 8 words. Body slides ≤ 3 sections.
-3. **Theme rhythm:** No 3+ slides of the same type in a row.
-4. **Slides are 1-indexed.**
+## Rules
+
+## Rules
+
+- **No filler.** Never pad with placeholder text. contentPrompt IS the slide body.
+- One idea per slide. Cover headlines ≤ 8 words. Body slides ≤ 5 bullet points.
+- No 3+ slides of the same type in a row.
+- Slides are 1-indexed.
+- **Slide 1 MUST be a cover/title slide** — include presentation title, subtitle/context, and presenter info in contentPrompt.
+- **Last slide MUST be a closing/thank-you slide** — include call to action, next steps, and "Thank You" in contentPrompt.
+- Generic titles like "Introduction", "Overview", "Conclusion" are forbidden.
+- **The CPF logo MUST appear on every slide** — green logo (bottom-right) for content slides, white logo (bottom-right) for dark slides (cover, closing).
 
 ## Available CPF Layouts
 
-${LAYOUTS.map((l) => `- **${l.name}** (${l.id}): ${l.description}`).join("\n")}
-
-First slide = cover. Last slide = closing/thank-you.
-
-## Slide Types
-
-- **Cover** — bold statement. Use "cover".
-- **Section Divider** — section transition. Use "section-divider".
-- **Problem/Body** — 2-3 evidence points. Use "bullet-list".
-- **Big Stat** — one number, one caption. Use "big-stat".
-- **KPI Dashboard** — 4 metrics. Use "kpi-dashboard".
-- **Comparison** — old vs new. Use "two-column".
-- **Timeline** — milestones. Use "timeline".
-- **Quote** — pull quote. Use "quote-testimonial".
-- **Process** — sequential flow. Use "process-pipeline".
-- **Closing** — call to action. Use "closing".
-
-## Anti-Slop
-
-- ❌ Generic titles like "Introduction", "Overview", "Conclusion"
-- ❌ Invented statistics or market-size claims
-- ❌ Three consecutive same-type slides
-- ❌ Closing that only says "Thank You"`;
+${LAYOUTS.map((l) => `- **${l.name}** (${l.id})`).join("\n")}`;
 }
 
 export function buildUserPrompt(briefing: BriefingData): string {
   const arc = NARRATIVE_ARCS.find((a) => a.id === briefing.narrativeArc);
 
-  return `Create a slide outline for a CPF presentation:
+  let prompt = `Create a slide outline for a CPF presentation:
 
 **Objective:** ${fmtId(briefing.objective ?? "")}
 **Audience:** ${fmtId(briefing.audience ?? "")}
@@ -76,6 +58,21 @@ export function buildUserPrompt(briefing: BriefingData): string {
 **Narrative Arc:** ${arc?.label ?? "None"} → ${arc?.description ?? ""}
 **Slide Count:** ${briefing.slideCount ?? 15}
 
-First slide = cover, last slide = closing. Use section dividers between arc phases.
-Return the JSON object with an "outline" array. No markdown, no explanation.`;
+Slide 1 MUST be a cover/title slide. Last slide MUST be a closing/thank-you slide.
+Use section dividers between arc phases.
+contentPrompt must contain actual slide body text — bullet points or prose. NOT descriptions.
+Return ONLY the JSON object. No markdown, no explanation.`;
+
+  if (briefing.additionalContent) {
+    prompt += `
+
+## Source Material
+Use the following content to write specific slide body text. Extract passages and distribute them across slides. Each contentPrompt must contain real text from this material, not generic instructions:
+
+${briefing.additionalContent.slice(0, 8000)}${briefing.additionalContent.length > 8000 ? "\n...(truncated)" : ""}
+
+Every contentPrompt field should contain actual text from or derived from this source. Do NOT leave generic prompts.`;
+  }
+
+  return prompt;
 }

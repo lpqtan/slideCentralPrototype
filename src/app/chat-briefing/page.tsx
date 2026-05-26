@@ -352,6 +352,42 @@ export default function ChatBriefingPage() {
       {/* Input */}
       {!briefing && (
         <div className="mt-3 shrink-0 flex gap-2">
+          {/* File upload */}
+          <label className="cursor-pointer rounded border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-muted)] transition-colors hover:border-[var(--color-cpf-green)]" title="Upload PDF">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 1L3 5h2v4h4V5h2L7 1zM2 10v2h10v-2H2z"/></svg>
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setStreaming(true);
+                try {
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  const res = await fetch("/api/parse-pdf", { method: "POST", body: formData });
+                  const data = await res.json() as { text?: string; error?: string };
+                  if (data.error) throw new Error(data.error);
+                  const text = data.text || "";
+                  setMessages((prev) => [
+                    ...prev,
+                    { role: "user", content: `[Uploaded PDF: ${file.name}]\n\n${text.slice(0, 3000)}${text.length > 3000 ? "\n...(truncated)" : ""}` },
+                  ]);
+                  setStreaming(false);
+                  // Auto-send the uploaded content
+                  if (text) await sendMessage();
+                } catch (err) {
+                  setMessages((prev) => [
+                    ...prev,
+                    { role: "assistant", content: `PDF parse error: ${err instanceof Error ? err.message : "Unknown"}` },
+                  ]);
+                  setStreaming(false);
+                }
+                e.target.value = "";
+              }}
+              className="hidden"
+            />
+          </label>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}

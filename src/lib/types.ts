@@ -64,6 +64,7 @@ export interface BriefingData {
   narrativeArc: NarrativeArc | null;
   selectedLayouts: LayoutId[];
   slideCount?: number;
+  additionalContent?: string;
 }
 
 /** A user-edited slide with filled content */

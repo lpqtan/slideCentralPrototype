@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getStrategy } from "@/lib/strategies/registry";
 import { findAgent, streamChat } from "@/lib/strategies/daemon";
 import { extractJson } from "@/lib/strategies/llm";
-import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts";
+import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts-od";
 import type { BriefingData, SlideOutline, GenerationSource } from "@/lib/types";
 
 export async function POST(request: Request) {

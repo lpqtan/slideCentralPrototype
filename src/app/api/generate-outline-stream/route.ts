@@ -1,8 +1,7 @@
 import { getStrategy } from "@/lib/strategies/registry";
 import { findAgent, parseSseStream } from "@/lib/strategies/daemon";
 import { streamProvider, extractJson } from "@/lib/strategies/llm";
-import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts";
-import { buildSystemPrompt as buildOdSystemPrompt, buildUserPrompt as buildOdUserPrompt } from "@/lib/prompts-od";
+import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts-od";
 import type { BriefingData, SlideOutline, GenerationSource } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -62,9 +61,7 @@ export async function POST(request: Request) {
 
           sse(controller, "status", { stage: "generating", message: `Agent '${agentId}' starting with ${source.model}...` });
 
-          const systemPrompt =
-            buildSystemPrompt() +
-            "\n\nIMPORTANT: Return ONLY a JSON array. No markdown, no explanation.";
+          const systemPrompt = buildSystemPrompt();
 
           let userPrompt = buildUserPrompt(briefing);
 
@@ -167,8 +164,8 @@ export async function POST(request: Request) {
 
           sse(controller, "status", { stage: "generating", message: `Calling ${llmProvider} API...` });
 
-          const systemPrompt = buildOdSystemPrompt();
-          const userPrompt = buildOdUserPrompt(briefing);
+          const systemPrompt = buildSystemPrompt();
+          const userPrompt = buildUserPrompt(briefing);
 
           let output = "";
           let streamFailed = false;
