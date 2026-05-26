@@ -56,6 +56,13 @@ export default function OutlineContent() {
   const [showRegenPrompt, setShowRegenPrompt] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState("");
 
+  // Layout picker state — stores which slide's picker is open + screen coords
+  const [layoutPicker, setLayoutPicker] = useState<{
+    slideNumber: number;
+    top: number;
+    left: number;
+  } | null>(null);
+
   useEffect(() => {
     if (!deckId) {
       router.push("/briefing");
@@ -74,6 +81,18 @@ export default function OutlineContent() {
       setSource(deck.source ?? null);
     }
   }, [deckId, getById, router]);
+
+  // Close layout picker on outside click, scroll, or resize
+  useEffect(() => {
+    if (!layoutPicker) return;
+    const close = () => setLayoutPicker(null);
+    document.addEventListener("click", close);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("click", close);
+      window.removeEventListener("resize", close);
+    };
+  }, [layoutPicker]);
 
   // Compute the display order: during drag, shift items in real-time
   const displaySlides = useMemo(() => {
@@ -485,9 +504,24 @@ export default function OutlineContent() {
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
-                  <span className="rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-muted)]">
+                  <button
+                    onClick={(e) => {
+                      if (layoutPicker?.slideNumber === slide.slideNumber) {
+                        setLayoutPicker(null);
+                        return;
+                      }
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setLayoutPicker({
+                        slideNumber: slide.slideNumber,
+                        top: rect.bottom + 4,
+                        left: Math.min(rect.right - 320, window.innerWidth - 330),
+                      });
+                    }}
+                    className="flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-muted)] transition-colors hover:border-[var(--color-cpf-green)] hover:text-[var(--color-cpf-green)]"
+                  >
                     {getLayoutName(slide.suggestedLayout)}
-                  </span>
+                    <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                  </button>
                   <span className="cursor-grab select-none text-xs text-[var(--color-muted)] opacity-40 hover:opacity-100">
                     &#x2630;
                   </span>
@@ -642,6 +676,193 @@ export default function OutlineContent() {
           </pre>
         </details>
       )}
+
+      {/* Layout Picker Popover (fixed position, floats above everything) */}
+      {layoutPicker && (() => {
+        const currentSlide = slides.find((s) => s.slideNumber === layoutPicker.slideNumber);
+        return (
+          <div
+            className="fixed z-50 w-80 max-h-[70vh] overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl"
+            style={{ top: layoutPicker.top, left: layoutPicker.left }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-[var(--color-border)] px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+                Select Layout
+              </p>
+            </div>
+            <div className="py-1">
+              {LAYOUTS.map((layout) => {
+                const isSelected = currentSlide?.suggestedLayout === layout.id;
+                return (
+                  <button
+                    key={layout.id}
+                    onClick={() => {
+                      if (!currentSlide) return;
+                      const updated = slides.map((s) =>
+                        s.slideNumber === currentSlide.slideNumber
+                          ? { ...s, suggestedLayout: layout.id as EditableSlide["suggestedLayout"] }
+                          : s
+                      );
+                      setSlides(updated);
+                      persist(updated);
+                      setLayoutPicker(null);
+                    }}
+                    className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--color-cpf-mint)] ${
+                      isSelected ? "bg-[var(--color-cpf-mint)]" : ""
+                    }`}
+                  >
+                    {/* Mini thumbnail */}
+                    <div className="mt-0.5 h-16 w-[107px] shrink-0 overflow-hidden rounded border border-[var(--color-border)]">
+                      {layout.dark ? (
+                        <div className="flex h-full items-center justify-center bg-[var(--color-cpf-green)] text-[7px] font-semibold text-white/80">
+                          {layout.id === "cover" ? "Cover" :
+                           layout.id === "section-divider" ? "Ch. 1" :
+                           layout.id === "big-stat" ? "42%" :
+                           layout.id === "quote-testimonial" ? "\u201C\u201D" :
+                           layout.id === "closing" ? "Thank You" :
+                           layout.id === "full-bleed-image" ? "\uD83D\uDCF7" :
+                           layout.name.substring(0, 6)}
+                        </div>
+                      ) : (
+                        <div className="flex h-full flex-col bg-[var(--color-cpf-mint)]">
+                          <div className="h-[22%] w-full bg-[var(--color-cpf-green)]" />
+                          <div className="flex flex-1 items-start gap-[3px] p-1">
+                            {layout.id === "bullet-list" && (
+                              <div className="flex flex-col gap-[2px] flex-1">
+                                <div className="h-[3px] w-full rounded-full bg-[var(--color-border)]" />
+                                <div className="h-[3px] w-3/4 rounded-full bg-[var(--color-border)]" />
+                                <div className="h-[3px] w-2/3 rounded-full bg-[var(--color-border)]" />
+                              </div>
+                            )}
+                            {layout.id === "content-image-60-40" && (
+                              <>
+                                <div className="flex flex-col gap-[2px] flex-1">
+                                  <div className="h-[3px] w-full rounded-full bg-[var(--color-border)]" />
+                                  <div className="h-[3px] w-2/3 rounded-full bg-[var(--color-border)]" />
+                                </div>
+                                <div className="w-[30%] self-stretch rounded border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]" />
+                              </>
+                            )}
+                            {layout.id === "image-content-40-60" && (
+                              <>
+                                <div className="w-[30%] self-stretch rounded border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]" />
+                                <div className="flex flex-col gap-[2px] flex-1">
+                                  <div className="h-[3px] w-full rounded-full bg-[var(--color-border)]" />
+                                  <div className="h-[3px] w-2/3 rounded-full bg-[var(--color-border)]" />
+                                </div>
+                              </>
+                            )}
+                            {layout.id === "kpi-dashboard" && (
+                              <div className="grid grid-cols-2 gap-[2px] flex-1">
+                                <div className="rounded bg-[var(--color-surface)] p-[1px] text-center">
+                                  <div className="h-[4px] w-full rounded bg-[var(--color-cpf-green)]" />
+                                  <div className="mt-[1px] h-[2px] w-full rounded-full bg-[var(--color-border)]" />
+                                </div>
+                                <div className="rounded bg-[var(--color-surface)] p-[1px] text-center">
+                                  <div className="h-[4px] w-full rounded bg-[var(--color-cpf-green)]" />
+                                  <div className="mt-[1px] h-[2px] w-full rounded-full bg-[var(--color-border)]" />
+                                </div>
+                                <div className="rounded bg-[var(--color-surface)] p-[1px] text-center">
+                                  <div className="h-[4px] w-full rounded bg-[var(--color-turquoise)]" />
+                                  <div className="mt-[1px] h-[2px] w-full rounded-full bg-[var(--color-border)]" />
+                                </div>
+                                <div className="rounded bg-[var(--color-surface)] p-[1px] text-center">
+                                  <div className="h-[4px] w-full rounded bg-[var(--color-orange)]" />
+                                  <div className="mt-[1px] h-[2px] w-full rounded-full bg-[var(--color-border)]" />
+                                </div>
+                              </div>
+                            )}
+                            {layout.id === "two-column" && (
+                              <div className="flex gap-[2px] flex-1">
+                                <div className="flex flex-col gap-[2px] flex-1 rounded-sm bg-[var(--color-surface)] p-[2px]">
+                                  <div className="h-[3px] w-full rounded-full bg-[var(--color-border)]" />
+                                  <div className="h-[2px] w-2/3 rounded-full bg-[var(--color-border)]" />
+                                </div>
+                                <div className="flex flex-col gap-[2px] flex-1 rounded-sm bg-[var(--color-cpf-green)] p-[2px]">
+                                  <div className="h-[3px] w-full rounded-full bg-white/30" />
+                                  <div className="h-[2px] w-2/3 rounded-full bg-white/20" />
+                                </div>
+                              </div>
+                            )}
+                            {layout.id === "timeline" && (
+                              <div className="relative flex-1 px-1 pt-[6px]">
+                                <div className="absolute left-1 right-1 top-[6px] h-[1px] bg-[var(--color-border)]" />
+                                <div className="relative z-10 flex justify-between">
+                                  {[1, 2, 3, 4, 5].map((n) => (
+                                    <div key={n} className={`h-[3px] w-[3px] rounded-full ${n % 2 === 0 ? "bg-[var(--color-cpf-green)]" : "bg-[var(--color-border)]"}`} />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {layout.id === "process-pipeline" && (
+                              <div className="flex items-center gap-[1px] flex-1">
+                                {[1, 2, 3, 4, 5].map((n) => (
+                                  <div key={n} className="flex-1 rounded-sm bg-[var(--color-surface)] px-[1px] py-[2px] text-center">
+                                    <div className="h-[4px] w-[4px] rounded-full bg-[var(--color-cpf-green)] mx-auto" />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {layout.id === "data-table" && (
+                              <div className="flex flex-col flex-1">
+                                <div className="h-[4px] w-full bg-[var(--color-cpf-green)]" />
+                                <div className="mt-[1px] h-[3px] w-full bg-[var(--color-surface)]" />
+                                <div className="mt-[1px] h-[3px] w-full bg-[var(--color-surface)]" />
+                              </div>
+                            )}
+                            {layout.id === "org-chart" && (
+                              <div className="flex flex-col items-center gap-[1px] flex-1">
+                                <div className="h-[4px] w-[12px] rounded-sm bg-[var(--color-cpf-green)]" />
+                                <div className="flex gap-[2px]">
+                                  <div className="h-[3px] w-[6px] rounded-sm bg-[var(--color-surface)]" />
+                                  <div className="h-[3px] w-[6px] rounded-sm bg-[var(--color-surface)]" />
+                                  <div className="h-[3px] w-[6px] rounded-sm bg-[var(--color-surface)]" />
+                                </div>
+                              </div>
+                            )}
+                            {layout.id === "sidebar-bullets" && (
+                              <div className="flex gap-[2px] flex-1">
+                                <div className="w-[35%] rounded-sm bg-[var(--color-cpf-green)] p-[1px]">
+                                  <div className="h-[3px] w-full rounded-full bg-white/30" />
+                                </div>
+                                <div className="flex flex-col gap-[2px] flex-1">
+                                  <div className="h-[3px] w-full rounded-full bg-[var(--color-border)]" />
+                                  <div className="h-[3px] w-2/3 rounded-full bg-[var(--color-border)]" />
+                                </div>
+                              </div>
+                            )}
+                            {layout.id !== "bullet-list" && layout.id !== "content-image-60-40" && layout.id !== "image-content-40-60" && layout.id !== "kpi-dashboard" && layout.id !== "two-column" && layout.id !== "timeline" && layout.id !== "process-pipeline" && layout.id !== "data-table" && layout.id !== "org-chart" && layout.id !== "sidebar-bullets" && (
+                              <div className="flex flex-col gap-[2px] flex-1">
+                                <div className="h-[3px] w-full rounded-full bg-[var(--color-border)]" />
+                                <div className="h-[3px] w-1/2 rounded-full bg-[var(--color-border)]" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {/* Layout info */}
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-xs font-semibold ${
+                        isSelected ? "text-[var(--color-cpf-green)]" : "text-[var(--color-fg)]"
+                      }`}>
+                        {layout.name}
+                      </div>
+                      <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--color-muted)]">
+                        {layout.description}
+                      </p>
+                    </div>
+                    {isSelected && (
+                      <svg className="mt-1 h-3 w-3 shrink-0 text-[var(--color-cpf-green)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Bottom bar */}
       <div className="mt-auto flex items-center justify-between gap-4 pt-6">
