@@ -52,6 +52,15 @@ export default function OutlineContent() {
   const [showRegenPrompt, setShowRegenPrompt] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState("");
 
+  // Undo/redo
+  const [undoStack, setUndoStack] = useState<EditableSlide[][]>([]);
+  const [redoStack, setRedoStack] = useState<EditableSlide[][]>([]);
+
+  const pushUndo = useCallback((currentSlides: EditableSlide[]) => {
+    setUndoStack((prev) => [...prev.slice(-49), currentSlides]);
+    setRedoStack([]);
+  }, []);
+
   useEffect(() => {
     if (!deckId) {
       router.push("/briefing");
@@ -112,6 +121,24 @@ export default function OutlineContent() {
     [deckId, updateOutline, setDeckSlides]
   );
 
+  const undo = useCallback(() => {
+    if (undoStack.length === 0) return;
+    const prevState = undoStack[undoStack.length - 1];
+    setUndoStack((s) => s.slice(0, -1));
+    setRedoStack((s) => [...s, slides]);
+    setSlides(prevState);
+    persist(prevState);
+  }, [undoStack, slides, persist]);
+
+  const redo = useCallback(() => {
+    if (redoStack.length === 0) return;
+    const nextState = redoStack[redoStack.length - 1];
+    setRedoStack((s) => s.slice(0, -1));
+    setUndoStack((s) => [...s, slides]);
+    setSlides(nextState);
+    persist(nextState);
+  }, [redoStack, slides, persist]);
+
   const startEdit = (slide: number, field: "title" | "prompt" | "body", currentValue: string) => {
     setEditingField({ slide, field });
     setEditValue(currentValue);
@@ -119,6 +146,7 @@ export default function OutlineContent() {
 
   const commitEdit = () => {
     if (!editingField) return;
+    pushUndo(slides);
     const updated = slides.map((s) => {
       if (s.slideNumber === editingField.slide) {
         if (editingField.field === "title") {
@@ -137,6 +165,7 @@ export default function OutlineContent() {
   };
 
   const toggleLock = (sn: number) => {
+    pushUndo(slides);
     const updated = slides.map((s) =>
       s.slideNumber === sn ? { ...s, locked: !s.locked } : s
     );
@@ -145,6 +174,7 @@ export default function OutlineContent() {
   };
 
   const toggleLockAll = () => {
+    pushUndo(slides);
     const allLocked = slides.every((s) => s.locked);
     const updated = slides.map((s) => ({ ...s, locked: !allLocked }));
     setSlides(updated);
@@ -173,6 +203,7 @@ export default function OutlineContent() {
       return;
     }
     // Commit the reorder
+    pushUndo(slides);
     const updated = [...slides];
     const [moved] = updated.splice(dragIndex, 1);
     updated.splice(dragOverIndex, 0, moved);
@@ -191,6 +222,7 @@ export default function OutlineContent() {
   // --- Delete ---
 
   const deleteSlide = (sn: number) => {
+    pushUndo(slides);
     const updated = slides
       .filter((s) => s.slideNumber !== sn)
       .map((s, i) => ({ ...s, slideNumber: i + 1 }));
@@ -199,6 +231,7 @@ export default function OutlineContent() {
   };
 
   const addSlide = () => {
+    pushUndo(slides);
     const newSlide: EditableSlide = {
       slideNumber: slides.length + 1,
       title: "Untitled Slide",
@@ -304,6 +337,22 @@ export default function OutlineContent() {
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={undo}
+            disabled={undoStack.length === 0}
+            className="rounded border border-[var(--color-border)] px-2 py-2 text-xs text-[var(--color-fg-soft)] transition-colors hover:border-[var(--color-cpf-green)] disabled:cursor-not-allowed disabled:opacity-30"
+            title="Undo"
+          >
+            ↶
+          </button>
+          <button
+            onClick={redo}
+            disabled={redoStack.length === 0}
+            className="rounded border border-[var(--color-border)] px-2 py-2 text-xs text-[var(--color-fg-soft)] transition-colors hover:border-[var(--color-cpf-green)] disabled:cursor-not-allowed disabled:opacity-30"
+            title="Redo"
+          >
+            ↷
+          </button>
           <button
             onClick={addSlide}
             className="rounded border border-[var(--color-cpf-green)] px-3 py-2 text-xs font-medium text-[var(--color-cpf-green)] transition-colors hover:bg-[var(--color-cpf-mint)]"
@@ -509,6 +558,7 @@ export default function OutlineContent() {
                       </span>
                       <button
                         onClick={() => {
+                          pushUndo(slides);
                           const updated = slides.map((s) =>
                             s.slideNumber === slide.slideNumber ? { ...s, imageUrl: "" } : s
                           );
@@ -525,6 +575,7 @@ export default function OutlineContent() {
                       onClick={() => {
                         const url = prompt("Enter image URL:");
                         if (url) {
+                          pushUndo(slides);
                           const updated = slides.map((s) =>
                             s.slideNumber === slide.slideNumber ? { ...s, imageUrl: url } : s
                           );
