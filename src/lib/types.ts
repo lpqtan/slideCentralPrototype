@@ -45,6 +45,13 @@ export type StrategyId = "mock" | "daemon" | "llm" | "opencode-direct";
 /** LLM provider identifiers */
 export type LLMProviderId = "openai" | "gemini" | "groq" | "openrouter";
 
+/** A section grouping slides under a common heading */
+export interface SlideSection {
+  id: string;
+  title: string;
+  slideNumbers: number[];
+}
+
 /** A single generated slide outline entry */
 export interface SlideOutline {
   slideNumber: number;
@@ -52,6 +59,7 @@ export interface SlideOutline {
   suggestedLayout: LayoutId;
   contentPrompt: string;
   estimatedMinutes: number;
+  sectionId?: string;
 }
 
 /** Complete briefing data collected from the wizard */
@@ -124,6 +132,12 @@ export interface LLMProviderInfo {
   defaultModel: string;
   requiresKey: boolean;
   apiBaseUrl?: string;
+}
+
+/** An undo/redo history snapshot */
+export interface HistorySnapshot<T> {
+  state: T;
+  timestamp: number;
 }
 
 /** Backend strategy interface */
