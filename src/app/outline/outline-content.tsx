@@ -96,6 +96,13 @@ export default function OutlineContent() {
         suggestedLayout: s.suggestedLayout,
         contentPrompt: s.contentPrompt,
         estimatedMinutes: s.estimatedMinutes,
+        sectionId: s.sectionId,
+        needsDiagram: s.needsDiagram,
+        needsChart: s.needsChart,
+        needsData: s.needsData,
+        needsPlaceholder: s.needsPlaceholder,
+        diagramHint: s.diagramHint,
+        chartHint: s.chartHint,
       }));
       const cleanContent: SlideContent[] = updated.map((s) => ({
         slideNumber: s.slideNumber,
@@ -103,6 +110,13 @@ export default function OutlineContent() {
         suggestedLayout: s.suggestedLayout,
         contentPrompt: s.contentPrompt,
         estimatedMinutes: s.estimatedMinutes,
+        sectionId: s.sectionId,
+        needsDiagram: s.needsDiagram,
+        needsChart: s.needsChart,
+        needsData: s.needsData,
+        needsPlaceholder: s.needsPlaceholder,
+        diagramHint: s.diagramHint,
+        chartHint: s.chartHint,
         bodyContent: s.bodyContent ?? "",
         imageUrl: s.imageUrl ?? "",
       }));
@@ -552,6 +566,36 @@ export default function OutlineContent() {
                   </button>
                 )}
               </div>
+
+              {/* Flag indicators */}
+              {(slide.needsChart || slide.needsDiagram || slide.needsData || slide.needsPlaceholder) && (
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  {slide.needsDiagram && (
+                    <span className="inline-flex items-center gap-1 rounded bg-[var(--color-cpf-green)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-cpf-green)]" title={slide.diagramHint || ""}>
+                      <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4"/></svg>
+                      Diagram{slide.diagramHint ? `: ${slide.diagramHint}` : ""}
+                    </span>
+                  )}
+                  {slide.needsChart && (
+                    <span className="inline-flex items-center gap-1 rounded bg-[var(--color-cpf-green)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-cpf-green)]" title={slide.chartHint || ""}>
+                      <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                      Chart{slide.chartHint ? `: ${slide.chartHint}` : ""}
+                    </span>
+                  )}
+                  {slide.needsData && (
+                    <span className="inline-flex items-center gap-1 rounded bg-[var(--color-cpf-green)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-cpf-green)]">
+                      <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                      Data needed
+                    </span>
+                  )}
+                  {slide.needsPlaceholder && (
+                    <span className="inline-flex items-center gap-1 rounded bg-[var(--color-cpf-green)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-cpf-green)]">
+                      <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                      Placeholder
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Bottom row: estimated time, locked indicator, actions */}
               <div className="mt-2 flex items-center gap-3">

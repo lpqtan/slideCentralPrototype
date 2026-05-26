@@ -60,6 +60,12 @@ export interface SlideOutline {
   contentPrompt: string;
   estimatedMinutes: number;
   sectionId?: string;
+  needsDiagram?: boolean;
+  needsChart?: boolean;
+  needsData?: boolean;
+  needsPlaceholder?: boolean;
+  diagramHint?: string;
+  chartHint?: string;
 }
 
 /** Complete briefing data collected from the wizard */
