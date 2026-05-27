@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useDeckStore } from "@/hooks/useDeckStore";
 import { useHistory } from "@/hooks/useHistory";
-import type { SlideOutline, TextBlock } from "@/lib/types";
+import { buildDeckHtml } from "@/lib/deck-builder";
+import type { SlideOutline, SlideContent, TextBlock } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
 
 const COLORS = [
@@ -30,12 +31,13 @@ export default function PreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deckId = searchParams.get("deckId");
-  const { getById, setOverlayBlocks } = useDeckStore();
+  const { getById, setOverlayBlocks, setDeckSlides, setDeckHtml: storeDeckHtml } = useDeckStore();
   const [deckHtml, setDeckHtml] = useState<string | null>(null);
   const [slides, setSlides] = useState<SlideOutline[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [savedBlocks, setSavedBlocks] = useState<TextBlock[]>([]);
+  const [layoutPickerOpen, setLayoutPickerOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; startX: number; startY: number; blockX: number; blockY: number } | null>(null);
@@ -72,6 +74,31 @@ export default function PreviewContent() {
     setEditingId(null);
     iframeRef.current?.contentWindow?.postMessage({ showNav: true }, "*");
   };
+
+  const changeLayout = (layoutId: string) => {
+    if (!deckId) return;
+    const deck = getById(deckId);
+    const source = deck?.slides?.length ? deck.slides : deck?.outline || [];
+    const updated = source.map((s, i) =>
+      i === currentSlide ? { ...s, suggestedLayout: layoutId as SlideContent["suggestedLayout"] } : s
+    ) as SlideContent[];
+    setDeckSlides(deckId, updated);
+    const newHtml = buildDeckHtml(updated, deck.overlayBlocks);
+    storeDeckHtml(deckId, newHtml);
+    setDeckHtml(newHtml);
+    setSlides(updated);
+    setLayoutPickerOpen(false);
+  };
+
+  // Close layout picker on outside click
+
+  // Close layout picker on outside click
+  useEffect(() => {
+    if (!layoutPickerOpen) return;
+    const close = () => setLayoutPickerOpen(false);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [layoutPickerOpen]);
 
   const addBlock = () => {
     const newBlock: TextBlock = {
@@ -272,6 +299,52 @@ export default function PreviewContent() {
                 </button>
                 <button onClick={saveEdit}
                   className="rounded border border-[var(--color-cpf-green)] px-3 py-2 text-xs font-medium text-[var(--color-cpf-green)] transition-colors hover:bg-[var(--color-cpf-mint)]">Save</button>
+                <div className="relative">
+                  <button onClick={(e) => { e.stopPropagation(); setLayoutPickerOpen(!layoutPickerOpen); }}
+                    className="rounded border border-[var(--color-border)] px-3 py-2 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:border-[var(--color-cpf-green)]">
+                    Layout: {currentSlideData ? getLayoutName(currentSlideData.suggestedLayout) : ""} ▼
+                  </button>
+                  {layoutPickerOpen && (
+                    <div onClick={(e) => e.stopPropagation()}
+                      className="absolute right-0 top-full mt-1 z-50 w-72 max-h-[60vh] overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
+                      <div className="border-b border-[var(--color-border)] px-3 py-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">Select Layout</p>
+                      </div>
+                      <div className="py-1">
+                        {LAYOUTS.map((layout) => {
+                          const isSelected = currentSlideData?.suggestedLayout === layout.id;
+                          return (
+                            <button key={layout.id}
+                              onClick={() => changeLayout(layout.id)}
+                              className={`flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[var(--color-cpf-mint)] ${isSelected ? "bg-[var(--color-cpf-mint)]" : ""}`}>
+                              <div className="mt-0.5 h-10 w-[71px] shrink-0 overflow-hidden rounded border border-[var(--color-border)]">
+                                {layout.dark ? (
+                                  <div className="flex h-full items-center justify-center bg-[var(--color-cpf-green)] text-[7px] font-semibold text-white/80">
+                                    {layout.id === "cover" ? "Cover" : layout.id === "section-divider" ? "Ch. 1" : layout.id === "big-stat" ? "42%" : layout.id === "quote-testimonial" ? "\u201C\u201D" : layout.id === "closing" ? "Thx" : layout.name.substring(0, 6)}
+                                  </div>
+                                ) : (
+                                  <div className="flex h-full flex-col bg-[var(--color-cpf-mint)]">
+                                    <div className="h-[22%] w-full bg-[var(--color-cpf-green)]" />
+                                    <div className="flex-1 p-1 space-y-0.5">
+                                      <div className="h-[3px] w-3/4 rounded-full bg-[var(--color-border)]" />
+                                      <div className="h-[3px] w-1/2 rounded-full bg-[var(--color-border)]" />
+                                      <div className="h-[3px] w-2/3 rounded-full bg-[var(--color-border)]" />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className={`text-[11px] font-semibold ${isSelected ? "text-[var(--color-cpf-green)]" : "text-[var(--color-fg)]"}`}>{layout.name}</div>
+                                <p className="mt-0.5 text-[9px] leading-relaxed text-[var(--color-muted)]">{layout.description}</p>
+                              </div>
+                              {isSelected && <svg className="mt-1 h-3 w-3 shrink-0 text-[var(--color-cpf-green)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </>
             )}
             {!editMode && (
