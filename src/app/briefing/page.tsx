@@ -9,9 +9,10 @@ import StepContext from "@/components/wizard/StepContext";
 import StepMessage from "@/components/wizard/StepMessage";
 import StepNarrative from "@/components/wizard/StepNarrative";
 import StepTemplate from "@/components/wizard/StepTemplate";
+import StepContent from "@/components/wizard/StepContent";
 import { createMockDeck } from "@/lib/mock-deck";
 
-const STEP_LABELS = ["Context", "Message", "Narrative", "Template"];
+const STEP_LABELS = ["Context", "Message", "Narrative", "Template", "Content"];
 
 export default function BriefingPage() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function BriefingPage() {
     setNarrativeArc,
     setSelectedLayout,
     setSlideCount,
+    setAdditionalContent,
     reset,
     submitBriefing,
   } = useBriefing();
@@ -85,7 +87,7 @@ export default function BriefingPage() {
             New Presentation Briefing
           </h1>
           <p className="mt-1 text-sm text-[var(--color-fg-soft)]">
-            Step {step} of 4 — {STEP_LABELS[step - 1]}
+            Step {step} of 5 — {STEP_LABELS[step - 1]}
           </p>
         </div>
         <button
@@ -96,7 +98,7 @@ export default function BriefingPage() {
         </button>
       </div>
 
-      <StepIndicator currentStep={step} totalSteps={4} labels={STEP_LABELS} />
+      <StepIndicator currentStep={step} totalSteps={5} labels={STEP_LABELS} />
 
       {/* Step content */}
       <div className="flex min-h-[400px] flex-col rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:p-8">
@@ -134,6 +136,12 @@ export default function BriefingPage() {
             onSelect={setSelectedLayout}
           />
         )}
+        {step === 5 && (
+          <StepContent
+            additionalContent={briefing.additionalContent ?? ""}
+            onChange={setAdditionalContent}
+          />
+        )}
       </div>
 
       {/* Navigation */}
@@ -147,7 +155,7 @@ export default function BriefingPage() {
         </button>
 
         <div>
-          {step < 4 ? (
+          {step < 5 ? (
             <button
               onClick={nextStep}
               disabled={!canProceed()}

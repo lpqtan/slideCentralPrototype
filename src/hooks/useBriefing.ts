@@ -16,6 +16,7 @@ function makeEmptyBriefing(): BriefingData {
     narrativeArc: null,
     selectedLayouts: [],
     slideCount: 15,
+    additionalContent: "",
   };
 }
 
@@ -123,6 +124,10 @@ export function useBriefing() {
     setBriefing((prev) => ({ ...prev, slideCount: count }));
   }, []);
 
+  const setAdditionalContent = useCallback((content: string) => {
+    setBriefing((prev) => ({ ...prev, additionalContent: content }));
+  }, []);
+
   const canProceed = useCallback(() => {
     switch (step) {
       case 1:
@@ -132,6 +137,7 @@ export function useBriefing() {
       case 3:
         return briefing.narrativeArc !== null;
       case 4:
+      case 5:
         return true;
       default:
         return false;
@@ -140,7 +146,7 @@ export function useBriefing() {
 
   const nextStep = useCallback(() => {
     if (!canProceed()) return;
-    setStep((s) => Math.min(4, s + 1));
+    setStep((s) => Math.min(5, s + 1));
   }, [canProceed]);
 
   const prevStep = useCallback(() => {
@@ -148,7 +154,7 @@ export function useBriefing() {
   }, []);
 
   const goToStep = useCallback((s: number) => {
-    setStep(Math.max(1, Math.min(4, s)));
+    setStep(Math.max(1, Math.min(5, s)));
   }, []);
 
   const reset = useCallback(() => {
@@ -180,6 +186,7 @@ export function useBriefing() {
     toggleLayout,
     setSelectedLayout,
     setSlideCount,
+    setAdditionalContent,
     reset,
     submitBriefing,
   };
