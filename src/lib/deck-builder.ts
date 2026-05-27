@@ -2,6 +2,14 @@ import type { SlideContent } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
 import { LOGO_GREEN_URI, LOGO_WHITE_URI } from "@/lib/logos";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function getLayoutClass(id: string): string {
   switch (id) {
     case "cover": return "slide hero dark cover";
@@ -15,21 +23,159 @@ function getLayoutClass(id: string): string {
     case "timeline": return "slide light timeline";
     case "quote-testimonial": return "slide hero dark quote";
     case "process-pipeline": return "slide light pipeline";
-    case "data-table": return "slide light data-table";
-    case "org-chart": return "slide light org-chart";
+    case "data-table": return "slide light data-table-layout";
+    case "org-chart": return "slide light org-chart-layout";
     case "sidebar-bullets": return "slide light sidebar-bullets";
-    case "full-bleed-image": return "slide full-bleed-image";
+    case "full-bleed-image": return "slide full-bleed";
     case "closing": return "slide hero dark closing";
     default: return "slide light";
   }
 }
 
+function parseBody(slide: SlideContent): { lines: string[]; body: string } {
+  const body = slide.bodyContent && slide.bodyContent.trim() ? slide.bodyContent : fallbackBody(slide);
+  const lines = body.split("\n").map((l) => l.trim()).filter(Boolean);
+  return { lines, body };
+}
+
+/** Generate structured body content from contentPrompt when bodyContent is empty */
+function fallbackBody(slide: SlideContent): string {
+  const layoutId = slide.layoutOverride ?? slide.suggestedLayout;
+  const prompt = slide.contentPrompt || "";
+
+  // If user already provided body content, use it
+  if (slide.bodyContent && slide.bodyContent.trim()) return slide.bodyContent;
+
+  switch (layoutId) {
+    case "kpi-dashboard": {
+      // Extract numbers/metrics from prompt and create 4 entries
+      const matches = prompt.match(/\d+\.?\d*[%MBKk]?/g) || [];
+      const labels = prompt.split(/\d+\./).filter(Boolean).map((s) => s.trim());
+      const items: string[] = [];
+      for (let i = 0; i < Math.min(4, matches.length); i++) {
+        const label = labels[i] || `Metric ${i + 1}`;
+        const cleanLabel = label.replace(/^[:\s]+/, "").replace(/\(.*?\)/g, "").trim().slice(0, 30);
+        items.push(`${matches[i]}: ${cleanLabel}`);
+      }
+      if (items.length === 0) items.push("—: Enter metrics here");
+      return items.join("\n");
+    }
+    case "timeline": {
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
+      const items: string[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const yearMatch = trimmed.match(/(20\d{2}|Q[1-4]\s*20\d{2})/);
+        const year = yearMatch ? yearMatch[0] : "—";
+        const rest = trimmed.replace(year, "").replace(/^[:\-\s]+/, "").trim();
+        const parts = rest.split(/[:\-–—]/);
+        const title = (parts[0] || "").trim().slice(0, 40);
+        const desc = (parts[1] || "").trim().slice(0, 60);
+        items.push(`${year} | ${title} | ${desc}`);
+        if (items.length >= 5) break;
+      }
+      if (items.length === 0) items.push("— | Title | Description");
+      return items.join("\n");
+    }
+    case "process-pipeline": {
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
+      const items: string[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const parts = trimmed.split(/[:\-–—]/);
+        const step = (parts[0] || "").trim().slice(0, 30);
+        const desc = (parts[1] || "").trim().slice(0, 60);
+        items.push(`${step} | ${desc}`);
+        if (items.length >= 5) break;
+      }
+      if (items.length === 0) items.push("Step | Description");
+      return items.join("\n");
+    }
+    case "two-column": {
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
+      const items: string[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        if (trimmed.match(/before|current|today/i)) {
+          items.push(`Before: ${trimmed.slice(0, 80)}`);
+        } else if (trimmed.match(/after|proposed|target|future/i)) {
+          items.push(`After: ${trimmed.slice(0, 80)}`);
+        } else {
+          items.push(trimmed.slice(0, 80));
+        }
+      }
+      if (items.length === 0) items.push("Before: Current state\nAfter: Target state");
+      return items.join("\n");
+    }
+    case "org-chart": {
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
+      const names: string[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const parts = trimmed.split(/[,;]/);
+        names.push(parts[0].trim().slice(0, 30));
+      }
+      if (names.length === 0) names.push("Role");
+      const top = names[0] ? `Lead | ${names[0]} | CPF Board` : "Lead | — | CPF Board";
+      const children = names.slice(1, 5).map((n, i) => `Lead | ${n} | Team ${i + 1}`);
+      while (children.length < 4) children.push(`— | — | —`);
+      return [top, ...children].join("\n");
+    }
+    case "data-table": {
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
+      const headers: string[] = ["Category", "Value", "Change", "Notes"];
+      const rows: string[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const parts = trimmed.split(/[:\-–—]/);
+        rows.push(parts.map((p) => p.trim().slice(0, 20)).join(" | "));
+      }
+      if (rows.length === 0) rows.push("— | — | — | —");
+      const items = [headers.join(" | "), ...rows.slice(0, 6)];
+      return items.join("\n");
+    }
+    case "sidebar-bullets": {
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
+      const contextLines = lines.filter(Boolean).slice(0, 2).map((l) => l.trim().slice(0, 80));
+      const bulletLines = lines.filter(Boolean).slice(2).map((l) => l.trim().slice(0, 100));
+      return [...contextLines, ...bulletLines].join("\n");
+    }
+    case "content-image-60-40":
+    case "image-content-40-60": {
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
+      return lines.filter(Boolean).map((l) => l.trim().slice(0, 100)).join("\n");
+    }
+    default:
+      return prompt;
+  }
+}
+
+function defaultFoot(title: string): string {
+  return `<div class="slide-foot">
+    <span>${escapeHtml(title)}</span>
+    <span class="counter"></span>
+  </div>`;
+}
+
+function darkFoot(title: string): string {
+  return `<div class="slide-foot" style="color:rgba(255,255,255,.6)">
+    <span>${escapeHtml(title)}</span>
+    <span class="counter"></span>
+  </div>`;
+}
+
 function slideHtml(slide: SlideContent, index: number, _total: number): string {
   const layoutClass = getLayoutClass(slide.layoutOverride ?? slide.suggestedLayout);
-  const body = slide.bodyContent || "";
-  const lines = body.split("\n").filter(Boolean);
+  const layoutId = slide.layoutOverride ?? slide.suggestedLayout;
+  const { lines } = parseBody(slide);
 
-  if (slide.layoutOverride === "cover" || slide.suggestedLayout === "cover") {
+  // ── Cover ────────────────────────────────────
+  if (layoutId === "cover") {
     return `<section class="${layoutClass} active" data-slide="${index + 1}">
   <div class="cover-frame">
     <div class="cover-tag">Central Provident Fund Board</div>
@@ -44,76 +190,380 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
 </section>`;
   }
 
-  if (slide.layoutOverride === "section-divider" || slide.suggestedLayout === "section-divider") {
+  // ── Section Divider ──────────────────────────
+  if (layoutId === "section-divider") {
     return `<section class="${layoutClass}" data-slide="${index + 1}">
   <img class="logo-mark tr" src="${LOGO_GREEN_URI}" alt="CPF" />
   <div class="divider-frame">
-    <div class="chapter-tag">Section</div>
     <h2 class="h-chapter">${escapeHtml(slide.title)}</h2>
     <div class="title-rule"></div>
     ${lines.length > 0 ? `<p class="subtitle" style="color:var(--fg-soft);max-width:34em;margin-top:1cqh">${lines.map(escapeHtml).join("<br/>")}</p>` : ""}
   </div>
   <div class="divider-band"></div>
-  <div class="slide-foot" style="color:rgba(255,255,255,.7)">
-    <span>${escapeHtml(slide.title)}</span>
-    <span class="counter"></span>
-  </div>
+  ${darkFoot(slide.title)}
 </section>`;
   }
 
-  if (slide.layoutOverride === "big-stat" || slide.suggestedLayout === "big-stat") {
+  // ── Big Stat ─────────────────────────────────
+  if (layoutId === "big-stat") {
     const stat = lines[0] || "—";
-    const label = lines[1] || slide.title;
+    const label = lines[1] || "";
+    const note = lines[2] || "";
     return `<section class="${layoutClass}" data-slide="${index + 1}">
-  <div class="stat-frame">
-    <div class="big-stat-number">${escapeHtml(stat)}</div>
-    <p class="big-stat-label">${escapeHtml(label)}</p>
-  </div>
-  <div class="slide-foot" style="color:rgba(255,255,255,.7)">
-    <span>${escapeHtml(slide.title)}</span>
-    <span class="counter"></span>
-  </div>
-</section>`;
-  }
-
-  if (slide.layoutOverride === "quote-testimonial" || slide.suggestedLayout === "quote-testimonial") {
-    const quote = body || slide.contentPrompt;
-    const attribution = lines[1] || "";
-    return `<section class="${layoutClass}" data-slide="${index + 1}">
-  <blockquote class="quote-text">${escapeHtml(quote)}</blockquote>
-  ${attribution ? `<cite class="quote-cite">${escapeHtml(attribution)}</cite>` : ""}
-  <div class="slide-foot" style="color:rgba(255,255,255,.7)">
-    <span>${escapeHtml(slide.title)}</span>
-    <span class="counter"></span>
-  </div>
-</section>`;
-  }
-
-  if (slide.layoutOverride === "closing" || slide.suggestedLayout === "closing") {
-    return `<section class="${layoutClass}" data-slide="${index + 1}">
-  <div class="cover-frame">
-    <h1 class="h-cover">${escapeHtml(slide.title)}</h1>
-    <div class="title-rule"></div>
-    ${lines.length > 0 ? `<p class="subtitle">${lines.map(escapeHtml).join("<br/>")}</p>` : ""}
+  <div class="big-stat-wrap">
+    <div class="big-stat-label">${escapeHtml(slide.title)}</div>
+    <h2 class="h-big-stat">${escapeHtml(stat)}</h2>
+    ${label ? `<p class="big-stat-note">${escapeHtml(label)}</p>` : ""}
+    ${note ? `<p class="big-stat-src">${escapeHtml(note)}</p>` : ""}
   </div>
   <img class="logo-mark br" src="${LOGO_WHITE_URI}" alt="CPF" />
-  <div class="cover-band">
-    <div class="band-meta">Thank you</div>
-  </div>
+  ${darkFoot(slide.title)}
 </section>`;
   }
 
-  // Default: light content slide with bullet list
-  const layoutInfo = LAYOUTS.find(
-    (l) => l.id === (slide.layoutOverride ?? slide.suggestedLayout)
-  );
+  // ── Quote ────────────────────────────────────
+  if (layoutId === "quote-testimonial") {
+    const quoteText = lines[0] || slide.contentPrompt;
+    const attr = lines[1] || "";
+    const role = lines[2] || "";
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="quote-frame">
+    <div class="quote-mark">\u201C</div>
+    <p class="h-quote">${escapeHtml(quoteText)}</p>
+    ${(attr || role) ? `<div class="quote-attr">
+      ${attr ? `<div class="quote-who">${escapeHtml(attr)}</div>` : ""}
+      ${(attr && role) ? `<span class="quote-sep"></span>` : ""}
+      ${role ? `<div class="quote-role">${escapeHtml(role)}</div>` : ""}
+    </div>` : ""}
+  </div>
+  <img class="logo-mark br" src="${LOGO_WHITE_URI}" alt="CPF" />
+  ${darkFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Closing ──────────────────────────────────
+  if (layoutId === "closing") {
+    const contactLines = lines.slice(0, 3);
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="closing-frame">
+    <div class="closing-kicker">Thank you</div>
+    <h1 class="closing-title">${escapeHtml(slide.title)}</h1>
+    <div class="title-rule" style="margin-inline:auto"></div>
+    ${lines.length > 0 ? `<p class="subtitle" style="max-width:30em">${lines.map(escapeHtml).join("<br/>")}</p>` : ""}
+    ${contactLines.length > 0 ? `<div class="closing-contact">${contactLines.map((c) => {
+      const parts = c.split("|");
+      return `<div class="closing-item"><span class="closing-lbl">${escapeHtml(parts[0] || "")}</span><span class="closing-val">${escapeHtml(parts[1] || "")}</span></div>`;
+    }).join("")}</div>` : ""}
+  </div>
+  <img class="logo-mark br" src="${LOGO_WHITE_URI}" alt="CPF" />
+  ${darkFoot(slide.title)}
+</section>`;
+  }
+
+  // ── KPI Dashboard ────────────────────────────
+  if (layoutId === "kpi-dashboard") {
+    const metrics = lines.slice(0, 4).map((l) => {
+      const colon = l.indexOf(":");
+      if (colon > 0) return { value: l.slice(0, colon).trim(), label: l.slice(colon + 1).trim() };
+      return { value: l, label: "" };
+    });
+    const colors = ["", "pine", "turq", "orange"];
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="design-bar"></div>
+  <div class="frame">
+    <header class="frame-header">
+      <h2 class="h-section" style="margin-top:1cqh">${escapeHtml(slide.title)}</h2>
+      <div class="title-rule"></div>
+    </header>
+    <div class="frame-body">
+      <div class="kpi-grid">
+        ${metrics.map((m, i) => `<div class="kpi ${colors[i] || ""}">
+          <span class="kpi-label">${escapeHtml(m.label)}</span>
+          <span class="kpi-value">${escapeHtml(m.value)}</span>
+        </div>`).join("")}
+      </div>
+    </div>
+  </div>
+  ${defaultFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Two-Column Comparison ────────────────────
+  if (layoutId === "two-column") {
+    const beforeLines: string[] = [];
+    const afterLines: string[] = [];
+    let side: "before" | "after" = "before";
+    for (const line of lines) {
+      if (line.toLowerCase().startsWith("after:") || line.toLowerCase().startsWith("after ")) {
+        side = "after";
+        const content = line.replace(/^after[:\s]*/i, "").trim();
+        if (content) afterLines.push(content);
+      } else if (line.toLowerCase().startsWith("before:") || line.toLowerCase().startsWith("before ")) {
+        side = "before";
+        const content = line.replace(/^before[:\s]*/i, "").trim();
+        if (content) beforeLines.push(content);
+      } else {
+        if (side === "before") beforeLines.push(line);
+        else afterLines.push(line);
+      }
+    }
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="design-bar"></div>
+  <div class="frame">
+    <header class="frame-header">
+      <h2 class="h-section" style="margin-top:1cqh">${escapeHtml(slide.title)}</h2>
+      <div class="title-rule"></div>
+    </header>
+    <div class="frame-body">
+      <div class="compare">
+        <div class="col-before">
+          <span class="compare-tag">Before</span>
+          <h3 class="compare-col-title before-title">Current State</h3>
+          ${beforeLines.length > 0 ? `<ul class="compare-bullets">${beforeLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : ""}
+        </div>
+        <div class="col-after">
+          <span class="compare-tag">After</span>
+          <h3 class="compare-col-title after-title">Target State</h3>
+          ${afterLines.length > 0 ? `<ul class="compare-bullets">${afterLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : ""}
+        </div>
+      </div>
+    </div>
+  </div>
+  ${defaultFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Timeline ─────────────────────────────────
+  if (layoutId === "timeline") {
+    const steps = lines.slice(0, 5).map((l) => {
+      const parts = l.split("|").map((p) => p.trim());
+      return { yr: parts[0] || "", title: parts[1] || "", desc: parts[2] || "" };
+    });
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="design-bar"></div>
+  <div class="frame">
+    <header class="frame-header">
+      <h2 class="h-section" style="margin-top:1cqh">${escapeHtml(slide.title)}</h2>
+      <div class="title-rule"></div>
+    </header>
+    <div class="frame-body">
+      <div class="timeline">
+        <div class="timeline-rail">
+          ${steps.map((s) => `<div class="timeline-step">
+            ${s.yr ? `<span class="timeline-yr">${escapeHtml(s.yr)}</span>` : ""}
+            ${s.title ? `<span class="timeline-ttl">${escapeHtml(s.title)}</span>` : ""}
+            ${s.desc ? `<span class="timeline-dsc">${escapeHtml(s.desc)}</span>` : ""}
+          </div>`).join("")}
+        </div>
+      </div>
+    </div>
+  </div>
+  ${defaultFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Process Pipeline ─────────────────────────
+  if (layoutId === "process-pipeline") {
+    const steps = lines.slice(0, 5).map((l, i) => {
+      const parts = l.split("|").map((p) => p.trim());
+      return { num: i + 1, title: parts[0] || "", desc: parts[1] || "" };
+    });
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="design-bar"></div>
+  <div class="frame">
+    <header class="frame-header">
+      <h2 class="h-section" style="margin-top:1cqh">${escapeHtml(slide.title)}</h2>
+      <div class="title-rule"></div>
+    </header>
+    <div class="frame-body">
+      <div class="pipeline">
+        ${steps.map((s) => `<div class="pipe-step">
+          <span class="pipe-nb">${String(s.num).padStart(2, "0")}</span>
+          ${s.title ? `<span class="pipe-ttl">${escapeHtml(s.title)}</span>` : ""}
+          ${s.desc ? `<span class="pipe-dsc">${escapeHtml(s.desc)}</span>` : ""}
+        </div>`).join("")}
+      </div>
+    </div>
+  </div>
+  ${defaultFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Data Table ───────────────────────────────
+  if (layoutId === "data-table") {
+    const headerLine = lines[0] || "";
+    const headers = headerLine.split("|").map((h) => h.trim()).filter(Boolean);
+    const rows = lines.slice(1);
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="design-bar"></div>
+  <div class="frame">
+    <header class="frame-header">
+      <h2 class="h-section" style="margin-top:1cqh">${escapeHtml(slide.title)}</h2>
+      <div class="title-rule"></div>
+    </header>
+    <div class="frame-body">
+      <table class="data-table">
+        ${headers.length > 0 ? `<thead><tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>` : ""}
+        <tbody>
+          ${rows.map((r, ri) => {
+            const cells = r.split("|").map((c) => c.trim());
+            const isTotal = ri === rows.length - 1 && r.toLowerCase().includes("total");
+            return `<tr class="${isTotal ? "total" : ""}">${cells.map((c, ci) => {
+              const isNum = ci > 0 && /^[\d\.,\+\-\$%sS]+[%\d]?$/.test(c);
+              return `<td class="${isNum ? "num" : ci === 0 ? "label" : ""}">${escapeHtml(c)}</td>`;
+            }).join("")}</tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  ${defaultFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Org Chart ────────────────────────────────
+  if (layoutId === "org-chart") {
+    const topLine = lines[0] || "";
+    const topParts = topLine.split("|").map((p) => p.trim());
+    const topRole = topParts[0] || "";
+    const topName = topParts[1] || "";
+    const topSub = topParts[2] || "";
+    const children = lines.slice(1, 5).map((l) => {
+      const parts = l.split("|").map((p) => p.trim());
+      return { role: parts[0] || "", name: parts[1] || "", sub: parts[2] || "" };
+    });
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="design-bar"></div>
+  <div class="frame">
+    <header class="frame-header">
+      <h2 class="h-section" style="margin-top:1cqh">${escapeHtml(slide.title)}</h2>
+      <div class="title-rule"></div>
+    </header>
+    <div class="frame-body">
+      <div class="org">
+        <div class="org-row">
+          <div class="org-node top">
+            ${topRole ? `<span class="org-role">${escapeHtml(topRole)}</span>` : ""}
+            ${topName ? `<span class="org-name">${escapeHtml(topName)}</span>` : ""}
+            ${topSub ? `<span class="org-sub">${escapeHtml(topSub)}</span>` : ""}
+          </div>
+        </div>
+        ${children.length > 0 ? `<div class="org-row children">
+          ${children.map((c) => `<div class="org-node">
+            ${c.role ? `<span class="org-role">${escapeHtml(c.role)}</span>` : ""}
+            ${c.name ? `<span class="org-name">${escapeHtml(c.name)}</span>` : ""}
+            ${c.sub ? `<span class="org-sub">${escapeHtml(c.sub)}</span>` : ""}
+          </div>`).join("")}
+        </div>` : ""}
+      </div>
+    </div>
+  </div>
+  ${defaultFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Sidebar Bullets ──────────────────────────
+  if (layoutId === "sidebar-bullets") {
+    const sidebarText = lines.slice(0, 2);
+    const bulletLines = lines.slice(2);
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="design-bar"></div>
+  <div class="frame">
+    <header class="frame-header">
+      <h2 class="h-section" style="margin-top:1cqh">${escapeHtml(slide.title)}</h2>
+      <div class="title-rule"></div>
+    </header>
+    <div class="frame-body">
+      <div class="sidebar-layout">
+        <div class="side">
+          <div class="side-kicker">Why this matters</div>
+          ${sidebarText.map((t) => `<p class="side-body">${escapeHtml(t)}</p>`).join("")}
+        </div>
+        <div class="main">
+          ${bulletLines.length > 0 ? `<ul class="bullets">${bulletLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : ""}
+        </div>
+      </div>
+    </div>
+  </div>
+  ${defaultFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Content + Image 60/40 ────────────────────
+  if (layoutId === "content-image-60-40") {
+    const contentLines = lines.slice(0, 4);
+    const imageUrl = lines[4] || slide.imageUrl || "";
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="design-bar"></div>
+  <div class="frame">
+    <header class="frame-header">
+      <h2 class="h-section" style="margin-top:1cqh">${escapeHtml(slide.title)}</h2>
+      <div class="title-rule"></div>
+    </header>
+    <div class="frame-body split-6040">
+      <div style="display:flex;flex-direction:column;gap:2.4cqh">
+        ${contentLines.length > 0 ? `<ul class="bullets">${contentLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : ""}
+      </div>
+      <div class="img-slot">
+        ${imageUrl ? `<img class="img-real" src="${escapeHtml(imageUrl)}" alt="" />` : `<div class="img-plus">+</div><div class="img-placeholder">Image</div>`}
+      </div>
+    </div>
+  </div>
+  ${defaultFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Image + Content 40/60 ────────────────────
+  if (layoutId === "image-content-40-60") {
+    const imageUrl = lines[0] || slide.imageUrl || "";
+    const contentLines = lines.slice(1);
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="design-bar"></div>
+  <div class="frame">
+    <header class="frame-header">
+      <h2 class="h-section" style="margin-top:1cqh">${escapeHtml(slide.title)}</h2>
+      <div class="title-rule"></div>
+    </header>
+    <div class="frame-body split-4060">
+      <div class="img-slot">
+        ${imageUrl ? `<img class="img-real" src="${escapeHtml(imageUrl)}" alt="" />` : `<div class="img-plus">+</div><div class="img-placeholder">Image</div>`}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2.4cqh">
+        ${contentLines.length > 0 ? `<ul class="bullets">${contentLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : ""}
+      </div>
+    </div>
+  </div>
+  ${defaultFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Full-Bleed Image ─────────────────────────
+  if (layoutId === "full-bleed-image") {
+    const imageUrl = lines[0] || slide.imageUrl || "";
+    const captionTitle = lines[1] || slide.title;
+    const credit = lines[2] || "";
+    return `<section class="${layoutClass}" data-slide="${index + 1}">
+  <div class="full-image">
+    ${imageUrl ? `<img class="full-img" src="${escapeHtml(imageUrl)}" alt="" />` : `<div class="full-placeholder">Full-bleed image</div>`}
+  </div>
+  ${(captionTitle || credit) ? `<div class="full-bleed-caption">
+    <div class="full-caption-kicker">Image &amp; Caption</div>
+    <div class="full-caption-ttl">${escapeHtml(captionTitle)}</div>
+    ${credit ? `<div class="full-caption-src">${escapeHtml(credit)}</div>` : ""}
+  </div>` : ""}
+  <img class="logo-mark tr" src="${LOGO_WHITE_URI}" alt="CPF" />
+  ${darkFoot(slide.title)}
+</section>`;
+  }
+
+  // ── Bullet List (default) ────────────────────
+  const layoutInfo = LAYOUTS.find((l) => l.id === layoutId);
   const layoutName = layoutInfo?.name ?? "Content";
 
   return `<section class="${layoutClass}" data-slide="${index + 1}">
   <div class="design-bar"></div>
   <div class="frame">
     <header class="frame-header">
-      <div class="kicker">${escapeHtml(layoutName)}</div>
       <h2 class="h-section" style="margin-top:1cqh">${escapeHtml(slide.title)}</h2>
       <div class="title-rule"></div>
     </header>
@@ -124,20 +574,9 @@ ${lines.map((l) => `        <li>${escapeHtml(l)}</li>`).join("\n")}
       </ul>` : `<p class="lead" style="margin-bottom:3cqh">${escapeHtml(slide.contentPrompt)}</p>`}
     </div>
   </div>
-  <img class="logo-mark br" src="${LOGO_GREEN_URI}" alt="CPF" style="width:80px;height:auto" />
-  <div class="slide-foot">
-    <span>${escapeHtml(slide.title)}</span>
-    <span class="counter"></span>
-  </div>
+  <img class="logo-mark br" src="${LOGO_GREEN_URI}" alt="CPF" />
+  ${defaultFoot(slide.title)}
 </section>`;
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 const DECK_CSS = `
@@ -159,7 +598,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 .slide.hero.dark{background:var(--cpf-green);color:#fff}
 .slide.hero.light{background:var(--surface)}
 .design-bar{position:absolute;top:0;left:0;right:0;height:24px;background:var(--cpf-green)}
-.frame{position:absolute;inset:24px 80px 60px 80px;display:flex;flex-direction:column}
+.frame{position:absolute;inset:48px 80px 80px 80px;display:flex;flex-direction:column}
 .frame-header{margin-bottom:3cqh}
 .frame-body{flex:1;overflow-y:auto}
 .kicker{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cpf-green);font-weight:500}
@@ -170,25 +609,145 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 .title-rule{width:80px;height:4px;background:var(--cpf-green);margin:2.5cqh 0}
 .hero.dark .title-rule{background:rgba(255,255,255,.4)}
 .hero.light .title-rule{background:var(--cpf-green)}
+/* ── Cover ───────────────────── */
+
 .cover-frame{position:absolute;inset:80px 80px 120px 80px;display:flex;flex-direction:column;justify-content:center}
 .cover-tag{font-family:var(--font-mono);font-size:14px;text-transform:uppercase;letter-spacing:0.12em;opacity:.65;margin-bottom:1.5cqh}
 .cover-band{position:absolute;bottom:0;left:0;right:0;height:52px;background:rgba(0,0,0,.18);display:flex;align-items:center;padding:0 80px}
 .band-meta{font-family:var(--font-mono);font-size:13px;opacity:.7}
+/* ── Divider ─────────────────── */
+
 .divider-frame{position:absolute;inset:80px 80px 0 80px;display:flex;flex-direction:column;justify-content:center}
 .chapter-tag{font-family:var(--font-mono);font-size:14px;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:1.5cqh}
 .divider-band{position:absolute;bottom:0;left:0;right:0;height:25%;background:var(--cpf-green)}
+/* ── Big Stat ─────────────────── */
+
+.big-stat-wrap{position:absolute;inset:80px 80px 60px 80px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:2cqh}
+.big-stat-label{font-family:var(--font-mono);font-size:16px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,.7)}
+.h-big-stat{font-family:var(--font-display);font-weight:900;font-size:140px;line-height:1;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;margin:0}
+.big-stat-note{font-family:var(--font-body);font-weight:300;font-size:28px;line-height:1.4;color:rgba(255,255,255,.78);max-width:24em}
+.big-stat-src{font-family:var(--font-mono);font-size:14px;color:rgba(255,255,255,.5)}
+/* ── Quote ────────────────────── */
+
+.quote-frame{position:absolute;inset:80px 80px 120px 80px;display:flex;flex-direction:column;justify-content:center}
+.quote-mark{font-family:var(--font-display);font-weight:700;font-size:80px;line-height:.4;color:rgba(255,255,255,.25)}
+.h-quote{font-family:var(--font-display);font-weight:300;font-style:italic;font-size:44px;line-height:1.3;max-width:28em;margin:0}
+.quote-attr{display:flex;gap:16px;align-items:center;margin-top:3cqh}
+.quote-who{font-family:var(--font-display);font-weight:700;font-size:18px;color:#fff}
+.quote-role{font-family:var(--font-mono);font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,.65)}
+.quote-sep{width:24px;height:1px;background:rgba(255,255,255,.35)}
+/* ── Closing ──────────────────── */
+
+.closing-frame{position:absolute;inset:80px 80px 80px 80px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:2cqh}
+.closing-kicker{font-family:var(--font-mono);font-size:14px;text-transform:uppercase;letter-spacing:0.1em;color:var(--lime)}
+.closing-title{font-family:var(--font-display);font-weight:900;font-size:80px;line-height:1.05;margin:0}
+.closing-contact{display:flex;gap:32px;margin-top:3cqh}
+.closing-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.closing-lbl{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,.5)}
+.closing-val{font-family:var(--font-body);font-weight:300;font-size:18px;color:rgba(255,255,255,.85)}
+/* ── KPI Dashboard ────────────── */
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);flex:1;align-content:center}
+.kpi{padding:4cqh 2cqw;display:flex;flex-direction:column;gap:1cqh;border-right:1px solid var(--border)}
+.kpi:last-child{border-right:0}
+.kpi-label{font-family:var(--font-mono);font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
+.kpi-value{font-family:var(--font-display);font-weight:700;font-size:60px;line-height:1;letter-spacing:-0.02em;color:var(--cpf-green);font-variant-numeric:tabular-nums}
+.kpi.pine .kpi-value{color:var(--pine-green)}
+.kpi.turq .kpi-value{color:var(--turquoise)}
+.kpi.orange .kpi-value{color:var(--orange)}
+/* ── Two-Column Comparison ────── */
+
+.compare{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex:1}
+.compare>div{padding:4cqh 3cqw;display:flex;flex-direction:column;gap:1.6cqh;border-right:1px solid var(--border)}
+.compare>div:last-child{border-right:0}
+.compare-tag{font-family:var(--font-mono);font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
+.compare-col-title{font-family:var(--font-display);font-weight:700;font-size:32px;line-height:1.2}
+.before-title{color:var(--muted)}
+.after-title{color:var(--cpf-green)}
+.compare-bullets{list-style:none;display:flex;flex-direction:column;gap:1.2cqh;margin-top:1.4cqh}
+.compare-bullets li{position:relative;padding-left:1.6em;font-family:var(--font-body);font-size:18px;line-height:1.5;color:var(--fg-soft)}
+.compare-bullets li::before{content:"•";position:absolute;left:0;color:var(--cpf-green);font-weight:700}
+.col-after .compare-bullets li::before{content:"•"}
+/* ── Timeline ─────────────────── */
+
+.timeline{flex:1;display:flex;flex-direction:column;justify-content:center;padding:4cqh 0}
+.timeline-rail{display:grid;grid-template-columns:repeat(5,1fr);gap:1cqw;padding-top:4cqh;position:relative}
+.timeline-rail::before{content:"";position:absolute;left:0;right:0;top:2cqh;height:2px;background:var(--border-strong)}
+.timeline-step{position:relative;display:flex;flex-direction:column;gap:1cqh;padding-top:2cqh}
+.timeline-step::before{content:"";position:absolute;left:0;top:0;width:14px;height:14px;background:var(--cpf-green);border-radius:50%}
+.timeline-yr{font-family:var(--font-display);font-weight:700;font-size:22px;color:var(--cpf-green);font-variant-numeric:tabular-nums}
+.timeline-ttl{font-family:var(--font-display);font-weight:700;font-size:16px;line-height:1.25;color:var(--fg)}
+.timeline-dsc{font-family:var(--font-body);font-size:14px;line-height:1.4;color:var(--fg-soft)}
+/* ── Pipeline ─────────────────── */
+
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:1.4cqw;flex:1;align-content:center;position:relative}
+.pipeline::before{content:"";position:absolute;left:10%;right:10%;top:50%;height:2px;background:var(--border-strong)}
+.pipe-step{display:flex;flex-direction:column;gap:1.4cqh;padding:3cqh 1.6cqw;background:var(--surface);border:1px solid var(--border);position:relative}
+.pipe-nb{font-family:var(--font-display);font-weight:700;font-size:28px;color:var(--cpf-green);font-variant-numeric:tabular-nums}
+.pipe-ttl{font-family:var(--font-display);font-weight:700;font-size:17px;line-height:1.25;color:var(--fg)}
+.pipe-dsc{font-family:var(--font-body);font-size:14px;line-height:1.4;color:var(--fg-soft)}
+.pipe-step::after{content:"\u203A";position:absolute;right:-1cqw;top:50%;transform:translateY(-50%);font-family:var(--font-display);font-weight:300;font-size:28px;color:var(--border-strong)}
+.pipe-step:last-child::after{display:none}
+/* ── Data Table ───────────────── */
+
+.data-table{width:100%;border-collapse:collapse;font-family:var(--font-body)}
+.data-table thead th{text-align:left;font-family:var(--font-mono);font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:1.4cqh 1.2cqw;border-bottom:2px solid var(--cpf-green)}
+.data-table tbody td{padding:1.6cqh 1.2cqw;font-size:17px;color:var(--fg);border-bottom:1px solid var(--border)}
+.data-table tbody td.num{font-variant-numeric:tabular-nums;text-align:right;font-weight:500}
+.data-table tbody td.label{font-weight:500;color:var(--cpf-green)}
+.data-table tbody tr.total td{border-top:2px solid var(--cpf-green);font-weight:700;background:var(--cpf-paper)}
+/* ── Org Chart ─────────────────── */
+
+.org{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3cqh 0;gap:0}
+.org-row{display:flex;justify-content:center;gap:1.4cqw;width:100%;position:relative}
+.org-row+.org-row{margin-top:2.4cqh;padding-top:3.2cqh}
+.org-row+.org-row::before{content:"";position:absolute;top:-2.4cqh;left:50%;transform:translateX(-50%);width:1px;height:3.8cqh;background:var(--border-strong)}
+.org-row.children{display:grid;grid-template-columns:repeat(4,1fr);max-width:88%}
+.org-row.children::after{content:"";position:absolute;top:1.4cqh;left:12.5%;right:12.5%;height:1px;background:var(--border-strong)}
+.org-row.children .org-node::before{content:"";position:absolute;top:-1.8cqh;left:50%;transform:translateX(-50%);width:1px;height:1.8cqh;background:var(--border-strong)}
+.org-node{position:relative;background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--cpf-green);padding:1.8cqh 1.4cqw;display:flex;flex-direction:column;gap:.4cqh;min-width:14cqw;max-width:18cqw;text-align:center}
+.org-node.top{border-top:0;background:var(--cpf-green);color:#fff;min-width:22cqw;max-width:24cqw;padding:2.4cqh 2cqw}
+.org-role{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
+.org-node.top .org-role{color:rgba(255,255,255,.7)}
+.org-name{font-family:var(--font-display);font-weight:700;font-size:16px;line-height:1.2}
+.org-node.top .org-name{color:#fff}
+.org-sub{font-family:var(--font-body);font-size:13px;color:var(--fg-soft);line-height:1.3}
+.org-node.top .org-sub{color:rgba(255,255,255,.8)}
+/* ── Sidebar Bullets ──────────── */
+
+.sidebar-layout{display:grid;grid-template-columns:5fr 7fr;border:1px solid var(--border);flex:1}
+.side{padding:4cqh 3cqw;background:var(--cpf-green);color:#fff;display:flex;flex-direction:column;gap:2cqh;position:relative;overflow:hidden}
+.side-kicker{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--lime)}
+.side-body{font-family:var(--font-body);font-size:16px;line-height:1.5;color:rgba(255,255,255,.85)}
+.main{padding:4cqh 3cqw;background:var(--surface);display:flex;flex-direction:column;gap:2cqh}
+/* ── Split Grids ──────────────── */
+
+.split-6040{display:grid;grid-template-columns:6fr 4fr;gap:4cqw;flex:1;align-items:start;min-height:0}
+.split-4060{display:grid;grid-template-columns:4fr 6fr;gap:4cqw;flex:1;align-items:start;min-height:0}
+.img-slot{width:100%;aspect-ratio:16/10;background:var(--surface);border:1.5px dashed var(--border-strong);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1cqh;font-family:var(--font-mono);font-size:14px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);position:relative;overflow:hidden}
+.img-plus{font-size:36px;font-weight:300;color:var(--border-strong)}
+.img-placeholder{font-size:13px;color:var(--muted)}
+.img-real{width:100%;height:100%;object-fit:cover;display:block}
+/* ── Full-Bleed Image ─────────── */
+
+.full-image{position:absolute;inset:0;background:var(--cpf-green-deep);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.full-placeholder{font-family:var(--font-mono);font-size:16px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,.3)}
+.full-img{width:100%;height:100%;object-fit:cover;display:block}
+.full-bleed-caption{position:absolute;left:80px;bottom:100px;max-width:50cqw;background:rgba(4,89,65,.85);padding:3cqh 3cqw;color:#fff}
+.full-caption-kicker{font-family:var(--font-mono);font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:var(--lime)}
+.full-caption-ttl{font-family:var(--font-display);font-weight:700;font-size:32px;line-height:1.2;margin-top:1.2cqh}
+.full-caption-src{font-family:var(--font-mono);font-size:13px;letter-spacing:0.06em;color:rgba(255,255,255,.65);margin-top:1.4cqh}
+/* ── Bullets ──────────────────── */
+
 .bullets{list-style:none;padding:0;margin:0}
 .bullets li{font-family:var(--font-body);font-size:22px;line-height:1.6;padding:.4em 0;padding-left:2em;position:relative;color:var(--fg-soft)}
-.bullets li::before{content:"1.";counter-increment:none;position:absolute;left:0;font-family:var(--font-mono);font-weight:700;color:var(--cpf-green)}
+.bullets li::before{content:"—";position:absolute;left:0;font-family:var(--font-mono);font-weight:700;color:var(--cpf-green)}
+/* ── Generic ──────────────────── */
+
 .lead{font-family:var(--font-body);font-weight:300;font-size:28px;line-height:1.5;color:var(--fg-soft);max-width:44em}
 .slide-foot{position:absolute;bottom:12px;left:40px;right:40px;display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--muted);opacity:.6}
 .slide-foot .counter::before{content:"Slide "counter(slide)" of "}
 .hero.dark .slide-foot{color:rgba(255,255,255,.6)}
-.stat-frame{position:absolute;inset:80px 80px 60px 80px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
-.big-stat-number{font-family:var(--font-display);font-weight:900;font-size:120px;line-height:1;margin-bottom:2cqh}
-.big-stat-label{font-family:var(--font-body);font-weight:300;font-size:28px;max-width:20em;opacity:.85}
-.quote-text{font-family:var(--font-display);font-weight:300;font-style:italic;font-size:42px;line-height:1.4;max-width:24em;margin:0 auto;position:absolute;inset:120px 80px 120px 80px;display:flex;align-items:center}
-.quote-cite{position:absolute;bottom:80px;right:80px;font-family:var(--font-mono);font-size:16px;opacity:.7}
 .logo-mark{position:absolute;z-index:2}
 .logo-mark.br{bottom:55px;right:30px}
 .logo-mark.tr{top:30px;right:30px}
@@ -250,6 +809,7 @@ ${slideSections}
     slides[i].classList.add('active');
     current=i;
     counter.textContent=(i+1)+' / '+total;
+    window.parent.postMessage({ slide: current }, "*");
   }
 
   document.getElementById('prev-btn').addEventListener('click',function(){go(current-1)});

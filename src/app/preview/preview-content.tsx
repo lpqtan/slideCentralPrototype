@@ -66,20 +66,14 @@ export default function PreviewContent() {
   }, [deckId, getById, router]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") {
-        setCurrentSlide((prev) => Math.min(slides.length - 1, prev + 1));
-      } else if (e.key === "ArrowLeft") {
-        setCurrentSlide((prev) => Math.max(0, prev - 1));
-      } else if (e.key === "Home") {
-        setCurrentSlide(0);
-      } else if (e.key === "End") {
-        setCurrentSlide(slides.length - 1);
+    const handler = (e: MessageEvent) => {
+      if (e.data && typeof e.data.slide === "number") {
+        setCurrentSlide(e.data.slide);
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [slides.length]);
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
 
   if (!deckHtml) {
     return (
