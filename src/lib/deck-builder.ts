@@ -262,6 +262,12 @@ ${slideSections}
     if(e.key==='End'){e.preventDefault();go(total-1)}
   });
 
+  window.addEventListener('message',function(e){
+    if(e.data&&typeof e.data.slide==='number'){
+      go(e.data.slide);
+    }
+  });
+
   var startX=0;
   document.addEventListener('touchstart',function(e){startX=e.touches[0].clientX});
   document.addEventListener('touchend',function(e){
