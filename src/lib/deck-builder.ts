@@ -753,6 +753,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 .logo-mark.tr{top:30px;right:30px}
 .deck-image{margin-bottom:2cqh}
 .deck-image img{max-width:100%;max-height:30cqh;border-radius:4px}
+.u-overlay{font-family:var(--font-body);position:absolute;z-index:5;pointer-events:none;white-space:pre-wrap;word-break:break-word;max-width:420px;text-align:center;font-size:clamp(11px,1.5cqw,26px)}
 `;
 
 export function buildDeckHtml(slides: SlideContent[]): string {
@@ -825,6 +826,10 @@ ${slideSections}
   window.addEventListener('message',function(e){
     if(e.data&&typeof e.data.slide==='number'){
       go(e.data.slide);
+    }
+    if(e.data&&typeof e.data.showNav==='boolean'){
+      var nav=document.querySelector('.deck-nav');
+      if(nav)nav.style.display=e.data.showNav?'flex':'none';
     }
   });
 

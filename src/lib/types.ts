@@ -104,6 +104,17 @@ export interface GenerationSource {
   rawOutput?: string;
 }
 
+/** A user-added overlay text block on a slide */
+export interface TextBlock {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  color: string;
+  bold: boolean;
+  italic: boolean;
+}
+
 /** A saved deck in localStorage */
 export interface SavedDeck {
   id: string;
@@ -116,6 +127,7 @@ export interface SavedDeck {
   htmlContent: string | null;
   source: GenerationSource | null;
   status: DeckStatus;
+  overlayBlocks?: Record<number, TextBlock[]>;
 }
 
 export type DeckStatus =
