@@ -36,9 +36,22 @@ export default function PreviewContent() {
   const [slides, setSlides] = useState<SlideOutline[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [downloading, setDownloading] = useState(false);
-  const [savedBlocks, setSavedBlocks] = useState<TextBlock[]>([]);
   const [layoutPickerOpen, setLayoutPickerOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const handleDownloadHtml = () => {
+    const deck = deckId ? getById(deckId) : undefined;
+    const html = deck?.htmlContent ?? "";
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = deck?.name ? `${deck.name}.html` : "presentation.html";
+    a.click();
+    URL.revokeObjectURL(url);
+    setDownloadOpen(false);
+  };
   const overlayRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; startX: number; startY: number; blockX: number; blockY: number } | null>(null);
 
@@ -57,6 +70,10 @@ export default function PreviewContent() {
 
   const enterEditMode = () => {
     const deck = getById(deckId ?? "");
+    if (deck?.slides) {
+      const cleanHtml = buildDeckHtml(deck.slides);
+      setDeckHtml(cleanHtml);
+    }
     const saved = deck?.overlayBlocks?.[currentSlide] || [];
     editHistory.push(saved.map((b) => ({ ...b })), true);
     setEditMode(true);
@@ -68,7 +85,13 @@ export default function PreviewContent() {
   const saveEdit = () => {
     if (!deckId) return;
     setOverlayBlocks(deckId, currentSlide, editBlocks);
-    setSavedBlocks(editBlocks);
+    const deck = getById(deckId);
+    if (deck?.slides) {
+      const allOverlay = { ...deck.overlayBlocks, [currentSlide]: editBlocks };
+      const newHtml = buildDeckHtml(deck.slides, allOverlay);
+      storeDeckHtml(deckId, newHtml);
+      setDeckHtml(newHtml);
+    }
     setEditMode(false);
     setSelectedId(null);
     setEditingId(null);
@@ -99,6 +122,13 @@ export default function PreviewContent() {
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
   }, [layoutPickerOpen]);
+
+  useEffect(() => {
+    if (!downloadOpen) return;
+    const close = () => setDownloadOpen(false);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [downloadOpen]);
 
   const addBlock = () => {
     const newBlock: TextBlock = {
@@ -162,13 +192,6 @@ export default function PreviewContent() {
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onUp);
   };
-
-  // Load overlay blocks when slide changes (view mode)
-  useEffect(() => {
-    if (!deckId) return;
-    const deck = getById(deckId);
-    setSavedBlocks(deck?.overlayBlocks?.[currentSlide] || []);
-  }, [currentSlide, deckId]);
 
   // Load overlay blocks when slide changes in edit mode
   useEffect(() => {
@@ -353,10 +376,27 @@ export default function PreviewContent() {
             )}
             <Link href={`/outline?deckId=${encodeURIComponent(deckId ?? "")}`}
               className="rounded border border-[var(--color-border)] px-3 py-2 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:bg-[var(--color-cpf-mint)]">Back to Outline</Link>
-            <button onClick={handleDownloadPptx} disabled={downloading}
-              className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)] disabled:cursor-wait disabled:opacity-60">
-              {downloading ? "Downloading..." : "Download PPTX"}
-            </button>
+            <div className="relative">
+              <button onClick={(e) => { e.stopPropagation(); setDownloadOpen(!downloadOpen); }} disabled={downloading}
+                className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)] disabled:cursor-wait disabled:opacity-60">
+                {downloading ? "Downloading..." : "Download ▼"}
+              </button>
+              {downloadOpen && (
+                <div onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-full mt-1 z-50 w-32 rounded border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
+                  <button onClick={handleDownloadHtml}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--color-fg-soft)] hover:bg-[var(--color-cpf-mint)] transition-colors rounded-t">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    HTML
+                  </button>
+                  <button onClick={() => { handleDownloadPptx(); setDownloadOpen(false); }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--color-fg-soft)] hover:bg-[var(--color-cpf-mint)] transition-colors rounded-b border-t border-[var(--color-border)]">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    PPTX
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -389,9 +429,9 @@ export default function PreviewContent() {
         <div className="min-h-0 flex-1 overflow-hidden border border-[var(--color-border)] mx-6 relative">
           <iframe ref={iframeRef} srcDoc={deckHtml}
             className="h-full w-full border-0" allowFullScreen title="Slide Deck Preview" />
-          {/* Overlay — visible in both view and edit mode */}
-          {(() => {
-            const blocks = editMode ? editBlocks : savedBlocks;
+          {/* Overlay — edit mode only */}
+          {editMode && (() => {
+            const blocks = editBlocks;
             if (!blocks.length) return null;
             return (
               <div ref={overlayRef} className="absolute inset-0 z-10" style={{ pointerEvents: editMode ? "auto" : "none" }}>

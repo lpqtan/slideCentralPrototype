@@ -1,4 +1,4 @@
-import type { SlideContent } from "@/lib/types";
+import type { SlideContent, TextBlock } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
 import { LOGO_GREEN_URI, LOGO_WHITE_URI } from "@/lib/logos";
 
@@ -591,9 +591,9 @@ const DECK_CSS = `
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);color:var(--fg);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
-#deck{display:flex;width:100%;height:1080px;overflow:hidden}
-.slide{flex:0 0 1920px;width:1920px;height:1080px;position:relative;overflow:hidden;container-type:size;container-name:slide}
-.slide:not(.active){display:none!important}
+#deck{position:relative;width:100%;height:1080px;overflow:hidden}
+.slide{position:absolute;top:0;left:0;width:1920px;height:1080px;overflow:hidden;container-type:size;container-name:slide;visibility:hidden}
+.slide.active{visibility:visible}
 .slide.light{background:var(--cpf-mint)}
 .slide.hero.dark{background:var(--cpf-green);color:#fff}
 .slide.hero.light{background:var(--surface)}
@@ -754,10 +754,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 .deck-image{margin-bottom:2cqh}
 .deck-image img{max-width:100%;max-height:30cqh;border-radius:4px}
 .u-overlay{font-family:var(--font-body);position:absolute;z-index:5;pointer-events:none;white-space:pre-wrap;word-break:break-word;max-width:420px;text-align:center;font-size:clamp(11px,1.5cqw,26px)}
+.u-overlay{font-family:var(--font-body);position:absolute;z-index:5;pointer-events:none;white-space:pre-wrap;word-break:break-word;max-width:420px;text-align:center;font-size:clamp(11px,1.5cqw,26px)}
 `;
 
-export function buildDeckHtml(slides: SlideContent[]): string {
-  const slideSections = slides.map((s, i) => slideHtml(s, i, slides.length)).join("\n\n");
+function injectOverlay(html: string, blocks?: TextBlock[]): string {
+  if (!blocks?.length) return html;
+  const overlay = blocks.map((b) =>
+    `<div class="u-overlay" style="left:${b.x}%;top:${b.y}%;transform:translate(-50%,-50%);color:${b.color};font-weight:${b.bold ? 700 : 400};font-style:${b.italic ? "italic" : "normal"}">${escapeHtml(b.text)}</div>`
+  ).join("");
+  return html.replace("</section>", `${overlay}</section>`);
+}
+
+export function buildDeckHtml(slides: SlideContent[], overlayBlocks?: Record<number, TextBlock[]>): string {
+  const slideSections = slides.map((s, i) => injectOverlay(slideHtml(s, i, slides.length), overlayBlocks?.[i])).join("\n\n");
 
   return `<!doctype html>
 <html lang="en">
@@ -810,7 +819,6 @@ ${slideSections}
     slides[i].classList.add('active');
     current=i;
     counter.textContent=(i+1)+' / '+total;
-    window.parent.postMessage({ slide: current }, "*");
   }
 
   document.getElementById('prev-btn').addEventListener('click',function(){go(current-1)});
@@ -839,13 +847,6 @@ ${slideSections}
     var dx=startX-e.changedTouches[0].clientX;
     if(Math.abs(dx)>50){go(current+(dx>0?1:-1))}
   });
-
-  document.addEventListener('wheel',function(e){
-    if(e.deltaX!==0||Math.abs(e.deltaX)>Math.abs(e.deltaY)){
-      if(e.deltaX>30||e.deltaY>30){go(current+1)}
-      else if(e.deltaX<-30||e.deltaY<-30){go(current-1)}
-    }
-  },{passive:true});
 })();
 </script>
 <style>
