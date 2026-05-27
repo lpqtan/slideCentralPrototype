@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { SavedDeck, SlideOutline, SlideContent, GenerationSource } from "@/lib/types";
+import type { SavedDeck, SlideOutline, SlideContent, GenerationSource, TextBlock } from "@/lib/types";
 
 const DECKS_KEY = "slidecentral-decks";
 
@@ -102,5 +102,19 @@ export function useDeckStore() {
     }
   }, []);
 
-  return { getAll, getById, save, updateOutline, updateSlides, updateName, remove, getAllDecks, setDeckHtml, setDeckSlides };
+  const setOverlayBlocks = useCallback((id: string, slideIndex: number, blocks: TextBlock[]) => {
+    const decks = loadDecks();
+    const idx = decks.findIndex((d) => d.id === id);
+    if (idx >= 0) {
+      const existing = decks[idx].overlayBlocks || {};
+      decks[idx] = {
+        ...decks[idx],
+        overlayBlocks: { ...existing, [slideIndex]: blocks },
+        updatedAt: Date.now(),
+      };
+      saveDecks(decks);
+    }
+  }, []);
+
+  return { getAll, getById, save, updateOutline, updateSlides, updateName, remove, getAllDecks, setDeckHtml, setDeckSlides, setOverlayBlocks };
 }

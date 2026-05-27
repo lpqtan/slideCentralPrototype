@@ -29,6 +29,7 @@ next-env.d.ts
 
 # reference-only repos (not part of the app)
 referenceRepos/
+slideCentral/
 
 # open-design daemon artifacts
 .od/
