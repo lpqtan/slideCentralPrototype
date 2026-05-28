@@ -53,13 +53,13 @@ export function useHistory<T>(initial: T): UseHistoryReturn<T> {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+      if (isInput) return;
       if ((e.metaKey || e.ctrlKey) && !e.altKey) {
-        if (e.shiftKey && e.key === "z") {
+        if (e.key === "z" || e.key === "Z") {
           e.preventDefault();
-          redo();
-        } else if (e.key === "z") {
-          e.preventDefault();
-          undo();
+          if (e.shiftKey) { redo(); } else { undo(); }
         }
       }
     };

@@ -2,9 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { Objective, Audience, DeckMode, NarrativeArc, LayoutId, BriefingData, SavedDeck } from "@/lib/types";
-
-const STORAGE_KEY = "slidecentral-current-briefing";
-const STEP_KEY = "slidecentral-current-step";
+import { STORAGE_KEYS } from "@/lib/constants";
 
 function makeEmptyBriefing(): BriefingData {
   return {
@@ -29,13 +27,13 @@ export function useBriefing() {
   // Load from localStorage on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEYS.BRIEFING);
       if (saved) {
         const parsed = JSON.parse(saved) as SavedDeck;
         setBriefing(parsed.briefing);
         if (parsed.id) setDeckId(parsed.id);
       }
-      const savedStep = localStorage.getItem(STEP_KEY);
+      const savedStep = localStorage.getItem(STORAGE_KEYS.STEP);
       if (savedStep) setStep(Number(savedStep));
     } catch {
       // ignore corrupted storage
@@ -61,7 +59,7 @@ export function useBriefing() {
         source: null,
         status: "briefing",
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      localStorage.setItem(STORAGE_KEYS.BRIEFING, JSON.stringify(saved));
     } catch {
       // ignore
     }
@@ -70,7 +68,7 @@ export function useBriefing() {
   // Persist step — only after loaded
   useEffect(() => {
     if (!loaded) return;
-    localStorage.setItem(STEP_KEY, String(step));
+    localStorage.setItem(STORAGE_KEYS.STEP, String(step));
   }, [loaded, step]);
 
   const setObjective = useCallback((o: Objective) => {
@@ -161,8 +159,8 @@ export function useBriefing() {
     setStep(1);
     setBriefing(makeEmptyBriefing());
     setDeckId(null);
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(STEP_KEY);
+    localStorage.removeItem(STORAGE_KEYS.BRIEFING);
+    localStorage.removeItem(STORAGE_KEYS.STEP);
   }, []);
 
   const submitBriefing = useCallback(() => {

@@ -1,6 +1,7 @@
 import type { BackendStrategy, StrategyOptions } from "./types";
 import type { BriefingData, SlideOutline } from "@/lib/types";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts-od";
+import { STORAGE_KEYS } from "@/lib/constants";
 
 interface ProviderConfig {
   baseUrl: string;
@@ -49,6 +50,11 @@ const PROVIDERS: Record<string, ProviderConfig> = {
 };
 
 export function extractJson(text: string): SlideOutline[] {
+  const raw = extractRawJson(text);
+  return normalizeOutlines(raw);
+}
+
+function extractRawJson(text: string): SlideOutline[] {
   let cleaned = text
     .replace(/```json\n?/gi, "")
     .replace(/```\n?/g, "")
@@ -82,7 +88,7 @@ export function extractJson(text: string): SlideOutline[] {
   } catch { /* not a JSON wrapper, continue */ }
 
   // Skip text prefix before first JSON character
-  const jsonStart = cleaned.search(/[\{\[]/);
+  const jsonStart = cleaned.search(/[{[]/);
   const jsonText = jsonStart >= 0 ? cleaned.slice(jsonStart) : cleaned;
 
   // Try direct parse first (handles { "outline": [...] } or bare [...])
@@ -125,6 +131,26 @@ export function extractJson(text: string): SlideOutline[] {
   }
 }
 
+export function normalizeOutlines(outlines: unknown[]): SlideOutline[] {
+  return outlines.map((s) => {
+    const item = s as Record<string, unknown>;
+    return {
+      slideNumber: Number(item.slideNumber ?? 0),
+      title: String(item.title ?? ""),
+      suggestedLayout: (typeof item.suggestedLayout === "string" ? item.suggestedLayout : "bullet-list") as SlideOutline["suggestedLayout"],
+      bodyContent: String(item.bodyContent ?? ""),
+      contentPrompt: typeof item.contentPrompt === "string" ? item.contentPrompt : undefined,
+      estimatedMinutes: Number(item.estimatedMinutes ?? 1),
+      needsDiagram: Boolean(item.needsDiagram),
+      needsChart: Boolean(item.needsChart),
+      needsData: Boolean(item.needsData),
+      needsPlaceholder: Boolean(item.needsPlaceholder),
+      diagramHint: typeof item.diagramHint === "string" ? item.diagramHint : undefined,
+      chartHint: typeof item.chartHint === "string" ? item.chartHint : undefined,
+    };
+  });
+}
+
 export async function callProvider(
   provider: string,
   model: string | undefined,
@@ -136,7 +162,8 @@ export async function callProvider(
   if (!config) throw new Error(`Unknown provider: ${provider}`);
 
   const effectiveModel = model || config.model;
-  const key = apiKey || process.env[`${provider.toUpperCase()}_API_KEY`] || "";
+  const envKey = provider.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase();
+  const key = apiKey || process.env[`${envKey}_API_KEY`] || process.env.GEMINI_API_KEY || "";
   if (!key) throw new Error(`No API key for ${provider}. Set it in AI Settings.`);
 
   if (provider === "gemini" || provider === "gemini-3.5-flash" || provider.startsWith("gemini")) {
@@ -191,7 +218,7 @@ export async function callProvider(
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,
-      ...(provider === "openrouter" ? { "HTTP-Referer": "https://slide-central.vercel.app" } : {}),
+      ...(provider === "openrouter" ? { "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000" } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -224,7 +251,8 @@ export async function* streamProvider(
   }
 
   const effectiveModel = model || config.model;
-  const key = apiKey || process.env[`${provider.toUpperCase()}_API_KEY`] || "";
+  const envKey = provider.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase();
+  const key = apiKey || process.env[`${envKey}_API_KEY`] || process.env.GEMINI_API_KEY || "";
 
   if (provider === "gemini" || provider === "gemini-3.5-flash" || provider.startsWith("gemini")) {
     const url = `${config.baseUrl}/${config.apiVersion}/models/${effectiveModel}:streamGenerateContent?alt=sse&key=${key}`;
@@ -280,6 +308,7 @@ export async function* streamProvider(
         } catch { /* skip corrupt SSE chunks */ }
       }
     }
+    return;
   }
 
   // OpenAI-compatible streaming
@@ -302,7 +331,7 @@ export async function* streamProvider(
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,
-      ...(provider === "openrouter" ? { "HTTP-Referer": "https://slide-central.vercel.app" } : {}),
+      ...(provider === "openrouter" ? { "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000" } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -354,7 +383,7 @@ const llmStrategy: BackendStrategy = {
       if (process.env[`${p.toUpperCase()}_API_KEY`]) return true;
     }
     try {
-      const raw = typeof localStorage !== "undefined" ? localStorage.getItem("slidecentral-settings") : null;
+      const raw = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEYS.SETTINGS) : null;
       if (raw) {
         const s = JSON.parse(raw) as { apiKey?: string };
         if (s.apiKey) return true;

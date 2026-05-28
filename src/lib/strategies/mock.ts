@@ -17,24 +17,24 @@ function pickLayout(index: number, total: number, _arcId: string): string {
   return contentLayouts[index % contentLayouts.length]?.id ?? "bullet-list";
 }
 
-function makeContentPrompt(arcId: string, stepIndex: number, total: number, briefing: BriefingData): string {
+function makeBodyContent(arcId: string, stepIndex: number, total: number, briefing: BriefingData): string {
   const audienceLabel = briefing.audience?.replace("-", " ") ?? "audience";
   const keyMessage = briefing.keyMessage || "key message";
 
-  const prompts = [
-    `Describe the context and rationale behind: ${keyMessage}`,
-    `Provide supporting data and evidence for: ${keyMessage}`,
-    `Explain the impact on ${audienceLabel} and why this matters now`,
-    `Detail the recommended approach and expected outcomes`,
-    `List 3–5 specific actions or decisions needed, with owners and timelines`,
-    `Present key metrics showing current state vs target`,
-    `Address potential risks or blockers and mitigation strategies`,
-    `Summarise key takeaways and reinforce the main message`,
-    `Show a timeline of implementation phases`,
-    `Compare alternatives: current approach vs proposed`,
+  const contents = [
+    `1. ${keyMessage}\n2. This presentation outlines the rationale, data, and recommended path forward for ${audienceLabel}\n3. Key decisions are required to proceed with the proposed approach`,
+    `1. Current trends show a clear need for action\n2. Data indicates a shift in how we serve ${audienceLabel}\n3. The case for change is supported by both quantitative and qualitative evidence`,
+    `1. ${audienceLabel} expectations have evolved significantly\n2. Internal benchmarks reveal gaps in our current approach\n3. External factors amplify the urgency of this initiative`,
+    `1. Our recommended approach addresses the root causes identified\n2. Expected outcomes include improved metrics and efficiency gains\n3. Success will be measured against clearly defined KPIs`,
+    `1. Specific actions required with assigned owners and timelines\n2. Milestone tracking ensures accountability across teams\n3. Regular progress reviews will keep the initiative on track`,
+    `1. Current state metrics versus target performance indicators\n2. Key gaps highlight where improvement is most needed\n3. Progress to date shows early momentum in priority areas`,
+    `1. Identified risks and their potential impact on delivery\n2. Mitigation strategies are in place for each risk category\n3. Contingency plans ensure business continuity`,
+    `1. Summary of key messages and recommended actions\n2. The core message reinforces the strategic importance of this initiative\n3. Next steps require leadership endorsement and resource commitment`,
+    `1. Phased implementation timeline with key milestones\n2. Phase 1 focuses on foundational setup and quick wins\n3. Subsequent phases build on early momentum for sustained impact`,
+    `1. Comparison of current versus proposed approach across key dimensions\n2. The proposed approach delivers superior outcomes across all metrics\n3. Transition plan minimises disruption while maximising value`,
   ];
 
-  return prompts[stepIndex % prompts.length];
+  return contents[stepIndex % contents.length];
 }
 
 function makeTitle(arcId: string, stepIndex: number, total: number, briefing: BriefingData): string {
@@ -89,11 +89,12 @@ export function generateMockOutline(briefing: BriefingData): SlideOutline[] {
   const outline: SlideOutline[] = [];
 
   for (let i = 0; i < total; i++) {
+    const content = makeBodyContent(arcId, i, total, briefing);
     outline.push({
       slideNumber: i + 1,
       title: makeTitle(arcId, i, total, briefing),
       suggestedLayout: pickLayout(i, total, arcId) as SlideOutline["suggestedLayout"],
-      contentPrompt: makeContentPrompt(arcId, i, total, briefing),
+      bodyContent: content,
       estimatedMinutes: i === 0 ? 1 : 1.5,
     });
   }

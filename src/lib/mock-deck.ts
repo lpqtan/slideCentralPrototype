@@ -43,15 +43,13 @@ export function createMockDeck(): SavedDeck {
       contentPrompt: "",
       estimatedMinutes: 2,
       bodyContent:
-        "Current State:\n" +
-        "- Portal built in 2019 — mobile-unfriendly\n" +
-        "- No personalised content or recommendations\n" +
-        "- Paper-based communications still 40% of outreach\n\n" +
-        "What Members Expect:\n" +
-        "- Seamless mobile-first experience\n" +
-        "- Personalised financial planning tools\n" +
-        "- Real-time notifications on policy changes\n" +
-        "- Chat and video support options",
+        "Before: Portal built in 2019 — mobile-unfriendly\n" +
+        "Before: No personalised content or recommendations\n" +
+        "Before: Paper-based communications still 40% of outreach\n" +
+        "After: Seamless mobile-first experience\n" +
+        "After: Personalised financial planning tools\n" +
+        "After: Real-time notifications on policy changes\n" +
+        "After: Chat and video support options",
       imageUrl: "",
     },
     {
@@ -61,10 +59,10 @@ export function createMockDeck(): SavedDeck {
       contentPrompt: "",
       estimatedMinutes: 1.5,
       bodyContent:
-        "1.2M Active Users → 1.5M Target\n" +
-        "22% Email Open Rate → 40% Target\n" +
-        "40% Paper Comms → 10% Target\n" +
-        "3.2/5 Satisfaction → 4.0/5 Target",
+        "1.2M: Active Users (target 1.5M)\n" +
+        "22%: Email Open Rate (target 40%)\n" +
+        "40%: Paper Comms (target 10%)\n" +
+        "3.2/5: Satisfaction (target 4.0/5)",
       imageUrl: "",
     },
     {
@@ -99,11 +97,11 @@ export function createMockDeck(): SavedDeck {
       contentPrompt: "",
       estimatedMinutes: 1.5,
       bodyContent:
-        "Month 1-3: Vendor selection • UX research • Architecture design\n" +
-        "Month 4-6: Mobile portal MVP • Member testing • Iteration\n" +
-        "Month 7-9: Dashboard rollout • 50% paper reduction • Training\n" +
-        "Month 10-12: Chat support launch • Full digital comms • Analytics\n" +
-        "Month 13+: Continuous improvement • Annual review",
+        "Q3 2026 | Vendor Selection | UX research, architecture design\n" +
+        "Q4 2026 | Mobile Portal MVP | Member testing and iteration\n" +
+        "Q1 2027 | Dashboard Rollout | 50% paper reduction, training\n" +
+        "Q2 2027 | Chat Support Launch | Full digital comms, analytics\n" +
+        "Q3 2027 | Continuous Improvement | Annual review and optimisation",
       imageUrl: "",
     },
     {
@@ -121,23 +119,26 @@ export function createMockDeck(): SavedDeck {
     },
   ];
 
+  const now = Date.now();
+
   const source: GenerationSource = {
     strategy: "mock",
-    timestamp: Date.now(),
+    timestamp: now,
   };
 
-  const id = `mock-demo-${Date.now()}`;
+  const id = `mock-demo-${now}`;
 
   return {
     id,
     name: "Member Engagement Strategy (Demo)",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: now,
+    updatedAt: now,
     briefing,
     outline: slides.map((s) => ({
       slideNumber: s.slideNumber,
       title: s.title,
       suggestedLayout: s.suggestedLayout,
+      bodyContent: s.bodyContent ?? "",
       contentPrompt: s.contentPrompt,
       estimatedMinutes: s.estimatedMinutes,
     })),

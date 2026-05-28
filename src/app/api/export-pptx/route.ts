@@ -31,6 +31,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No HTML to export" }, { status: 400 });
     }
 
+    if (html.length > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "HTML too large. Maximum 5 MB." }, { status: 400 });
+    }
+
     const $ = cheerio.load(html);
     const slides = $(".slide");
     if (slides.length === 0) {

@@ -59,6 +59,12 @@ export const NARRATIVE_ARCS = [
   },
 ] as const;
 
+/** Look up a human-readable label for any instruction ID */
+export function fmtId(id: string): string {
+  const items = [...OBJECTIVES, ...AUDIENCES, ...MODES, ...NARRATIVE_ARCS] as Array<{ id: string; label: string }>;
+  return items.find((i) => i.id === id)?.label ?? id;
+}
+
 /** Core content principles used in prompts */
 export const CONTENT_PRINCIPLES = {
   /** Slide titles are the spine */

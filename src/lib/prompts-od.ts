@@ -1,11 +1,6 @@
 import type { BriefingData } from "@/lib/types";
-import { OBJECTIVES, AUDIENCES, MODES, NARRATIVE_ARCS } from "@/lib/instructions";
+import { fmtId, NARRATIVE_ARCS, AUDIENCES, MODES } from "@/lib/instructions";
 import { LAYOUTS } from "@/lib/layouts";
-
-function fmtId(id: string): string {
-  const items = [...OBJECTIVES, ...AUDIENCES, ...MODES, ...NARRATIVE_ARCS] as Array<{ id: string; label: string }>;
-  return items.find((i) => i.id === id)?.label ?? id;
-}
 
 function buildArcSkeleton(): string {
   return NARRATIVE_ARCS.map((arc) => {
@@ -30,13 +25,13 @@ CRITICAL: Your ONLY output is a valid JSON object. No markdown fences, no explan
 
 You MUST return a JSON object with an "outline" array:
 
-{"outline":[{"slideNumber":1,"title":"$1.2M Ask: AI Career Coach Expansion","suggestedLayout":"cover","contentPrompt":"1. Find Q1 MySkillsFuture engagement data from the portal.\\n2. Compare active learner numbers YoY.\\n3. Note the $1.2M budget ask for Phase 2.","estimatedMinutes":1,"needsDiagram":false,"needsChart":false,"needsData":true,"diagramHint":"","chartHint":""},{"slideNumber":2,"title":"The Opportunity","suggestedLayout":"section-divider","contentPrompt":"1. Introduce Phase 1 and its purpose.\\n2. Set up the problem/opportunity framing.","estimatedMinutes":0.5,"needsDiagram":false,"needsChart":false,"needsData":false,"diagramHint":"","chartHint":""}]}
+{"outline":[{"slideNumber":1,"title":"$1.2M Ask: AI Career Coach Expansion","suggestedLayout":"cover","bodyContent":"1. Q1 engagement data shows 18% increase in MySkillsFuture sign-ups\\n2. Active learner count grew from 42K to 52K YoY\\n3. Phase 2 requires $1.2M to scale to mobile platform","estimatedMinutes":1,"needsDiagram":false,"needsChart":false,"needsData":true,"diagramHint":"","chartHint":""},{"slideNumber":2,"title":"The Opportunity","suggestedLayout":"section-divider","bodyContent":"","estimatedMinutes":0.5,"needsDiagram":false,"needsChart":false,"needsData":false,"diagramHint":"","chartHint":""}]}
 
 Each slide object MUST have these fields:
 - slideNumber (int, 1-indexed)
 - title (string, insight statement, max 8 words)
 - suggestedLayout (string, one of the layout IDs listed below)
-- contentPrompt (string, NUMBERED LIST format — see rules below)
+- bodyContent (string, NUMBERED LIST format — the actual slide content, see rules below)
 - estimatedMinutes (number, 0.5–3)
 - needsDiagram (boolean)
 - needsChart (boolean)
@@ -55,23 +50,24 @@ Good: "$1.2M Ask: AI Career Coach Expansion" or "Expand Career Coach to Mobile"
 Never use: "Overview", "Background", "Introduction", "Summary", "Conclusion" as titles.
 Read all titles top-to-bottom — they should read like an executive summary.
 
-## Content Prompt Rules
+## Body Content Rules
 
-contentPrompt MUST use a numbered list format for EVERY slide. Put each numbered item on a NEW LINE (use \\n in the JSON string). Every point gets its own line. Do NOT write paragraphs.
+bodyContent MUST use a numbered list format for EVERY slide. Put each numbered item on a NEW LINE (use \\n in the JSON string). Every point gets its own line. Do NOT write paragraphs.
 
-Format exactly like: "1. Find Q1 engagement data from the portal.\\n2. Compare participation rates to FY2024.\\n3. Note gaps in low-engagement segments."
+Format exactly like: "1. Q1 engagement data shows 18% increase in MySkillsFuture sign-ups\\n2. YoY active learner count grew from 42K to 52K\\n3. Phase 2 requires $1.2M to scale to mobile"
 
 If there is only one point, still use "1. " prefix.
+For section-dividers and cover slides, bodyContent can be empty or contain the subtitle text.
 
 ## Audience & Mode Awareness
 
 Audiences:
-- EXCO / CMM: Be concise and recommendation-first. Content prompts should guide toward strategic framing.
-- Department / Working Group: More operational detail is acceptable. Include specific metrics or data to find.
+- EXCO / CMM: Be concise and recommendation-first. Body content should be strategic and high-level.
+- Department / Working Group: More operational detail is acceptable. Include specific metrics in the body.
 - Public / External: Accessible language, avoid internal jargon.
 
 Modes:
-- Presenting: Tighter slides — fewer data points, one key number per slide. Prompts should guide toward visuals.
+- Presenting: Tighter slides — fewer data points, one key number per slide. Content should be scannable.
 - Reading: Self-explanatory, more detail. The deck must stand alone without a presenter.
 
 ## Flag Fields
@@ -82,7 +78,7 @@ Set flag booleans when the AI's content is NOT sufficient and the user should pr
 - needsData=true → the slide needs real data that the user must provide from internal sources
 - needsPlaceholder=true → the slide needs a placeholder image or visual to fill
 
-Set flags to false when the content prompt alone is sufficient. Do NOT over-flag — only flag where the user truly needs to prepare something external.
+Set flags to false when the body content alone is sufficient. Do NOT over-flag — only flag where the user truly needs to prepare something external.
 
 ## Slide Architecture Rules
 
@@ -112,7 +108,7 @@ First slide = cover. Last slide = closing (\`closing\`). Use section dividers (\
 - ❌ Invented statistics or market-size claims
 - ❌ Three consecutive same-type slides
 - ❌ Closing that only says "Thank You"
-- ❌ Paragraph-form content prompts — always use numbered list format
+- ❌ Paragraph-form body content — always use numbered list format
 - ❌ Over-flagging — only flag when user action is truly needed`;
 }
 
@@ -135,7 +131,7 @@ ${arc ? `**Narrative Arc:** ${arc.label}\n${arc.description}\nPhases: ${arc.sequ
 ## Requirements
 - First slide = cover, last slide = closing.
 - Insert section dividers between major arc phases.
-- contentPrompts MUST be numbered lists (use \\n for newlines).
+- bodyContent MUST be numbered lists with actual slide content (use \\n for newlines).
 - Set flag fields based on whether the user needs to prepare additional data, charts, or diagrams.
 - Title sequence must read as an executive summary.
 - Return the JSON object with an "outline" array. No markdown, no explanation.`;

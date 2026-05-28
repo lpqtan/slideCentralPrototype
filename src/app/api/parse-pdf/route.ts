@@ -4,13 +4,23 @@ import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 // Disable worker for server-side usage
 pdfjsLib.GlobalWorkerOptions.workerSrc = "";
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    const file = formData.get("file");
 
-    if (!file) {
+    if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: "File too large. Maximum size is 10 MB." }, { status: 400 });
+    }
+
+    if (file.type !== "application/pdf") {
+      return NextResponse.json({ error: "Only PDF files are accepted." }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

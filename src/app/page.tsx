@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDeckStore } from "@/hooks/useDeckStore";
+import { STORAGE_KEYS } from "@/lib/constants";
 import type { SavedDeck } from "@/lib/types";
 
 function statusLabel(s: string): string {
@@ -37,8 +38,8 @@ export default function HomePage() {
   }, [getAllDecks]);
 
   const startNewDeck = useCallback(() => {
-    localStorage.removeItem("slidecentral-current-briefing");
-    localStorage.removeItem("slidecentral-current-step");
+    localStorage.removeItem(STORAGE_KEYS.BRIEFING);
+    localStorage.removeItem(STORAGE_KEYS.STEP);
     router.push("/briefing");
   }, [router]);
 

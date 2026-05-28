@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useDeckStore } from "@/hooks/useDeckStore";
+import { STORAGE_KEYS } from "@/lib/constants";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts-od";
 import type { BriefingData } from "@/lib/types";
 
@@ -34,7 +35,7 @@ export default function ChatBriefingPage() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("slidecentral-settings");
+      const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       if (raw) {
         const s = JSON.parse(raw);
         if (s.strategy === "opencode-direct") {
@@ -57,7 +58,7 @@ export default function ChatBriefingPage() {
 
   const loadApiKey = useCallback(() => {
     try {
-      const raw = localStorage.getItem("slidecentral-settings");
+      const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       if (raw) {
         const s = JSON.parse(raw) as { apiKey?: string };
         if (s.apiKey) return s.apiKey;
@@ -68,7 +69,7 @@ export default function ChatBriefingPage() {
 
   const loadSettings = useCallback(() => {
     try {
-      const raw = localStorage.getItem("slidecentral-settings");
+      const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       if (raw) return JSON.parse(raw) as { strategy?: string; provider?: string; apiKey?: string };
     } catch { /* ignore */ }
     return { strategy: "mock", provider: "gemini", apiKey: "" };

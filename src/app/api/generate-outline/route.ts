@@ -69,10 +69,7 @@ export async function POST(request: Request) {
         }
         return {
           ...slide,
-          contentPrompt:
-            activeStrategy === "mock"
-              ? `${slide.contentPrompt} (refined: ${regenerationPrompt.slice(0, 40)}...)`
-              : slide.contentPrompt,
+          bodyContent: `${slide.bodyContent ?? ""} (refined: ${regenerationPrompt.slice(0, 40)}...)`,
         };
       });
     }

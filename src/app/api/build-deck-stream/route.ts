@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           model?: string;
         };
 
-        if (!slides?.length) {
+        if (!slides?.length || !Array.isArray(slides)) {
           sse(controller, "error", { message: "No slides to build" });
           controller.close();
           return;
@@ -55,7 +55,8 @@ export async function POST(request: Request) {
           for (let i = 1; i <= 4; i++) {
             if (aborted) break;
             await new Promise((r) => setTimeout(r, 150));
-            sse(controller, "status", { stage: "building", message: `Rendering slide ${i * (Math.ceil(slides.length / 4))} of ${slides.length}...` });
+            const slideNum = Math.min(Math.ceil(i * slides.length / 4), slides.length);
+            sse(controller, "status", { stage: "building", message: `Rendering slide ${slideNum} of ${slides.length}...` });
           }
 
           const { buildDeckHtml } = await import("@/lib/deck-builder");
@@ -85,8 +86,8 @@ export async function POST(request: Request) {
             (s, i) =>
               `## Slide ${i + 1}: ${s.title}\n` +
               `- **Layout:** ${s.suggestedLayout}\n` +
-              `- **Content Prompt:** ${s.contentPrompt}\n` +
-              (s.bodyContent ? `- **Body:**\n${s.bodyContent.split("\n").map((l) => `  - ${l}`).join("\n")}\n` : "")
+              (s.bodyContent ? `- **Body:**\n${s.bodyContent.split("\n").map((l) => `  - ${l}`).join("\n")}\n` : "") +
+              (s.contentPrompt ? `- **Content Prompt:** ${s.contentPrompt}\n` : "")
           )
           .join("\n");
 
@@ -338,11 +339,9 @@ Read outline.md, brand-spec.md, and instructions.md first. Then build the comple
         controller.close();
       } catch (error) {
         if (!aborted) {
-          sse(controller, "error", {
-            message: error instanceof Error ? error.message : "Unknown error",
-          });
+          try { sse(controller, "error", { message: error instanceof Error ? error.message : "Unknown error" }); } catch { /* stream closed */ }
         }
-        controller.close();
+        try { controller.close(); } catch { /* already closed */ }
       }
     },
   });

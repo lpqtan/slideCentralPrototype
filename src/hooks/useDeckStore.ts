@@ -2,12 +2,11 @@
 
 import { useCallback } from "react";
 import type { SavedDeck, SlideOutline, SlideContent, GenerationSource, TextBlock } from "@/lib/types";
-
-const DECKS_KEY = "slidecentral-decks";
+import { STORAGE_KEYS } from "@/lib/constants";
 
 function loadDecks(): SavedDeck[] {
   try {
-    const raw = localStorage.getItem(DECKS_KEY);
+    const raw = localStorage.getItem(STORAGE_KEYS.DECKS);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -15,7 +14,9 @@ function loadDecks(): SavedDeck[] {
 }
 
 function saveDecks(decks: SavedDeck[]) {
-  localStorage.setItem(DECKS_KEY, JSON.stringify(decks));
+  try {
+    localStorage.setItem(STORAGE_KEYS.DECKS, JSON.stringify(decks));
+  } catch { /* quota exceeded or storage unavailable */ }
 }
 
 export function useDeckStore() {

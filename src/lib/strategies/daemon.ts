@@ -70,17 +70,25 @@ export async function findAgent(): Promise<string> {
 export async function streamChat(
   agentId: string,
   message: string,
-  systemPrompt: string
+  systemPrompt: string,
+  timeoutMs = 120_000
 ): Promise<string> {
-  const res = await fetch(`${DAEMON_URL}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-    body: JSON.stringify({
-      agentId,
-      message,
-      systemPrompt,
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(`${DAEMON_URL}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+      body: JSON.stringify({
+        agentId,
+        message,
+        systemPrompt,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timer);
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
@@ -140,6 +148,12 @@ export async function streamChat(
   if (!output.trim()) throw new Error("Daemon returned empty output");
 
   return output;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error(`Daemon timed out after ${timeoutMs / 1000}s`);
+    }
+    throw err;
+  }
 }
 
 const daemonStrategy: BackendStrategy = {

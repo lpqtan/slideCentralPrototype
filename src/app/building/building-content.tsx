@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDeckStore } from "@/hooks/useDeckStore";
+import { STORAGE_KEYS } from "@/lib/constants";
 import type { GenerationSource } from "@/lib/types";
 
 interface StatusEvent {
@@ -32,6 +33,7 @@ export default function BuildingContent() {
   const [error, setError] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
+  const mountedRef = useRef(true);
   const [settings, setSettings] = useState<{
     strategy: string;
     provider: string;
@@ -65,29 +67,35 @@ export default function BuildingContent() {
       return;
     }
 
-    const settingsRaw = localStorage.getItem("slidecentral-settings");
-    const s = settingsRaw
-      ? JSON.parse(settingsRaw)
-      : { strategy: "llm", provider: "gemini", apiKey: "", daemonAgent: "opencode", daemonModel: "opencode/big-pickle" };
-    setSettings(s);
+    mountedRef.current = true;
+    let s: Record<string, unknown> = { strategy: "llm", provider: "gemini", apiKey: "", daemonAgent: "opencode", daemonModel: "opencode/big-pickle" };
+    try {
+      const settingsRaw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      if (settingsRaw) s = JSON.parse(settingsRaw);
+    } catch { /* ignore corrupt settings */ }
+    setSettings(s as typeof settings);
+    const capturedSettings = s as typeof settings;
 
     const slides = deck.slides ?? deck.outline?.map((o) => ({
       ...o,
-      bodyContent: "",
+      bodyContent: ("bodyContent" in o ? o.bodyContent as string : ""),
     })) ?? [];
+
+    const abortController = new AbortController();
 
     const run = async () => {
       try {
         const res = await fetch("/api/build-deck-stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: abortController.signal,
           body: JSON.stringify({
             slides,
             briefing: deck.briefing,
-            strategy: s.strategy ?? "mock",
-            provider: s.strategy === "daemon" ? (s.daemonAgent ?? "opencode") : (s.provider ?? "gemini"),
-            model: s.strategy === "daemon" ? (s.daemonModel ?? "opencode/big-pickle") : "gemini-3.5-flash",
-            apiKey: s.apiKey,
+            strategy: capturedSettings.strategy ?? "mock",
+            provider: capturedSettings.strategy === "daemon" ? (capturedSettings.daemonAgent ?? "opencode") : (capturedSettings.provider ?? "gemini"),
+            model: capturedSettings.strategy === "daemon" ? (capturedSettings.daemonModel ?? "opencode/big-pickle") : "gemini-3.5-flash",
+            apiKey: capturedSettings.apiKey,
           }),
         });
 
@@ -157,11 +165,17 @@ export default function BuildingContent() {
           }
         }
       } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (!mountedRef.current) return;
         setError(err instanceof Error ? err.message : "Connection failed");
       }
     };
 
     run();
+    return () => {
+      mountedRef.current = false;
+      abortController.abort();
+    };
   }, [deckId, getById, router, setDeckHtml]);
 
   return (

@@ -9,12 +9,14 @@ interface StepContentProps {
 
 export default function StepContent({ additionalContent, onChange }: StepContentProps) {
   const [uploading, setUploading] = useState(false);
+  const [parseError, setParseError] = useState("");
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
+    setParseError("");
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -24,12 +26,17 @@ export default function StepContent({ additionalContent, onChange }: StepContent
         body: formData,
       });
 
-      const data = await res.json() as { text?: string; error?: string };
-      if (!res.ok || data.error) throw new Error(data.error ?? "Parse failed");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(errData.error ?? `Upload failed (${res.status})`);
+      }
 
-      onChange((additionalContent ? additionalContent + "\n\n" : "") + data.text);
+      const data = await res.json() as { text?: string; error?: string };
+      if (data.error) throw new Error(data.error);
+
+      onChange((additionalContent ? additionalContent + "\n\n" : "") + (data.text ?? ""));
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to parse PDF");
+      setParseError(err instanceof Error ? err.message : "Failed to parse PDF");
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -65,6 +72,10 @@ export default function StepContent({ additionalContent, onChange }: StepContent
           Upload a PDF to extract text content
         </span>
       </div>
+
+      {parseError && (
+        <p className="text-xs text-red-500" role="alert">{parseError}</p>
+      )}
 
       {/* Textarea */}
       <textarea
