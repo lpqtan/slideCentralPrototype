@@ -201,7 +201,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 .deck-shell{width:100vw;height:100vh;overflow:hidden;display:flex;justify-content:center;align-items:center;background:var(--cpf-mint)}
 .deck-shell .stage{width:1920px;height:1080px;transform-origin:center center}
 #deck{display:flex;width:100%;height:1080px;overflow:hidden}
-.slide{flex:0 0 1920px;width:1920px;height:1080px;position:relative;overflow:hidden}
+.slide{flex:0 0 1920px;width:1920px;height:1080px;position:relative;overflow:hidden;container-type:size;container-name:slide}
 .slide:not(.active){display:none!important}
 /* SLOT: per-deck styles */
 SLOT: per-deck styles
