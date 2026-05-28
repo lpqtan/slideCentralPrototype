@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { STORAGE_KEYS } from "@/lib/constants";
 
 interface DaemonStatus {
   status: "checking" | "up" | "down" | "inactive";
@@ -9,7 +8,7 @@ interface DaemonStatus {
 
 function loadDaemonAgent(): string | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    const raw = localStorage.getItem("slidecentral-settings");
     if (!raw) return null;
     const s = JSON.parse(raw);
     if (s.strategy === "daemon") return s.daemonAgent ?? "opencode";

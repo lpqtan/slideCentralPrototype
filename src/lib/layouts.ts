@@ -35,7 +35,6 @@ export const LAYOUTS: LayoutInfo[] = [
     description: "Dark green background with section number and title, motif bar at bottom",
     cssClass: "slide hero dark divider",
     dark: true,
-    // Note: dark=true is correct — divider has green background
     useCases: ["Transition between major sections", "Chapter breaks"],
     contentSlots: ["Section number", "Section title"],
   },
@@ -152,7 +151,7 @@ export const LAYOUTS: LayoutInfo[] = [
     name: "Full-Bleed Image",
     description: "Image fills the entire slide with a caption overlay",
     cssClass: "slide full-bleed-image",
-    dark: true,
+    dark: false,
     useCases: ["Visual impact", "Location/site photo", "Product shot"],
     contentSlots: ["Image", "Caption"],
   },

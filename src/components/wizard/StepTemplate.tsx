@@ -1,16 +1,16 @@
 "use client";
 
-type PresetDeckId = "cpf" | "business";
+import type { LayoutId } from "@/lib/types";
 
-const PRESET_DECKS: Array<{ id: PresetDeckId; name: string; description: string; count: number }> = [
+const PRESET_DECKS = [
   {
-    id: "cpf",
+    id: "cpf" as LayoutId,
     name: "CPF Theme",
     description: "Standard CPF corporate deck with branded layouts, design bars, motif, and slide counter footer",
     count: 16,
   },
   {
-    id: "business",
+    id: "business" as LayoutId,
     name: "Business Theme",
     description: "Clean business presentation with data-focused layouts for reporting and proposals",
     count: 12,
@@ -18,8 +18,8 @@ const PRESET_DECKS: Array<{ id: PresetDeckId; name: string; description: string;
 ];
 
 interface StepTemplateProps {
-  selected: string | null;
-  onSelect: (id: string | null) => void;
+  selected: LayoutId | null;
+  onSelect: (id: LayoutId | null) => void;
 }
 
 export default function StepTemplate({ selected, onSelect }: StepTemplateProps) {

@@ -1,27 +1,19 @@
 import type { SlideContent, TextBlock } from "@/lib/types";
+import { LAYOUTS } from "@/lib/layouts";
 import { LOGO_GREEN_URI, LOGO_WHITE_URI } from "@/lib/logos";
 
-function escapeHtml(str: string | undefined): string {
-  if (!str) return "";
+function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function sanitizeUrl(url: string | undefined): string {
-  if (!url) return "";
-  const trimmed = url.trim();
-  if (/^(https?:\/\/|data:image\/)/i.test(trimmed)) return trimmed;
-  return "";
+    .replace(/"/g, "&quot;");
 }
 
 function getLayoutClass(id: string): string {
   switch (id) {
     case "cover": return "slide hero dark cover";
-    case "section-divider": return "slide hero dark divider";
+    case "section-divider": return "slide hero light divider";
     case "bullet-list": return "slide light bullets";
     case "content-image-60-40": return "slide light content-image";
     case "image-content-40-60": return "slide light image-content";
@@ -31,10 +23,10 @@ function getLayoutClass(id: string): string {
     case "timeline": return "slide light timeline";
     case "quote-testimonial": return "slide hero dark quote";
     case "process-pipeline": return "slide light pipeline";
-    case "data-table": return "slide light data-table";
-    case "org-chart": return "slide light org-chart";
+    case "data-table": return "slide light data-table-layout";
+    case "org-chart": return "slide light org-chart-layout";
     case "sidebar-bullets": return "slide light sidebar-bullets";
-    case "full-bleed-image": return "slide full-bleed-image";
+    case "full-bleed-image": return "slide full-bleed";
     case "closing": return "slide hero dark closing";
     default: return "slide light";
   }
@@ -69,7 +61,7 @@ function fallbackBody(slide: SlideContent): string {
       return items.join("\n");
     }
     case "timeline": {
-      const lines = prompt.split(/\d+\./).filter(Boolean);
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
       const items: string[] = [];
       for (const line of lines) {
         const trimmed = line.trim();
@@ -87,7 +79,7 @@ function fallbackBody(slide: SlideContent): string {
       return items.join("\n");
     }
     case "process-pipeline": {
-      const lines = prompt.split(/\d+\./).filter(Boolean);
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
       const items: string[] = [];
       for (const line of lines) {
         const trimmed = line.trim();
@@ -102,7 +94,7 @@ function fallbackBody(slide: SlideContent): string {
       return items.join("\n");
     }
     case "two-column": {
-      const lines = prompt.split(/\d+\./).filter(Boolean);
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
       const items: string[] = [];
       for (const line of lines) {
         const trimmed = line.trim();
@@ -119,7 +111,7 @@ function fallbackBody(slide: SlideContent): string {
       return items.join("\n");
     }
     case "org-chart": {
-      const lines = prompt.split(/\d+\./).filter(Boolean);
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
       const names: string[] = [];
       for (const line of lines) {
         const trimmed = line.trim();
@@ -134,7 +126,7 @@ function fallbackBody(slide: SlideContent): string {
       return [top, ...children].join("\n");
     }
     case "data-table": {
-      const lines = prompt.split(/\d+\./).filter(Boolean);
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
       const headers: string[] = ["Category", "Value", "Change", "Notes"];
       const rows: string[] = [];
       for (const line of lines) {
@@ -148,14 +140,14 @@ function fallbackBody(slide: SlideContent): string {
       return items.join("\n");
     }
     case "sidebar-bullets": {
-      const lines = prompt.split(/\d+\./).filter(Boolean);
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
       const contextLines = lines.filter(Boolean).slice(0, 2).map((l) => l.trim().slice(0, 80));
       const bulletLines = lines.filter(Boolean).slice(2).map((l) => l.trim().slice(0, 100));
       return [...contextLines, ...bulletLines].join("\n");
     }
     case "content-image-60-40":
     case "image-content-40-60": {
-      const lines = prompt.split(/\d+\./).filter(Boolean);
+      const lines = prompt.split(/\d+\./) || prompt.split("\n");
       return lines.filter(Boolean).map((l) => l.trim().slice(0, 100)).join("\n");
     }
     default:
@@ -201,11 +193,11 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
   // ── Section Divider ──────────────────────────
   if (layoutId === "section-divider") {
     return `<section class="${layoutClass}" data-slide="${index + 1}">
-  <img class="logo-mark tr" src="${LOGO_WHITE_URI}" alt="CPF" />
+  <img class="logo-mark tr" src="${LOGO_GREEN_URI}" alt="CPF" />
   <div class="divider-frame">
     <h2 class="h-chapter">${escapeHtml(slide.title)}</h2>
     <div class="title-rule"></div>
-    ${lines.length > 0 ? `<p class="subtitle" style="color:rgba(255,255,255,.8);max-width:34em;margin-top:1cqh">${lines.map(escapeHtml).join("<br/>")}</p>` : ""}
+    ${lines.length > 0 ? `<p class="subtitle" style="color:var(--fg-soft);max-width:34em;margin-top:1cqh">${lines.map(escapeHtml).join("<br/>")}</p>` : ""}
   </div>
   <div class="divider-band"></div>
   ${darkFoot(slide.title)}
@@ -231,7 +223,7 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
 
   // ── Quote ────────────────────────────────────
   if (layoutId === "quote-testimonial") {
-    const quoteText = lines[0] || slide.contentPrompt || "";
+    const quoteText = lines[0] || slide.contentPrompt;
     const attr = lines[1] || "";
     const role = lines[2] || "";
     return `<section class="${layoutClass}" data-slide="${index + 1}">
@@ -417,7 +409,7 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
             const cells = r.split("|").map((c) => c.trim());
             const isTotal = ri === rows.length - 1 && r.toLowerCase().includes("total");
             return `<tr class="${isTotal ? "total" : ""}">${cells.map((c, ci) => {
-              const isNum = ci > 0 && /^[\d.,+$%-]+[%\d]?$/.test(c);
+              const isNum = ci > 0 && /^[\d\.,\+\-\$%sS]+[%\d]?$/.test(c);
               return `<td class="${isNum ? "num" : ci === 0 ? "label" : ""}">${escapeHtml(c)}</td>`;
             }).join("")}</tr>`;
           }).join("")}
@@ -513,7 +505,7 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
         ${contentLines.length > 0 ? `<ul class="bullets">${contentLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : ""}
       </div>
       <div class="img-slot">
-        ${sanitizeUrl(imageUrl) ? `<img class="img-real" src="${escapeHtml(sanitizeUrl(imageUrl))}" alt="" />` : `<div class="img-plus">+</div><div class="img-placeholder">Image</div>`}
+        ${imageUrl ? `<img class="img-real" src="${escapeHtml(imageUrl)}" alt="" />` : `<div class="img-plus">+</div><div class="img-placeholder">Image</div>`}
       </div>
     </div>
   </div>
@@ -534,7 +526,7 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
     </header>
     <div class="frame-body split-4060">
       <div class="img-slot">
-        ${sanitizeUrl(imageUrl) ? `<img class="img-real" src="${escapeHtml(sanitizeUrl(imageUrl))}" alt="" />` : `<div class="img-plus">+</div><div class="img-placeholder">Image</div>`}
+        ${imageUrl ? `<img class="img-real" src="${escapeHtml(imageUrl)}" alt="" />` : `<div class="img-plus">+</div><div class="img-placeholder">Image</div>`}
       </div>
       <div style="display:flex;flex-direction:column;gap:2.4cqh">
         ${contentLines.length > 0 ? `<ul class="bullets">${contentLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : ""}
@@ -548,11 +540,11 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
   // ── Full-Bleed Image ─────────────────────────
   if (layoutId === "full-bleed-image") {
     const imageUrl = lines[0] || slide.imageUrl || "";
-    const captionTitle = lines[1] || slide.title || "";
+    const captionTitle = lines[1] || slide.title;
     const credit = lines[2] || "";
     return `<section class="${layoutClass}" data-slide="${index + 1}">
   <div class="full-image">
-    ${sanitizeUrl(imageUrl) ? `<img class="full-img" src="${escapeHtml(sanitizeUrl(imageUrl))}" alt="" />` : `<div class="full-placeholder">Full-bleed image</div>`}
+    ${imageUrl ? `<img class="full-img" src="${escapeHtml(imageUrl)}" alt="" />` : `<div class="full-placeholder">Full-bleed image</div>`}
   </div>
   ${(captionTitle || credit) ? `<div class="full-bleed-caption">
     <div class="full-caption-kicker">Image &amp; Caption</div>
@@ -565,6 +557,9 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
   }
 
   // ── Bullet List (default) ────────────────────
+  const layoutInfo = LAYOUTS.find((l) => l.id === layoutId);
+  const layoutName = layoutInfo?.name ?? "Content";
+
   return `<section class="${layoutClass}" data-slide="${index + 1}">
   <div class="design-bar"></div>
   <div class="frame">
@@ -573,10 +568,10 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
       <div class="title-rule"></div>
     </header>
     <div class="frame-body">
-      ${sanitizeUrl(slide.imageUrl) ? `<div class="deck-image"><img src="${escapeHtml(sanitizeUrl(slide.imageUrl))}" alt="Slide image" /></div>` : ""}
+      ${slide.imageUrl ? `<div class="deck-image"><img src="${escapeHtml(slide.imageUrl)}" alt="Slide image" /></div>` : ""}
       ${lines.length > 0 ? `<ul class="bullets">
 ${lines.map((l) => `        <li>${escapeHtml(l)}</li>`).join("\n")}
-      </ul>` : `<p class="lead" style="margin-bottom:3cqh">${escapeHtml(slide.bodyContent || slide.contentPrompt || "")}</p>`}
+      </ul>` : `<p class="lead" style="margin-bottom:3cqh">${escapeHtml(slide.contentPrompt)}</p>`}
     </div>
   </div>
   <img class="logo-mark br" src="${LOGO_GREEN_URI}" alt="CPF" />
@@ -758,6 +753,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 .logo-mark.tr{top:30px;right:30px}
 .deck-image{margin-bottom:2cqh}
 .deck-image img{max-width:100%;max-height:30cqh;border-radius:4px}
+.u-overlay{font-family:var(--font-body);position:absolute;z-index:5;pointer-events:none;white-space:pre-wrap;word-break:break-word;max-width:420px;text-align:center;font-size:clamp(11px,1.5cqw,26px)}
 .u-overlay{font-family:var(--font-body);position:absolute;z-index:5;pointer-events:none;white-space:pre-wrap;word-break:break-word;max-width:420px;text-align:center;font-size:clamp(11px,1.5cqw,26px)}
 `;
 

@@ -1,7 +1,12 @@
 import type { BriefingData } from "@/lib/types";
-import { fmtId, CONTENT_PRINCIPLES } from "@/lib/instructions";
+import { OBJECTIVES, AUDIENCES, MODES, NARRATIVE_ARCS, CONTENT_PRINCIPLES } from "@/lib/instructions";
 import { LAYOUTS } from "@/lib/layouts";
 import { BRAND_RULES } from "@/lib/brands";
+
+function fmtId(id: string): string {
+  const items = [...OBJECTIVES, ...AUDIENCES, ...MODES, ...NARRATIVE_ARCS] as Array<{ id: string; label: string }>;
+  return items.find((i) => i.id === id)?.label ?? id;
+}
 
 export function buildSystemPrompt(): string {
   return `You are a presentation design assistant creating slide outlines for CPF (Central Provident Fund) presentations.
@@ -36,7 +41,7 @@ Return a JSON array where each element has:
 - slideNumber: number
 - title: string (an insight, not a label — the title sequence should read as an executive summary)
 - suggestedLayout: one of the layout IDs above
-- bodyContent: string (the actual slide content as a numbered list — one point per line)
+- contentPrompt: string (what content the presenter should fill in for this slide)
 - estimatedMinutes: number (1–3)`;
 }
 

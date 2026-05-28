@@ -39,8 +39,8 @@ export async function POST(request: Request) {
           regenerationPrompt?: string;
         };
 
-        if (!briefing || typeof briefing !== "object" || !briefing.keyMessage) {
-          sse(controller, "error", { message: "Invalid or incomplete briefing data" });
+        if (!briefing) {
+          sse(controller, "error", { message: "Missing briefing data" });
           controller.close();
           return;
         }
@@ -133,10 +133,6 @@ export async function POST(request: Request) {
             if (ev.event === "end") break;
           }
 
-          if (aborted) {
-            controller.close();
-            return;
-          }
           if (agentError) throw new Error(agentError);
           if (!output.trim()) throw new Error("Daemon returned empty output");
           rawOutput = output;
@@ -153,6 +149,11 @@ export async function POST(request: Request) {
               return slide;
             });
           }
+        }
+
+        // ── Daemon ──────────────────────────────────────
+        if (activeStrategy === "daemon") {
+          // ... (unchanged)
         }
 
         // ── LLM API ─────────────────────────────────────
@@ -188,10 +189,6 @@ export async function POST(request: Request) {
             streamFailed = true;
           }
 
-          if (aborted) {
-            controller.close();
-            return;
-          }
           if (streamFailed || !output.trim()) {
             // Fallback to non-streaming
             const backend = getStrategy(activeStrategy);
@@ -215,11 +212,6 @@ export async function POST(request: Request) {
             sse(controller, "status", { stage: "generating", message: `Thinking... (${i * 25}%)` });
           }
 
-          if (aborted) {
-            controller.close();
-            return;
-          }
-
           const backend = getStrategy(activeStrategy);
           outline = await backend.generateOutline(briefing, { provider, apiKey });
 
@@ -231,7 +223,7 @@ export async function POST(request: Request) {
               if (existing && locked.has(existing.slideNumber)) return existing;
               return {
                 ...slide,
-                bodyContent: `${slide.bodyContent || slide.contentPrompt || ""} (refined: ${regenerationPrompt.slice(0, 40)}...)`,
+                contentPrompt: `${slide.contentPrompt} (refined: ${regenerationPrompt.slice(0, 40)}...)`,
               };
             });
           }
@@ -246,9 +238,11 @@ export async function POST(request: Request) {
         controller.close();
       } catch (error) {
         if (!aborted) {
-          try { sse(controller, "error", { message: error instanceof Error ? error.message : "Unknown error" }); } catch { /* stream closed */ }
+          sse(controller, "error", {
+            message: error instanceof Error ? error.message : "Unknown error",
+          });
         }
-        try { controller.close(); } catch { /* already closed */ }
+        controller.close();
       }
     },
   });

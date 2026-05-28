@@ -79,7 +79,7 @@ export default function PreviewContent() {
     setEditMode(true);
     setSelectedId(null);
     setEditingId(null);
-    iframeRef.current?.contentWindow?.postMessage({ showNav: false }, window.location.origin);
+    iframeRef.current?.contentWindow?.postMessage({ showNav: false }, "*");
   };
 
   const saveEdit = () => {
@@ -95,7 +95,7 @@ export default function PreviewContent() {
     setEditMode(false);
     setSelectedId(null);
     setEditingId(null);
-    iframeRef.current?.contentWindow?.postMessage({ showNav: true }, window.location.origin);
+    iframeRef.current?.contentWindow?.postMessage({ showNav: true }, "*");
   };
 
   const changeLayout = (layoutId: string) => {
@@ -263,7 +263,7 @@ export default function PreviewContent() {
               <button key={slide.slideNumber}
                 onClick={() => {
                   setCurrentSlide(i);
-                  iframeRef.current?.contentWindow?.postMessage({ slide: i }, window.location.origin);
+                  iframeRef.current?.contentWindow?.postMessage({ slide: i }, "*");
                 }}
                 className={`w-full cursor-pointer rounded text-left transition-all ${i === currentSlide ? "ring-2 ring-[var(--color-cpf-green)] ring-offset-1" : "hover:ring-1 hover:ring-[var(--color-border-strong)]"}`}>
                 <div className="overflow-hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)]">

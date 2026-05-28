@@ -35,8 +35,8 @@ Use this when enough information exists to build a complete briefing. Infer reas
   "status": "complete",
   "summary": "1-2 sentence synthesis of the entire presentation as you understand it",
   "briefing": {
-    "objective": "one of: approval, guidance, showcase, teaching, agreement",
-    "audience": "one of: exco, cmm, department, working-group, public",
+    "objective": "one of: approval, guidance, showcase, teaching, agreement-on-follow-ups",
+    "audience": "one of: exco, cmm, department-meeting, working-group, public",
     "mode": "one of: presenting, reading",
     "keyMessage": "The ONE sentence the audience should remember",
     "audienceAsk": "What the audience needs to decide, do, or fund",
@@ -51,8 +51,8 @@ The summary field is MANDATORY. Never omit it.
 
 ## Required Fields
 
-1. **Objective** (approval / guidance / showcase / teaching / agreement)
-2. **Audience** (exco / cmm / department / working-group / public)
+1. **Objective** (approval / guidance / showcase / teaching / agreement-on-follow-ups)
+2. **Audience** (exco / cmm / department-meeting / working-group / public)
 3. **Mode** (presenting or reading)
 4. **Key Message** — one clear sentence. Verbatim from user if they stated it.
 5. **The Ask** — a specific, concrete call to action

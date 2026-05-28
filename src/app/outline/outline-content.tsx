@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useDeckStore } from "@/hooks/useDeckStore";
 import { useHistory } from "@/hooks/useHistory";
-import { STORAGE_KEYS } from "@/lib/constants";
 import type { SlideOutline, GenerationSource, SlideContent } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
 import { buildDeckHtml } from "@/lib/deck-builder";
@@ -75,7 +74,7 @@ export default function OutlineContent() {
         deck.outline.map((s) => ({
           ...s,
           locked: false,
-          bodyContent: ("bodyContent" in s ? s.bodyContent : "") ?? "",
+          bodyContent: "",
           imageUrl: "",
         }))
       );
@@ -118,7 +117,6 @@ export default function OutlineContent() {
         slideNumber: s.slideNumber,
         title: s.title,
         suggestedLayout: s.suggestedLayout,
-        bodyContent: s.bodyContent ?? "",
         contentPrompt: s.contentPrompt,
         estimatedMinutes: s.estimatedMinutes,
         sectionId: s.sectionId,
@@ -260,7 +258,7 @@ export default function OutlineContent() {
 
     const lockedIds = slides.filter((s) => s.locked).map((s) => s.slideNumber);
     localStorage.setItem(
-      STORAGE_KEYS.REGENERATION_CTX,
+      "slidecentral-regeneration-ctx",
       JSON.stringify({ lockedSlideNumbers: lockedIds })
     );
 
@@ -279,16 +277,9 @@ export default function OutlineContent() {
       estimatedMinutes: s.estimatedMinutes,
       bodyContent: s.bodyContent ?? "",
       imageUrl: s.imageUrl ?? "",
-      sectionId: s.sectionId,
-      needsDiagram: s.needsDiagram,
-      needsChart: s.needsChart,
-      needsData: s.needsData,
-      needsPlaceholder: s.needsPlaceholder,
-      diagramHint: s.diagramHint,
-      chartHint: s.chartHint,
     }));
 
-    const settingsRaw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    const settingsRaw = localStorage.getItem("slidecentral-settings");
     const settings = settingsRaw ? JSON.parse(settingsRaw) : { strategy: "mock" };
 
     if (settings.strategy === "mock") {
@@ -504,7 +495,7 @@ export default function OutlineContent() {
                     <p
                       className="mt-1 cursor-text text-xs italic text-[var(--color-muted)] hover:text-[var(--color-fg-soft)]"
                       onClick={() =>
-                        startEdit(slide.slideNumber, "prompt", slide.contentPrompt ?? "")
+                        startEdit(slide.slideNumber, "prompt", slide.contentPrompt)
                       }
                     >
                       Content prompt: {slide.contentPrompt}

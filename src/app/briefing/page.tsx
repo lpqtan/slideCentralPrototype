@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBriefing } from "@/hooks/useBriefing";
 import { useDeckStore } from "@/hooks/useDeckStore";
-import { STORAGE_KEYS } from "@/lib/constants";
 import StepIndicator from "@/components/shared/StepIndicator";
 import StepContext from "@/components/wizard/StepContext";
 import StepMessage from "@/components/wizard/StepMessage";
@@ -47,11 +46,10 @@ export default function BriefingPage() {
     const data = submitBriefing();
     const currentDeckId = data.deckId ?? crypto.randomUUID();
 
-    let settings: { strategy?: string } = { strategy: "mock" };
-    try {
-      const settingsRaw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      if (settingsRaw) settings = JSON.parse(settingsRaw);
-    } catch { /* corrupt settings, use mock fallback */ }
+    const settingsRaw = localStorage.getItem("slidecentral-settings");
+    const settings = settingsRaw
+      ? JSON.parse(settingsRaw)
+      : { strategy: "mock" };
 
     if (settings.strategy === "mock") {
       // Use pre-built demo deck — skip generating pipeline
@@ -105,7 +103,7 @@ export default function BriefingPage() {
       {/* Step content */}
       <div className="flex min-h-[400px] flex-col rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:p-8">
         {error && (
-            <div className="mb-4 rounded border border-[var(--color-orange)]/50 bg-[var(--color-orange)]/10 p-3 text-xs text-[var(--color-orange)]" role="alert">
+          <div className="mb-4 rounded border border-[var(--color-orange)]/50 bg-[var(--color-orange)]/10 p-3 text-xs text-[var(--color-orange)]">
             {error}
           </div>
         )}

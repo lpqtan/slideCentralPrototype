@@ -84,10 +84,9 @@ export const BRAND_RULES = {
 /** Map brand color names to hex values for runtime use */
 export function brandColor(name: string): string {
   const parts = name.split(".");
-  let current: unknown = BRAND.colors;
+  let current: Record<string, unknown> = BRAND.colors;
   for (const part of parts) {
-    if (current == null || typeof current !== "object") return "";
-    current = (current as Record<string, unknown>)[part];
+    current = current[part] as Record<string, unknown>;
   }
-  return typeof current === "string" ? current : "";
+  return current as unknown as string;
 }

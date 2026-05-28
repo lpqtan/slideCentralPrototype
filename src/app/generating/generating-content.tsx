@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDeckStore } from "@/hooks/useDeckStore";
-import { STORAGE_KEYS } from "@/lib/constants";
 import type { SlideOutline, GenerationSource } from "@/lib/types";
 
 interface StatusEvent {
@@ -24,7 +23,6 @@ export default function GeneratingContent() {
   const [error, setError] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
-  const mountedRef = useRef(true);
   const [settings, setSettings] = useState<{ strategy: string; daemonAgent: string; daemonModel: string; provider: string; apiKey: string }>({
     strategy: "mock",
     daemonAgent: "opencode",
@@ -52,45 +50,39 @@ export default function GeneratingContent() {
       return;
     }
 
-    mountedRef.current = true;
-    let parsedSettings: Record<string, unknown> = { strategy: "mock", daemonAgent: "opencode", daemonModel: "opencode/big-pickle", provider: "gemini", apiKey: "" };
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      if (raw) parsedSettings = JSON.parse(raw);
-    } catch { /* ignore corrupt settings */ }
-    setSettings(parsedSettings as typeof settings);
-    // Capture settings for the run() closure to avoid stale state
-    const capturedSettings = parsedSettings as typeof settings;
+    const settingsRaw = localStorage.getItem("slidecentral-settings");
+    const settings = settingsRaw
+      ? JSON.parse(settingsRaw)
+      : { strategy: "mock", daemonAgent: "opencode", daemonModel: "opencode/big-pickle", provider: "gemini", apiKey: "" };
+
+    setSettings(settings);
 
     const lockedIds: number[] = [];
     if (regenPrompt) {
       try {
-        const ctx = localStorage.getItem(STORAGE_KEYS.REGENERATION_CTX);
+        const ctx = localStorage.getItem("slidecentral-regeneration-ctx");
         if (ctx) {
           const parsed = JSON.parse(ctx) as { lockedSlideNumbers?: number[] };
           if (parsed.lockedSlideNumbers) lockedIds.push(...parsed.lockedSlideNumbers);
-          localStorage.removeItem(STORAGE_KEYS.REGENERATION_CTX);
+          localStorage.removeItem("slidecentral-regeneration-ctx");
         }
       } catch { /* ignore */ }
     }
-
-    const abortController = new AbortController();
 
     const run = async () => {
       try {
         const res = await fetch("/api/generate-outline-stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          signal: abortController.signal,
           body: JSON.stringify({
             briefing: deck.briefing,
-            strategy: capturedSettings.strategy ?? "mock",
+            strategy: settings.strategy ?? "mock",
             provider:
-              capturedSettings.strategy === "daemon"
-                ? (capturedSettings.daemonAgent ?? "opencode")
-                : capturedSettings.provider,
-            model: capturedSettings.strategy === "daemon" ? (capturedSettings.daemonModel ?? "opencode/big-pickle") : undefined,
-            apiKey: capturedSettings.apiKey,
+              settings.strategy === "daemon"
+                ? (settings.daemonAgent ?? "opencode")
+                : settings.provider,
+            model: settings.strategy === "daemon" ? (settings.daemonModel ?? "opencode/big-pickle") : undefined,
+            apiKey: settings.apiKey,
             existingOutline: regenPrompt ? (deck.outline ?? undefined) : undefined,
             lockedSlideNumbers: lockedIds.length > 0 ? lockedIds : undefined,
             regenerationPrompt: regenPrompt || undefined,
@@ -172,17 +164,11 @@ export default function GeneratingContent() {
           }
         }
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        if (!mountedRef.current) return;
         setError(err instanceof Error ? err.message : "Connection failed");
       }
     };
 
     run();
-    return () => {
-      mountedRef.current = false;
-      abortController.abort();
-    };
   }, [deckId, getById, router, regenPrompt, updateOutline]);
 
   return (

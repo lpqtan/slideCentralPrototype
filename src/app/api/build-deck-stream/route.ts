@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           model?: string;
         };
 
-        if (!slides?.length || !Array.isArray(slides)) {
+        if (!slides?.length) {
           sse(controller, "error", { message: "No slides to build" });
           controller.close();
           return;
@@ -55,8 +55,7 @@ export async function POST(request: Request) {
           for (let i = 1; i <= 4; i++) {
             if (aborted) break;
             await new Promise((r) => setTimeout(r, 150));
-            const slideNum = Math.min(Math.ceil(i * slides.length / 4), slides.length);
-            sse(controller, "status", { stage: "building", message: `Rendering slide ${slideNum} of ${slides.length}...` });
+            sse(controller, "status", { stage: "building", message: `Rendering slide ${i * (Math.ceil(slides.length / 4))} of ${slides.length}...` });
           }
 
           const { buildDeckHtml } = await import("@/lib/deck-builder");
@@ -86,8 +85,8 @@ export async function POST(request: Request) {
             (s, i) =>
               `## Slide ${i + 1}: ${s.title}\n` +
               `- **Layout:** ${s.suggestedLayout}\n` +
-              (s.bodyContent ? `- **Body:**\n${s.bodyContent.split("\n").map((l) => `  - ${l}`).join("\n")}\n` : "") +
-              (s.contentPrompt ? `- **Content Prompt:** ${s.contentPrompt}\n` : "")
+              `- **Content Prompt:** ${s.contentPrompt}\n` +
+              (s.bodyContent ? `- **Body:**\n${s.bodyContent.split("\n").map((l) => `  - ${l}`).join("\n")}\n` : "")
           )
           .join("\n");
 
@@ -201,7 +200,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 .deck-shell{width:100vw;height:100vh;overflow:hidden;display:flex;justify-content:center;align-items:center;background:var(--cpf-mint)}
 .deck-shell .stage{width:1920px;height:1080px;transform-origin:center center}
 #deck{display:flex;width:100%;height:1080px;overflow:hidden}
-.slide{flex:0 0 1920px;width:1920px;height:1080px;position:relative;overflow:hidden;container-type:size;container-name:slide}
+.slide{flex:0 0 1920px;width:1920px;height:1080px;position:relative;overflow:hidden}
 .slide:not(.active){display:none!important}
 /* SLOT: per-deck styles */
 SLOT: per-deck styles
@@ -339,9 +338,11 @@ Read outline.md, brand-spec.md, and instructions.md first. Then build the comple
         controller.close();
       } catch (error) {
         if (!aborted) {
-          try { sse(controller, "error", { message: error instanceof Error ? error.message : "Unknown error" }); } catch { /* stream closed */ }
+          sse(controller, "error", {
+            message: error instanceof Error ? error.message : "Unknown error",
+          });
         }
-        try { controller.close(); } catch { /* already closed */ }
+        controller.close();
       }
     },
   });

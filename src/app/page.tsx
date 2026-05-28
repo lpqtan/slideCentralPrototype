@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDeckStore } from "@/hooks/useDeckStore";
-import { STORAGE_KEYS } from "@/lib/constants";
 import type { SavedDeck } from "@/lib/types";
 
 function statusLabel(s: string): string {
@@ -38,8 +37,8 @@ export default function HomePage() {
   }, [getAllDecks]);
 
   const startNewDeck = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEYS.BRIEFING);
-    localStorage.removeItem(STORAGE_KEYS.STEP);
+    localStorage.removeItem("slidecentral-current-briefing");
+    localStorage.removeItem("slidecentral-current-step");
     router.push("/briefing");
   }, [router]);
 
@@ -79,13 +78,12 @@ export default function HomePage() {
       </div>
 
       {/* How it works */}
-      <div className="mx-auto grid w-full max-w-2xl grid-cols-5 gap-4">
+      <div className="mx-auto grid w-full max-w-2xl grid-cols-4 gap-4">
         {[
           { step: 1, label: "Brief" },
-          { step: 2, label: "Message" },
-          { step: 3, label: "Outline" },
-          { step: 4, label: "Content" },
-          { step: 5, label: "Build" },
+          { step: 2, label: "Outline" },
+          { step: 3, label: "Content" },
+          { step: 4, label: "Build" },
         ].map((s) => (
           <div key={s.step} className="flex flex-col items-center gap-2 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-cpf-green)] text-sm font-bold text-white">

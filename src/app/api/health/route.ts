@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStrategy } from "@/lib/strategies/registry";
 
-export async function GET() {
-  return NextResponse.json({ ok: true, ts: Date.now() });
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();

@@ -4,7 +4,7 @@ import type { BriefingData, SlideOutline } from "@/lib/types";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts-od";
 import { extractJson } from "./llm";
 
-const OPENCODE_BIN = process.env.OPENCODE_BIN ?? "opencode";
+const OPENDODE_BIN = process.env.OPENCODE_BIN ?? "opencode";
 const DEFAULT_MODEL = "opencode/big-pickle";
 
 /**
@@ -14,17 +14,10 @@ const DEFAULT_MODEL = "opencode/big-pickle";
 function callOpenCode(
   systemPrompt: string,
   userPrompt: string,
-  model = DEFAULT_MODEL,
-  timeoutMs = 120_000
+  model = DEFAULT_MODEL
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      controller.abort();
-      reject(new Error(`OpenCode timed out after ${timeoutMs / 1000}s`));
-    }, timeoutMs);
-
-    const child = spawn(OPENCODE_BIN, ["run", "--format", "json", "-m", model], {
+    const child = spawn(OPENDODE_BIN, ["run", "--format", "json", "-m", model], {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env, OPENCODE_NO_INTERACTIVE: "1" },
     });
@@ -41,7 +34,6 @@ function callOpenCode(
     });
 
     child.on("close", (code) => {
-      clearTimeout(timer);
       if (code !== 0) {
         reject(
           new Error(
@@ -58,23 +50,13 @@ function callOpenCode(
     });
 
     child.on("error", (err) => {
-      clearTimeout(timer);
-      reject(new Error(`OpenCode failed to start: ${err.message}`));
-    });
-
-    child.on("error", (err) => {
-      clearTimeout(timer);
       reject(new Error(`OpenCode failed to start: ${err.message}`));
     });
 
     // Write the prompt via stdin
     const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
-    try {
-      child.stdin.write(fullPrompt);
-      child.stdin.end();
-    } catch {
-      reject(new Error("Failed to write to OpenCode stdin"));
-    }
+    child.stdin.write(fullPrompt);
+    child.stdin.end();
   });
 }
 
@@ -109,7 +91,7 @@ const opencodeDirectStrategy: BackendStrategy = {
   async healthCheck(): Promise<boolean> {
     return new Promise((resolve) => {
       try {
-        const child = spawn(OPENCODE_BIN, ["--version"], {
+        const child = spawn(OPENDODE_BIN, ["--version"], {
           stdio: "pipe",
           timeout: 5000,
         });

@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           apiKey?: string;
         };
 
-        if (!messages?.length || !Array.isArray(messages)) {
+        if (!messages?.length) {
           sse(controller, "error", { message: "No messages" });
           controller.close();
           return;
@@ -176,9 +176,9 @@ export async function POST(request: Request) {
         controller.close();
       } catch (error) {
         if (!aborted) {
-          try { sse(controller, "error", { message: error instanceof Error ? error.message : "Unknown error" }); } catch { /* stream closed */ }
+          sse(controller, "error", { message: error instanceof Error ? error.message : "Unknown error" });
         }
-        try { controller.close(); } catch { /* already closed */ }
+        controller.close();
       }
     },
   });

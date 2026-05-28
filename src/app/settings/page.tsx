@@ -1,8 +1,7 @@
- "use client";
- 
- import { useState, useEffect } from "react";
- import Link from "next/link";
- import { STORAGE_KEYS } from "@/lib/constants";
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
 const STRATEGIES = [
   { id: "mock", label: "Mock", description: "Hardcoded responses for UI testing" },
@@ -29,6 +28,7 @@ const DAEMON_AGENTS = [
   { id: "gemini", label: "Gemini CLI", description: "Google's coding agent" },
   { id: "cursor-agent", label: "Cursor Agent", description: "Cursor's coding agent" },
   { id: "qwen", label: "Qwen Code", description: "Alibaba's coding agent" },
+  { id: "opencode", label: "OpenCode", description: "Default — open source coding agent" },
 ] as const;
 
 // Deduplicate by id
@@ -62,7 +62,7 @@ const DEFAULT_SETTINGS: SettingsState = {
 
 function loadSettings(): SettingsState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    const raw = localStorage.getItem("slidecentral-settings");
     if (raw) return JSON.parse(raw);
   } catch { /* ignore */ }
   return DEFAULT_SETTINGS;
@@ -137,7 +137,7 @@ export default function SettingsPage() {
 
   const save = () => {
     const next: SettingsState = { strategy, provider, apiKey, daemonAgent, daemonModel };
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(next));
+    localStorage.setItem("slidecentral-settings", JSON.stringify(next));
     window.location.reload();
   };
 

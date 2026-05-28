@@ -34,7 +34,6 @@ export default function StepMessage({
         <textarea
           id="keyMessage"
           rows={3}
-          maxLength={500}
           value={keyMessage}
           onChange={(e) => onKeyMessageChange(e.target.value)}
           placeholder="e.g. Member engagement has declined 12% year-on-year, and we need to approve a S$2.4m outreach programme to reverse the trend."
@@ -60,7 +59,6 @@ export default function StepMessage({
         <textarea
           id="audienceAsk"
           rows={3}
-          maxLength={500}
           value={audienceAsk}
           onChange={(e) => onAudienceAskChange(e.target.value)}
           placeholder="e.g. Approve budget allocation of S$500k for Q3 outreach pilots, and nominate a department lead by end of month."

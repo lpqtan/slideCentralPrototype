@@ -1,7 +1,7 @@
 // Shared TypeScript types for the Slide Central application
 
 /** Briefing wizard step identifiers */
-export type BriefingStep = 1 | 2 | 3 | 4 | 5;
+export type BriefingStep = 1 | 2 | 3 | 4;
 
 /** Narrative arc types */
 export type NarrativeArc = "proposal" | "status" | "teaching";
@@ -57,8 +57,7 @@ export interface SlideOutline {
   slideNumber: number;
   title: string;
   suggestedLayout: LayoutId;
-  bodyContent: string;
-  contentPrompt?: string;
+  contentPrompt: string;
   estimatedMinutes: number;
   sectionId?: string;
   needsDiagram?: boolean;
@@ -91,12 +90,10 @@ export interface SlideContent extends SlideOutline {
 
 /** Application settings persisted in localStorage */
 export interface AppSettings {
-  strategy: StrategyId;
-  provider: LLMProviderId;
-  apiKey: string;
-  model: string;
-  daemonAgent: string;
-  daemonModel: string;
+  strategyId: StrategyId;
+  llmProviderId: LLMProviderId;
+  llmApiKey: string;
+  llmModel: string;
 }
 
 /** Tracks how the outline was generated */
