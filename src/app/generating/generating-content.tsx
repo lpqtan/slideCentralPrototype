@@ -24,8 +24,9 @@ export default function GeneratingContent() {
   const [error, setError] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
+  const abortedRef = useRef(false);
   const [settings, setSettings] = useState<{ strategy: string; daemonAgent: string; daemonModel: string; provider: string; apiKey: string }>({
-    strategy: "mock",
+    strategy: "llm",
     daemonAgent: "opencode",
     daemonModel: "opencode/big-pickle",
     provider: "gemini",
@@ -54,7 +55,7 @@ export default function GeneratingContent() {
     const settingsRaw = localStorage.getItem("slidecentral-settings");
     const settings = settingsRaw
       ? JSON.parse(settingsRaw)
-      : { strategy: "mock", daemonAgent: "opencode", daemonModel: "opencode/big-pickle", provider: "gemini", apiKey: "" };
+      : { strategy: "llm", daemonAgent: "opencode", daemonModel: "opencode/big-pickle", provider: "gemini", apiKey: "" };
 
     setSettings(settings);
 
@@ -70,6 +71,8 @@ export default function GeneratingContent() {
       } catch { /* ignore */ }
     }
 
+    abortedRef.current = false;
+
     const run = async () => {
       try {
         const res = await fetch("/api/generate-outline-stream", {
@@ -77,7 +80,7 @@ export default function GeneratingContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             briefing: deck.briefing,
-            strategy: settings.strategy ?? "mock",
+            strategy: settings.strategy ?? "llm",
             provider:
               settings.strategy === "daemon"
                 ? (settings.daemonAgent ?? "opencode")
@@ -151,7 +154,7 @@ export default function GeneratingContent() {
                     outline: SlideOutline[];
                     source: GenerationSource;
                   };
-                  // Save to deck store
+                  if (abortedRef.current) return;
                   updateOutline(deckId, parsed.outline, parsed.source);
                   router.push(`/outline?deckId=${encodeURIComponent(deckId)}`);
                   return;
@@ -179,6 +182,10 @@ export default function GeneratingContent() {
     };
 
     run();
+
+    return () => {
+      abortedRef.current = true;
+    };
   }, [deckId, getById, router, regenPrompt, updateOutline]);
 
   return (

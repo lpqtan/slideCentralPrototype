@@ -41,7 +41,7 @@ Return a JSON array where each element has:
 - slideNumber: number
 - title: string (an insight, not a label — the title sequence should read as an executive summary)
 - suggestedLayout: one of the layout IDs above
-- contentPrompt: string (what content the presenter should fill in for this slide)
+- contentPrompt: string (suggested content the presenter should fill in for this slide)
 - estimatedMinutes: number (1–3)`;
 }
 
@@ -60,6 +60,10 @@ export function buildUserPrompt(briefing: BriefingData): string {
 **Preferred Layouts:** ${briefing.selectedLayouts.length > 0 ? briefing.selectedLayouts.join(", ") : "No preference — choose freely"}
 
 Follow the narrative arc structure. The first slide should be a cover, and the last a closing/thank you slide. Use section dividers between major arc phases.
+
+Make the title of each slide custom, depending on what each slide is supposed to contain. For the content of each slide, do not create a prompt, but rather populate the content based on the additional content section. 
+If the additional content section is empty or insufficient, fill the content with what is expected based on the key message and ask. 
+The key message and ask are the most important, and have precedence over the additional content. 
 
 Return ONLY the JSON array — no other text.`;
 }
