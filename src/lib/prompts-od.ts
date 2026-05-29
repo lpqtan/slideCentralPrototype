@@ -132,6 +132,8 @@ export function buildUserPrompt(briefing: BriefingData): string {
 
 ${arc ? `**Narrative Arc:** ${arc.label}\n${arc.description}\nPhases: ${arc.sequence.join(" → ")}` : "**Narrative Arc:** Not specified"}
 
+${briefing.additionalContent ? `## Additional Content\nThe following was provided by the user as supplementary content. Use it to inform the outline structure and slide content:\n\n${briefing.additionalContent}` : ""}
+
 ## Requirements
 - First slide = cover, last slide = closing.
 - Insert section dividers between major arc phases.

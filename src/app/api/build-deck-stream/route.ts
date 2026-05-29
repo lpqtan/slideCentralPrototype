@@ -272,6 +272,8 @@ Write the complete index.html to the project. Replace ONLY the SLOT markers.`;
 
 Read outline.md, brand-spec.md, and instructions.md first. Then build the complete index.html.`;
 
+        sse(controller, "prompt", { systemPrompt, userPrompt, outlineMd, brandSpec, instructions });
+
         const chatRes = await fetch(`${DAEMON_URL}/api/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "text/event-stream" },

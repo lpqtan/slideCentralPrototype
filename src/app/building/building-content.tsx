@@ -29,6 +29,7 @@ export default function BuildingContent() {
 
   const [events, setEvents] = useState<StatusEvent[]>([]);
   const [textDeltas, setTextDeltas] = useState("");
+  const [prompt, setPrompt] = useState<{ systemPrompt: string; userPrompt: string; outlineMd?: string; brandSpec?: string; instructions?: string } | null>(null);
   const [error, setError] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
@@ -127,6 +128,13 @@ export default function BuildingContent() {
                 } catch { /* ignore */ }
               }
 
+              if (currentEvent === "prompt") {
+                try {
+                  const parsed = JSON.parse(currentData) as { systemPrompt: string; userPrompt: string; outlineMd?: string; brandSpec?: string; instructions?: string };
+                  setPrompt(parsed);
+                } catch { /* ignore */ }
+              }
+
               if (currentEvent === "text_delta") {
                 try {
                   const parsed = JSON.parse(currentData) as { delta?: string };
@@ -209,6 +217,63 @@ export default function BuildingContent() {
           </button>
         )}
       </div>
+
+      {/* Prompt — collapsible */}
+      {prompt && (
+        <details className="mb-6 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)] hover:text-[var(--color-fg-soft)]">
+            Prompt
+          </summary>
+          <div className="mt-4 space-y-4">
+            <div>
+              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-cpf-green)]">
+                System
+              </h3>
+              <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
+                {prompt.systemPrompt}
+              </pre>
+            </div>
+            <div>
+              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-cpf-green)]">
+                User
+              </h3>
+              <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
+                {prompt.userPrompt}
+              </pre>
+            </div>
+            {prompt.outlineMd && (
+              <div>
+                <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-cpf-green)]">
+                  Uploaded Files: outline.md
+                </h3>
+                <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
+                  {prompt.outlineMd}
+                </pre>
+              </div>
+            )}
+            {prompt.brandSpec && (
+              <div>
+                <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-cpf-green)]">
+                  Uploaded Files: brand-spec.md
+                </h3>
+                <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
+                  {prompt.brandSpec}
+                </pre>
+              </div>
+            )}
+            {prompt.instructions && (
+              <div>
+                <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-cpf-green)]">
+                  Uploaded Files: instructions.md
+                </h3>
+                <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
+                  {prompt.instructions}
+                </pre>
+              </div>
+            )}
+          </div>
+        </details>
+      )}
 
       {/* Activity Log */}
       {events.length > 0 && (
