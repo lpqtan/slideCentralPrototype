@@ -54,6 +54,9 @@ export default function PreviewContent() {
   };
   const overlayRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; startX: number; startY: number; blockX: number; blockY: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const slideFrameRef = useRef<HTMLDivElement>(null);
+  const [slideSize, setSlideSize] = useState<{ w: number; h: number } | null>(null);
 
   // Edit mode
   const [editMode, setEditMode] = useState(false);
@@ -241,6 +244,26 @@ export default function PreviewContent() {
     return () => window.removeEventListener("message", handler);
   }, []);
 
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const ro = new ResizeObserver((entries) => {
+      const { clientWidth: cw, clientHeight: ch } = entries[0].target;
+      const aspect = 16 / 9;
+      let w: number, h: number;
+      if (cw / ch > aspect) {
+        h = ch;
+        w = h * aspect;
+      } else {
+        w = cw;
+        h = w / aspect;
+      }
+      setSlideSize({ w: Math.floor(w), h: Math.floor(h) });
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [!!deckHtml]);
+
   if (!deckHtml) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -426,51 +449,60 @@ export default function PreviewContent() {
         )}
 
         {/* Iframe + Overlay */}
-        <div className="min-h-0 flex-1 overflow-hidden border border-[var(--color-border)] mx-6 relative">
-          <iframe ref={iframeRef} srcDoc={deckHtml}
-            className="h-full w-full border-0" allowFullScreen title="Slide Deck Preview" />
-          {/* Overlay — edit mode only */}
-          {editMode && (() => {
-            const blocks = editBlocks;
-            if (!blocks.length) return null;
-            return (
-              <div ref={overlayRef} className="absolute inset-0 z-10" style={{ pointerEvents: editMode ? "auto" : "none" }}>
-                {blocks.map((block) => (
-                  <div key={block.id}
-                    style={{
-                      position: "absolute", left: `${block.x}%`, top: `${block.y}%`,
-                      transform: "translate(-50%, -50%)",
-                      zIndex: selectedId === block.id ? 20 : 10,
-                      cursor: editMode ? "move" : undefined,
-                    }}
-                    onPointerDown={editMode ? (e) => onPointerDown(e, block) : undefined}
-                    onDoubleClick={editMode ? () => startEdit(block) : undefined}>
-                    <div className={`rounded select-none ${editMode && selectedId === block.id ? "ring-2 ring-[var(--color-cpf-green)] ring-offset-1 ring-offset-black/5" : ""}`}
-                      style={{
-                        color: block.color, fontWeight: block.bold ? 700 : 400,
-                        fontStyle: block.italic ? "italic" : "normal",
-                        fontSize: "clamp(11px, 1.5cqw, 26px)",
-                        fontFamily: "Roboto, system-ui, sans-serif",
-                        textAlign: "center", maxWidth: "420px", wordBreak: "break-word",
-                        backgroundColor: "transparent",
-                        padding: editingId === block.id ? "6px 14px" : "3px 8px", borderRadius: 4,
-                      }}>
-                      {editMode && editingId === block.id ? (
-                        <input autoFocus value={editText} onChange={(e) => setEditText(e.target.value)}
-                          onBlur={commitEdit}
-                          onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditingId(null); }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="bg-transparent border-none outline-none text-center"
-                          style={{ color: block.color, fontWeight: block.bold ? 700 : 400, fontStyle: block.italic ? "italic" : "normal", fontSize: "inherit", fontFamily: "inherit", width: "100%", minWidth: "120px" }} />
-                      ) : (
-                        <span style={{ whiteSpace: "pre-wrap" }}>{block.text}</span>
-                      )}
+        <div ref={containerRef} className="min-h-0 flex-1 flex items-center justify-center mx-6 overflow-hidden">
+          {slideSize ? (
+            <div ref={slideFrameRef} className="relative overflow-hidden"
+              style={{ width: slideSize.w, height: slideSize.h }}>
+              <iframe ref={iframeRef} srcDoc={deckHtml}
+                className="h-full w-full border-0" allowFullScreen title="Slide Deck Preview" />
+              {/* Overlay — edit mode only */}
+              {editMode && (() => {
+                const blocks = editBlocks;
+                if (!blocks.length) return null;
+                return (
+                  <div ref={overlayRef} className="absolute inset-0 z-10" style={{ pointerEvents: editMode ? "auto" : "none" }}>
+                    {blocks.map((block) => (
+                      <div key={block.id}
+                        style={{
+                          position: "absolute", left: `${block.x}%`, top: `${block.y}%`,
+                          transform: "translate(-50%, -50%)",
+                          zIndex: selectedId === block.id ? 20 : 10,
+                          cursor: editMode ? "move" : undefined,
+                        }}
+                        onPointerDown={editMode ? (e) => onPointerDown(e, block) : undefined}
+                        onDoubleClick={editMode ? () => startEdit(block) : undefined}>
+                        <div className={`rounded select-none ${editMode && selectedId === block.id ? "ring-2 ring-[var(--color-cpf-green)] ring-offset-1 ring-offset-black/5" : ""}`}
+                          style={{
+                            color: block.color, fontWeight: block.bold ? 700 : 400,
+                            fontStyle: block.italic ? "italic" : "normal",
+                            fontSize: "clamp(11px, 1.5cqw, 26px)",
+                            fontFamily: "Roboto, system-ui, sans-serif",
+                            textAlign: "center", maxWidth: "420px", wordBreak: "break-word",
+                            backgroundColor: "transparent",
+                            padding: editingId === block.id ? "6px 14px" : "3px 8px", borderRadius: 4,
+                          }}>
+                          {editMode && editingId === block.id ? (
+                            <input autoFocus value={editText} onChange={(e) => setEditText(e.target.value)}
+                              onBlur={commitEdit}
+                              onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditingId(null); }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="bg-transparent border-none outline-none text-center"
+                              style={{ color: block.color, fontWeight: block.bold ? 700 : 400, fontStyle: block.italic ? "italic" : "normal", fontSize: "inherit", fontFamily: "inherit", width: "100%", minWidth: "120px" }} />
+                          ) : (
+                            <span style={{ whiteSpace: "pre-wrap" }}>{block.text}</span>
+                          )}
+                      </div>
+                      </div>
+                    ))}
                   </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[var(--color-cpf-green)] border-t-transparent" />
+            </div>
+          )}
         </div>
 
         {/* Brand bar */}

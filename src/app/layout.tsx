@@ -29,7 +29,7 @@ export default function RootLayout({
 
         {/* Header */}
         <header className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
+          <div className="flex w-full items-center justify-between px-6 py-3">
             <Link href="/" className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded bg-[var(--color-cpf-green)]">
                 <span className="text-lg font-black text-white">S</span>
