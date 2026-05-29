@@ -80,6 +80,8 @@ export async function POST(request: Request) {
               `Original briefing:\n${buildUserPrompt(briefing)}`;
           }
 
+          sse(controller, "prompt", { systemPrompt, userPrompt });
+
           const daemonUrl = process.env.DAEMON_URL ?? "http://localhost:7456";
           const res = await fetch(`${daemonUrl}/api/chat`, {
             method: "POST",
@@ -167,6 +169,8 @@ export async function POST(request: Request) {
           const systemPrompt = buildSystemPrompt();
           const userPrompt = buildUserPrompt(briefing);
 
+          sse(controller, "prompt", { systemPrompt, userPrompt });
+
           let output = "";
           let streamFailed = false;
 
@@ -206,6 +210,10 @@ export async function POST(request: Request) {
 
         // ── Mock / Other ───────────────────────────────
         else {
+          const systemPrompt = buildSystemPrompt();
+          const userPrompt = buildUserPrompt(briefing);
+          sse(controller, "prompt", { systemPrompt, userPrompt });
+
           for (let i = 1; i <= 4; i++) {
             if (aborted) break;
             await new Promise((r) => setTimeout(r, 200));

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import path from "node:path";
 
-// Disable worker for server-side usage
-pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+pdfjsLib.GlobalWorkerOptions.workerSrc = path.resolve(
+  process.cwd(),
+  "node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs"
+);
 
 export async function POST(request: Request) {
   try {
