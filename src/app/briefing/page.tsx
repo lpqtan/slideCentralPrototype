@@ -49,7 +49,7 @@ export default function BriefingPage() {
     const settingsRaw = localStorage.getItem("slidecentral-settings");
     const settings = settingsRaw
       ? JSON.parse(settingsRaw)
-      : { strategy: "mock" };
+      : { strategy: "llm" };
 
     if (settings.strategy === "mock") {
       // Use pre-built demo deck — skip generating pipeline

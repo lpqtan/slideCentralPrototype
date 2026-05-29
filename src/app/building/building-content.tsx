@@ -33,6 +33,7 @@ export default function BuildingContent() {
   const [error, setError] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
+  const abortedRef = useRef(false);
   const [settings, setSettings] = useState<{
     strategy: string;
     provider: string;
@@ -40,7 +41,7 @@ export default function BuildingContent() {
     daemonAgent: string;
     daemonModel: string;
   }>({
-    strategy: "mock",
+    strategy: "llm",
     provider: "gemini",
     apiKey: "",
     daemonAgent: "opencode",
@@ -77,6 +78,8 @@ export default function BuildingContent() {
       bodyContent: "",
     })) ?? [];
 
+    abortedRef.current = false;
+
     const run = async () => {
       try {
         const res = await fetch("/api/build-deck-stream", {
@@ -85,7 +88,7 @@ export default function BuildingContent() {
           body: JSON.stringify({
             slides,
             briefing: deck.briefing,
-            strategy: s.strategy ?? "mock",
+            strategy: s.strategy ?? "llm",
             provider: s.strategy === "daemon" ? (s.daemonAgent ?? "opencode") : (s.provider ?? "gemini"),
             model: s.strategy === "daemon" ? (s.daemonModel ?? "opencode/big-pickle") : "gemini-3.5-flash",
             apiKey: s.apiKey,
@@ -145,6 +148,7 @@ export default function BuildingContent() {
               if (currentEvent === "complete") {
                 try {
                   const parsed = JSON.parse(currentData) as { html: string; source?: GenerationSource };
+                  if (abortedRef.current) return;
                   setDeckHtml(deckId, parsed.html);
                   router.push(`/preview?deckId=${encodeURIComponent(deckId)}`);
                   return;
@@ -170,6 +174,10 @@ export default function BuildingContent() {
     };
 
     run();
+
+    return () => {
+      abortedRef.current = true;
+    };
   }, [deckId, getById, router, setDeckHtml]);
 
   return (
@@ -210,7 +218,7 @@ export default function BuildingContent() {
         </div>
         {error && (
           <button
-            onClick={() => router.push("/outline")}
+            onClick={() => router.push(`/outline?deckId=${encodeURIComponent(deckId ?? "")}`)}
             className="mt-4 rounded border border-[var(--color-border)] px-4 py-2 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:bg-[var(--color-cpf-mint)]"
           >
             Back to Outline
