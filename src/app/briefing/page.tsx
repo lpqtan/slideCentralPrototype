@@ -147,11 +147,10 @@ export default function BriefingPage() {
       {/* Navigation */}
       <div className="mt-6 flex justify-between">
         <button
-          onClick={prevStep}
-          disabled={step === 1}
-          className="rounded border border-[var(--color-border)] px-5 py-2 text-sm font-medium text-[var(--color-fg-soft)] transition-colors hover:bg-[var(--color-cpf-mint)] disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={() => step === 1 ? router.push("/") : prevStep()}
+          className="rounded border border-[var(--color-border)] px-5 py-2 text-sm font-medium text-[var(--color-fg-soft)] transition-colors hover:bg-[var(--color-cpf-mint)]"
         >
-          Back
+          {step === 1 ? "Home" : "Back"}
         </button>
 
         <div>
