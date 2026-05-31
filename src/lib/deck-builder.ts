@@ -778,8 +778,8 @@ export function buildDeckHtml(slides: SlideContent[], overlayBlocks?: Record<num
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,300;1,400&display=swap" rel="stylesheet">
 <style>${DECK_CSS}
-.deck-shell{width:100vw;height:100vh;overflow:hidden;display:flex;justify-content:center;align-items:center;background:var(--cpf-mint)}
-.deck-shell .stage{width:1920px;height:1080px;transform-origin:center center}
+.deck-shell{width:100vw;height:100vh;overflow:hidden;position:relative;background:var(--cpf-mint)}
+.deck-shell .stage{width:1920px;height:1080px;transform-origin:top left;position:absolute}
 </style>
 </head>
 <body>
@@ -802,16 +802,22 @@ ${slideSections}
   var total=${slides.length};
   var counter=document.getElementById('nav-counter');
   var stage=document.getElementById('stage');
+  var shell=document.getElementById('shell');
 
   if(slides.length===0)return;
   slides[0].classList.add('active');
 
   function fit(){
-    var s=Math.min(window.innerWidth/1920, window.innerHeight/1080);
-    stage.style.transform='scale('+s+')';
+    var w=shell.offsetWidth||window.innerWidth;
+    var h=shell.offsetHeight||window.innerHeight;
+    var s=Math.min(w/1920,h/1080);
+    var x=(w-1920*s)/2;
+    var y=(h-1080*s)/2;
+    stage.style.transform='translate('+x+'px,'+y+'px) scale('+s+')';
   }
   fit();
   window.addEventListener('resize',fit);
+  if(window.ResizeObserver){new ResizeObserver(fit).observe(shell);}
 
   function go(i){
     if(i<0||i>=total)return;
