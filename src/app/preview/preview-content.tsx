@@ -31,7 +31,7 @@ export default function PreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deckId = searchParams.get("deckId");
-  const { getById, setOverlayBlocks, setDeckSlides, setDeckHtml: storeDeckHtml } = useDeckStore();
+  const { getById, setOverlayBlocks, setDeckSlides, setDeckHtml: storeDeckHtml, patchOutlineLayout } = useDeckStore();
   const [deckHtml, setDeckHtml] = useState<string | null>(null);
   const [slides, setSlides] = useState<SlideOutline[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -106,6 +106,7 @@ export default function PreviewContent() {
       i === currentSlide ? { ...s, suggestedLayout: layoutId as SlideContent["suggestedLayout"] } : s
     ) as SlideContent[];
     setDeckSlides(deckId, updated);
+    patchOutlineLayout(deckId, currentSlide, layoutId);
     const newHtml = buildDeckHtml(updated, deck.overlayBlocks);
     storeDeckHtml(deckId, newHtml);
     setDeckHtml(newHtml);
