@@ -849,6 +849,7 @@ ${slideSections}
   document.getElementById('next-btn').addEventListener('click',function(){go(current+1)});
 
   document.addEventListener('keydown',function(e){
+    if(document.activeElement&&document.activeElement.getAttribute('contenteditable')==='true')return;
     if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){e.preventDefault();go(current+1)}
     if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();go(current-1)}
     if(e.key==='Home'){e.preventDefault();go(0)}
