@@ -30,7 +30,7 @@ CRITICAL: Your ONLY output is a valid JSON object. No markdown fences, no explan
 
 You MUST return a JSON object with an "outline" array:
 
-{"outline":[{"slideNumber":1,"title":"$1.2M Ask: AI Career Coach Expansion","suggestedLayout":"cover","contentPrompt":"1. Find Q1 MySkillsFuture engagement data from the portal.\\n2. Compare active learner numbers YoY.\\n3. Note the $1.2M budget ask for Phase 2.","estimatedMinutes":1,"needsDiagram":false,"needsChart":false,"needsData":true,"diagramHint":"","chartHint":""},{"slideNumber":2,"title":"The Opportunity","suggestedLayout":"section-divider","contentPrompt":"1. Introduce Phase 1 and its purpose.\\n2. Set up the problem/opportunity framing.","estimatedMinutes":0.5,"needsDiagram":false,"needsChart":false,"needsData":false,"diagramHint":"","chartHint":""}]}
+{"outline":[{"slideNumber":1,"title":"$1.2M Ask: AI Career Coach Expansion","suggestedLayout":"cover","contentPrompt":"1. $1.2M investment for Phase 2 AI Career Coach rollout\\n2. [Insert Q1 MySkillsFuture active learner count]\\n3. [Insert YoY growth %] increase in engagement since Phase 1","estimatedMinutes":1,"needsDiagram":false,"needsChart":false,"needsData":true,"diagramHint":"","chartHint":""},{"slideNumber":2,"title":"Phase 1 Built the Foundation","suggestedLayout":"section-divider","contentPrompt":"1. Phase 1 launched AI career matching for 50,000 members\\n2. Proven model — now scaling to mobile and Singpass","estimatedMinutes":0.5,"needsDiagram":false,"needsChart":false,"needsData":false,"diagramHint":"","chartHint":""}]}
 
 Each slide object MUST have these fields:
 - slideNumber (int, 1-indexed)
@@ -57,9 +57,13 @@ Read all titles top-to-bottom — they should read like an executive summary.
 
 ## Content Prompt Rules
 
-contentPrompt MUST use a numbered list format for EVERY slide. Put each numbered item on a NEW LINE (use \\n in the JSON string). Every point gets its own line. Do NOT write paragraphs.
+contentPrompt contains the ACTUAL CONTENT that will appear on the slide — not research tasks or instructions. Write 2–4 concise content bullets as a numbered list. Each bullet should be a complete, insight-level statement a reader would see on the slide.
 
-Format exactly like: "1. Find Q1 engagement data from the portal.\\n2. Compare participation rates to FY2024.\\n3. Note gaps in low-engagement segments."
+Put each numbered item on a NEW LINE (use \\n in the JSON string). Do NOT write paragraphs or research instructions like "Find..." or "Compare...".
+
+**When real data is unknown**, use a bracketed placeholder: "[Insert metric here]" or "[Q1 figure TBC]". This signals to the user exactly what to fill in.
+
+Format exactly like: "1. [Insert Q1 active learner count] members engaged in FY2025\\n2. Participation rate up [X%] vs FY2024\\n3. Lowest engagement: [segment] — targeted intervention needed"
 
 If there is only one point, still use "1. " prefix.
 
@@ -112,6 +116,7 @@ First slide = cover. Last slide = closing (\`closing\`). Use section dividers (\
 - ❌ Invented statistics or market-size claims
 - ❌ Three consecutive same-type slides
 - ❌ Closing that only says "Thank You"
+- ❌ Research task instructions in contentPrompt ("Find...", "Compare...", "Note...") — write actual slide content instead
 - ❌ Paragraph-form content prompts — always use numbered list format
 - ❌ Over-flagging — only flag when user action is truly needed`;
 }
@@ -137,7 +142,7 @@ ${briefing.additionalContent ? `## Additional Content\nThe following was provide
 ## Requirements
 - First slide = cover, last slide = closing.
 - Insert section dividers between major arc phases.
-- contentPrompts MUST be numbered lists (use \\n for newlines).
+- contentPrompts MUST be numbered lists of actual slide content bullets (use \\n for newlines). Use [placeholder] for unknown data — never write research instructions.
 - Set flag fields based on whether the user needs to prepare additional data, charts, or diagrams.
 - Title sequence must read as an executive summary.
 - Return the JSON object with an "outline" array. No markdown, no explanation.`;
