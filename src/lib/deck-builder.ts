@@ -757,6 +757,24 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 .u-overlay{font-family:var(--font-body);position:absolute;z-index:5;pointer-events:none;white-space:pre-wrap;word-break:break-word;max-width:420px;text-align:center;font-size:clamp(11px,1.5cqw,26px)}
 `;
 
+/** Inject overlay blocks into a full HTML document string (used after inline-edit save). */
+export function injectAllOverlaysIntoHtml(html: string, allOverlay?: Record<number, TextBlock[]>): string {
+  if (!allOverlay) return html;
+  const parts = html.split("</section>");
+  return parts.map((part, i) => {
+    if (i === parts.length - 1) return part;
+    const match = part.match(/data-slide="(\d+)"/);
+    if (!match) return part + "</section>";
+    const slideIndex = parseInt(match[1]) - 1;
+    const blocks = allOverlay[slideIndex];
+    if (!blocks?.length) return part + "</section>";
+    const overlay = blocks.map((b) =>
+      `<div class="u-overlay" style="left:${b.x}%;top:${b.y}%;transform:translate(-50%,-50%);color:${b.color};font-weight:${b.bold ? 700 : 400};font-style:${b.italic ? "italic" : "normal"}">${escapeHtml(b.text)}</div>`
+    ).join("");
+    return part + overlay + "</section>";
+  }).join("");
+}
+
 function injectOverlay(html: string, blocks?: TextBlock[]): string {
   if (!blocks?.length) return html;
   const overlay = blocks.map((b) =>
@@ -844,6 +862,25 @@ ${slideSections}
     if(e.data&&typeof e.data.showNav==='boolean'){
       var nav=document.querySelector('.deck-nav');
       if(nav)nav.style.display=e.data.showNav?'flex':'none';
+    }
+    if(e.data&&e.data.editMode===true){
+      document.querySelectorAll('.slide h1,.slide h2,.slide h3,.slide p,.slide li').forEach(function(el){
+        if(el.closest('.slide-foot')||el.closest('.deck-nav'))return;
+        el.setAttribute('contenteditable','true');
+        el.style.outline='1.5px dashed rgba(4,89,65,0.4)';
+        el.style.outlineOffset='2px';
+        el.style.borderRadius='2px';
+        el.style.cursor='text';
+      });
+    }
+    if(e.data&&e.data.editMode===false){
+      document.querySelectorAll('[contenteditable="true"]').forEach(function(el){
+        el.removeAttribute('contenteditable');
+        el.style.outline='';el.style.outlineOffset='';el.style.borderRadius='';el.style.cursor='';
+      });
+    }
+    if(e.data&&e.data.getContent===true){
+      parent.postMessage({type:'deckContent',html:document.documentElement.outerHTML},'*');
     }
   });
 
