@@ -186,6 +186,18 @@ export function useDeckStore() {
     }
   }, []);
 
+  const patchOutlineLayout = useCallback((id: string, slideIndex: number, layoutId: string) => {
+    const decks = loadDecks();
+    const idx = decks.findIndex((d) => d.id === id);
+    if (idx >= 0 && decks[idx].outline) {
+      const outline = decks[idx].outline!.map((s, i) =>
+        i === slideIndex ? { ...s, suggestedLayout: layoutId as SlideOutline["suggestedLayout"] } : s
+      );
+      decks[idx] = { ...decks[idx], outline, updatedAt: Date.now() };
+      saveDecks(decks);
+    }
+  }, []);
+
   const setOverlayBlocks = useCallback((id: string, slideIndex: number, blocks: TextBlock[]) => {
     const decks = loadDecks();
     const idx = decks.findIndex((d) => d.id === id);
@@ -201,5 +213,5 @@ export function useDeckStore() {
     }
   }, []);
 
-  return { getAll, getById, save, updateOutline, updateSlides, updateName, remove, getAllDecks, setDeckHtml, setDeckSlides, setOverlayBlocks };
+  return { getAll, getById, save, updateOutline, updateSlides, updateName, remove, getAllDecks, setDeckHtml, setDeckSlides, setOverlayBlocks, patchOutlineLayout };
 }

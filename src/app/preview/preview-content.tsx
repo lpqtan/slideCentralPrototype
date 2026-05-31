@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useDeckStore } from "@/hooks/useDeckStore";
 import { useHistory } from "@/hooks/useHistory";
-import { buildDeckHtml } from "@/lib/deck-builder";
+import { buildDeckHtml, injectAllOverlaysIntoHtml } from "@/lib/deck-builder";
 import type { SlideOutline, SlideContent, TextBlock } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
 
@@ -31,7 +31,7 @@ export default function PreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deckId = searchParams.get("deckId");
-  const { getById, setOverlayBlocks, setDeckSlides, setDeckHtml: storeDeckHtml } = useDeckStore();
+  const { getById, setOverlayBlocks, setDeckSlides, setDeckHtml: storeDeckHtml, patchOutlineLayout } = useDeckStore();
   const [deckHtml, setDeckHtml] = useState<string | null>(null);
   const [slides, setSlides] = useState<SlideOutline[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -57,6 +57,8 @@ export default function PreviewContent() {
 
   // Edit mode
   const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [baseHtml, setBaseHtml] = useState<string | null>(null);
   const editHistory = useHistory<TextBlock[]>([]);
   const editBlocks = editHistory.state;
   const setEditBlocks = (v: TextBlock[]) => editHistory.push(v);
@@ -70,32 +72,49 @@ export default function PreviewContent() {
 
   const enterEditMode = () => {
     const deck = getById(deckId ?? "");
-    if (deck?.slides) {
-      const cleanHtml = buildDeckHtml(deck.slides);
-      setDeckHtml(cleanHtml);
-    }
+    const cleanHtml = baseHtml ?? (deck?.slides ? buildDeckHtml(deck.slides) : null);
+    if (cleanHtml) setDeckHtml(cleanHtml);
     const saved = deck?.overlayBlocks?.[currentSlide] || [];
     editHistory.push(saved.map((b) => ({ ...b })), true);
     setEditMode(true);
     setSelectedId(null);
     setEditingId(null);
-    iframeRef.current?.contentWindow?.postMessage({ showNav: false }, "*");
+    setTimeout(() => {
+      iframeRef.current?.contentWindow?.postMessage({ showNav: false, editMode: true }, "*");
+    }, 200);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!deckId) return;
+    setSaving(true);
+    // Get the current iframe HTML (includes inline text edits)
+    const editedHtml = await new Promise<string>((resolve) => {
+      const handler = (e: MessageEvent) => {
+        if (e.data?.type === "deckContent") {
+          window.removeEventListener("message", handler);
+          resolve(e.data.html as string);
+        }
+      };
+      window.addEventListener("message", handler);
+      iframeRef.current?.contentWindow?.postMessage({ getContent: true }, "*");
+      setTimeout(() => { window.removeEventListener("message", handler); resolve(""); }, 3000);
+    });
+
+    const cleanedHtml = editedHtml.replace(/ contenteditable="true"/g, "");
+    setBaseHtml(cleanedHtml || null); // Preserve inline edits for next edit session
+
     setOverlayBlocks(deckId, currentSlide, editBlocks);
     const deck = getById(deckId);
-    if (deck?.slides) {
-      const allOverlay = { ...deck.overlayBlocks, [currentSlide]: editBlocks };
-      const newHtml = buildDeckHtml(deck.slides, allOverlay);
-      storeDeckHtml(deckId, newHtml);
-      setDeckHtml(newHtml);
-    }
+    const allOverlay = { ...deck?.overlayBlocks, [currentSlide]: editBlocks };
+    const finalHtml = cleanedHtml ? injectAllOverlaysIntoHtml(cleanedHtml, allOverlay) : buildDeckHtml(deck?.slides ?? [], allOverlay);
+
+    storeDeckHtml(deckId, finalHtml);
+    setDeckHtml(finalHtml);
+    setSaving(false);
     setEditMode(false);
     setSelectedId(null);
     setEditingId(null);
-    iframeRef.current?.contentWindow?.postMessage({ showNav: true }, "*");
+    iframeRef.current?.contentWindow?.postMessage({ showNav: true, editMode: false }, "*");
   };
 
   const changeLayout = (layoutId: string) => {
@@ -106,7 +125,8 @@ export default function PreviewContent() {
       i === currentSlide ? { ...s, suggestedLayout: layoutId as SlideContent["suggestedLayout"] } : s
     ) as SlideContent[];
     setDeckSlides(deckId, updated);
-    const newHtml = buildDeckHtml(updated, deck.overlayBlocks);
+    patchOutlineLayout(deckId, currentSlide, layoutId);
+    const newHtml = buildDeckHtml(updated, deck?.overlayBlocks);
     storeDeckHtml(deckId, newHtml);
     setDeckHtml(newHtml);
     setSlides(updated);
@@ -320,8 +340,9 @@ export default function PreviewContent() {
                   title="Redo (Ctrl+Shift+Z)">
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4"/></svg>
                 </button>
-                <button onClick={saveEdit}
-                  className="rounded border border-[var(--color-cpf-green)] px-3 py-2 text-xs font-medium text-[var(--color-cpf-green)] transition-colors hover:bg-[var(--color-cpf-mint)]">Save</button>
+                <button onClick={saveEdit} disabled={saving}
+                  className="rounded border border-[var(--color-cpf-green)] px-3 py-2 text-xs font-medium text-[var(--color-cpf-green)] transition-colors hover:bg-[var(--color-cpf-mint)] disabled:opacity-50">
+                  {saving ? "Saving…" : "Save"}</button>
                 <div className="relative">
                   <button onClick={(e) => { e.stopPropagation(); setLayoutPickerOpen(!layoutPickerOpen); }}
                     className="rounded border border-[var(--color-border)] px-3 py-2 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:border-[var(--color-cpf-green)]">
