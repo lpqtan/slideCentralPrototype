@@ -102,6 +102,37 @@ ${buildArcSkeleton()}
 
 Map your slides to the arc phases. Insert section-divider slides between phases. The cover is before Phase 1; the closing is after the final phase.
 
+## Arc-to-Layout Guidance
+
+Use these recommended layouts per arc phase to build a coherent visual rhythm:
+
+**Proposal Arc**
+| Phase | Recommended layouts |
+|---|---|
+| Problem or Opportunity | \`big-stat\`, \`bullet-list\` |
+| Why It Matters | \`big-stat\`, \`content-image-60-40\` |
+| Root Cause | \`bullet-list\`, \`sidebar-bullets\`, \`two-column\` |
+| What Success Looks Like | \`big-stat\`, \`kpi-dashboard\` |
+| What Gets Us There | \`process-pipeline\`, \`two-column\` |
+
+**Status Arc**
+| Phase | Recommended layouts |
+|---|---|
+| Where We Are | \`kpi-dashboard\`, \`big-stat\` |
+| What's Working | \`bullet-list\`, \`kpi-dashboard\` |
+| Blockers | \`bullet-list\`, \`sidebar-bullets\` |
+| Next Steps | \`timeline\`, \`process-pipeline\` |
+
+**Teaching Arc**
+| Phase | Recommended layouts |
+|---|---|
+| What It Is | \`content-image-60-40\`, \`bullet-list\` |
+| Why It Matters | \`big-stat\`, \`quote-testimonial\` |
+| How It Works | \`process-pipeline\`, \`timeline\` |
+| How to Apply It | \`process-pipeline\`, \`bullet-list\` |
+
+These are recommendations, not strict rules. Override with Layout Selection Rules when content type demands it.
+
 ## Layout Selection Rules
 
 Choose layout based on the content type of each slide. These rules override general preference:
@@ -133,6 +164,7 @@ First slide = cover. Last slide = closing (\`closing\`). Use section dividers (\
 - ❌ Generic titles like "Introduction", "Overview", "Conclusion"
 - ❌ Invented statistics or market-size claims
 - ❌ Three consecutive same-type slides
+- ❌ Two equal-weight content blocks on one slide — one visual anchor per slide (one big number, one key statement, or one diagram). If two items must coexist, use \`two-column\`
 - ❌ Closing that only says "Thank You"
 - ❌ Research task instructions in contentPrompt ("Find...", "Compare...", "Note...") — write actual slide content instead
 - ❌ Numbered list prefixes (1., 2., 3.) in contentPrompt — write plain lines separated by \\n, no numbers
