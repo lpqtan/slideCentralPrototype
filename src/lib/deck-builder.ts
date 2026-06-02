@@ -32,9 +32,13 @@ function getLayoutClass(id: string): string {
   }
 }
 
+function stripListPrefix(line: string): string {
+  return line.replace(/^\d+\.\s*/, "");
+}
+
 function parseBody(slide: SlideContent): { lines: string[]; body: string } {
   const body = slide.bodyContent && slide.bodyContent.trim() ? slide.bodyContent : fallbackBody(slide);
-  const lines = body.split("\n").map((l) => l.trim()).filter(Boolean);
+  const lines = body.split("\n").map((l) => stripListPrefix(l.trim())).filter(Boolean);
   return { lines, body };
 }
 

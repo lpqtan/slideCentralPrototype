@@ -30,13 +30,13 @@ CRITICAL: Your ONLY output is a valid JSON object. No markdown fences, no explan
 
 You MUST return a JSON object with an "outline" array:
 
-{"outline":[{"slideNumber":1,"title":"$1.2M Ask: AI Career Coach Expansion","suggestedLayout":"cover","contentPrompt":"1. $1.2M investment for Phase 2 AI Career Coach rollout\\n2. [Insert Q1 MySkillsFuture active learner count]\\n3. [Insert YoY growth %] increase in engagement since Phase 1","estimatedMinutes":1,"needsDiagram":false,"needsChart":false,"needsData":true,"diagramHint":"","chartHint":""},{"slideNumber":2,"title":"Phase 1 Built the Foundation","suggestedLayout":"section-divider","contentPrompt":"1. Phase 1 launched AI career matching for 50,000 members\\n2. Proven model — now scaling to mobile and Singpass","estimatedMinutes":0.5,"needsDiagram":false,"needsChart":false,"needsData":false,"diagramHint":"","chartHint":""}]}
+{"outline":[{"slideNumber":1,"title":"$1.2M Ask: AI Career Coach Expansion","suggestedLayout":"cover","contentPrompt":"$1.2M investment for Phase 2 AI Career Coach rollout\\n[Insert Q1 MySkillsFuture active learner count] members engaged\\n[Insert YoY growth %] increase in engagement since Phase 1","estimatedMinutes":1,"needsDiagram":false,"needsChart":false,"needsData":true,"diagramHint":"","chartHint":""},{"slideNumber":2,"title":"Phase 1 Built the Foundation","suggestedLayout":"section-divider","contentPrompt":"Phase 1 launched AI career matching for 50,000 members\\nProven model — now scaling to mobile and Singpass","estimatedMinutes":0.5,"needsDiagram":false,"needsChart":false,"needsData":false,"diagramHint":"","chartHint":""}]}
 
 Each slide object MUST have these fields:
 - slideNumber (int, 1-indexed)
 - title (string, insight statement, max 8 words)
 - suggestedLayout (string, one of the layout IDs listed below)
-- contentPrompt (string, NUMBERED LIST format — see rules below)
+- contentPrompt (string, plain lines separated by \n — see rules below)
 - estimatedMinutes (number, 0.5–3)
 - needsDiagram (boolean)
 - needsChart (boolean)
@@ -57,15 +57,13 @@ Read all titles top-to-bottom — they should read like an executive summary.
 
 ## Content Prompt Rules
 
-contentPrompt contains the ACTUAL CONTENT that will appear on the slide — not research tasks or instructions. Write 2–4 concise content bullets as a numbered list. Each bullet should be a complete, insight-level statement a reader would see on the slide.
+contentPrompt contains the ACTUAL CONTENT that will appear on the slide — not research tasks or instructions. Write 2–4 concise content lines. Each line should be a complete, insight-level statement a reader would see on the slide.
 
-Put each numbered item on a NEW LINE (use \\n in the JSON string). Do NOT write paragraphs or research instructions like "Find..." or "Compare...".
+Put each item on a NEW LINE (use \\n in the JSON string). Do NOT number the lines. Do NOT write paragraphs or research instructions like "Find..." or "Compare...".
 
 **When real data is unknown**, use a bracketed placeholder: "[Insert metric here]" or "[Q1 figure TBC]". This signals to the user exactly what to fill in.
 
-Format exactly like: "1. [Insert Q1 active learner count] members engaged in FY2025\\n2. Participation rate up [X%] vs FY2024\\n3. Lowest engagement: [segment] — targeted intervention needed"
-
-If there is only one point, still use "1. " prefix.
+Format exactly like: "[Insert Q1 active learner count] members engaged in FY2025\\nParticipation rate up [X%] vs FY2024\\nLowest engagement: [segment] — targeted intervention needed"
 
 ## Audience & Mode Awareness
 
@@ -104,6 +102,26 @@ ${buildArcSkeleton()}
 
 Map your slides to the arc phases. Insert section-divider slides between phases. The cover is before Phase 1; the closing is after the final phase.
 
+## Layout Selection Rules
+
+Choose layout based on the content type of each slide. These rules override general preference:
+
+| Content type | Use this layout |
+|---|---|
+| Single key number or striking stat | \`big-stat\` |
+| 3–5 sequential process steps | \`process-pipeline\` |
+| Before vs After / Option A vs Option B | \`two-column\` |
+| 3–4 KPI metrics side by side | \`kpi-dashboard\` |
+| Chronological milestones or roadmap | \`timeline\` |
+| Main point + supporting visual | \`content-image-60-40\` or \`image-content-40-60\` |
+| Long bulleted evidence or recommendations | \`bullet-list\` or \`sidebar-bullets\` |
+| Powerful quote or testimonial | \`quote-testimonial\` |
+| Section break between narrative phases | \`section-divider\` |
+| Opening slide | \`cover\` |
+| Closing slide | \`closing\` |
+
+If the content does not match any trigger above, default to \`bullet-list\`.
+
 ## Available CPF Layouts
 
 ${buildLayoutGuidance()}
@@ -117,7 +135,8 @@ First slide = cover. Last slide = closing (\`closing\`). Use section dividers (\
 - ❌ Three consecutive same-type slides
 - ❌ Closing that only says "Thank You"
 - ❌ Research task instructions in contentPrompt ("Find...", "Compare...", "Note...") — write actual slide content instead
-- ❌ Paragraph-form content prompts — always use numbered list format
+- ❌ Numbered list prefixes (1., 2., 3.) in contentPrompt — write plain lines separated by \\n, no numbers
+- ❌ Paragraph-form content prompts — one point per line, no prose
 - ❌ Over-flagging — only flag when user action is truly needed`;
 }
 
@@ -142,7 +161,7 @@ ${briefing.additionalContent ? `## Additional Content\nThe following was provide
 ## Requirements
 - First slide = cover, last slide = closing.
 - Insert section dividers between major arc phases.
-- contentPrompts MUST be numbered lists of actual slide content bullets (use \\n for newlines). Use [placeholder] for unknown data — never write research instructions.
+- contentPrompts MUST be plain lines of actual slide content (use \\n between lines, NO numbered prefixes). Use [placeholder] for unknown data — never write research instructions.
 - Set flag fields based on whether the user needs to prepare additional data, charts, or diagrams.
 - Title sequence must read as an executive summary.
 - Return the JSON object with an "outline" array. No markdown, no explanation.`;
