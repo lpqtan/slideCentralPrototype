@@ -626,7 +626,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--cpf-mint);colo
 .divider-band{position:absolute;bottom:0;left:0;right:0;height:25%;background:var(--cpf-green)}
 /* ── Big Stat ─────────────────── */
 
-.big-stat-wrap{position:absolute;inset:80px 80px 60px 80px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:2cqh}
+.big-stat-wrap{position:absolute;inset:80px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:2cqh}
 .big-stat-label{font-family:var(--font-mono);font-size:16px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,.7)}
 .h-big-stat{font-family:var(--font-display);font-weight:900;font-size:140px;line-height:1;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;margin:0}
 .big-stat-note{font-family:var(--font-body);font-weight:300;font-size:28px;line-height:1.4;color:rgba(255,255,255,.78);max-width:24em}
@@ -787,8 +787,9 @@ function injectOverlay(html: string, blocks?: TextBlock[]): string {
   return html.replace("</section>", `${overlay}</section>`);
 }
 
-export function buildDeckHtml(slides: SlideContent[], overlayBlocks?: Record<number, TextBlock[]>): string {
+export function buildDeckHtml(slides: SlideContent[], overlayBlocks?: Record<number, TextBlock[]>, options?: { thumbnail?: boolean }): string {
   const slideSections = slides.map((s, i) => injectOverlay(slideHtml(s, i, slides.length), overlayBlocks?.[i])).join("\n\n");
+  const isThumbnail = options?.thumbnail === true;
 
   return `<!doctype html>
 <html lang="en">
@@ -802,6 +803,7 @@ export function buildDeckHtml(slides: SlideContent[], overlayBlocks?: Record<num
 <style>${DECK_CSS}
 .deck-shell{width:100vw;height:100vh;overflow:hidden;position:relative;background:var(--cpf-mint)}
 .deck-shell .stage{width:1920px;height:1080px;transform-origin:top left;position:absolute}
+${isThumbnail ? ".deck-nav{display:none!important}" : ""}
 </style>
 </head>
 <body>

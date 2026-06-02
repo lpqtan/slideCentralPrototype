@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useDeckStore } from "@/hooks/useDeckStore";
@@ -39,6 +39,21 @@ export default function PreviewContent() {
   const [layoutPickerOpen, setLayoutPickerOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const THUMB_W = 180;
+  const THUMB_H = Math.round(THUMB_W * 1080 / 1920);
+  const THUMB_SCALE = THUMB_W / 1920;
+
+  const thumbnailHtmls = useMemo(() =>
+    slides.map((slide) =>
+      buildDeckHtml(
+        [{ ...slide, bodyContent: "", layoutOverride: undefined, imageUrl: undefined } as SlideContent],
+        undefined,
+        { thumbnail: true }
+      )
+    ),
+    [slides]
+  );
 
   const handleDownloadHtml = () => {
     const deck = deckId ? getById(deckId) : undefined;
@@ -287,24 +302,21 @@ export default function PreviewContent() {
                 }}
                 className={`w-full cursor-pointer rounded text-left transition-all ${i === currentSlide ? "ring-2 ring-[var(--color-cpf-green)] ring-offset-1" : "hover:ring-1 hover:ring-[var(--color-border-strong)]"}`}>
                 <div className="overflow-hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <div className="relative aspect-video bg-[var(--color-cpf-mint)]">
-                    {(() => {
-                      const isDark = LAYOUTS.find((l) => l.id === slide.suggestedLayout)?.dark;
-                      return isDark ? (
-                        <div className="flex h-full items-center justify-center bg-[var(--color-cpf-green)]">
-                          <span className="text-[8px] font-medium text-white/70">{getLayoutName(slide.suggestedLayout)}</span>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="h-[20%] w-full bg-[var(--color-cpf-green)]" />
-                          <div className="p-1.5 space-y-1">
-                            <div className="h-1 w-3/4 rounded-full bg-[var(--color-border)]" />
-                            <div className="h-1 w-1/2 rounded-full bg-[var(--color-border)]" />
-                            <div className="h-1 w-2/3 rounded-full bg-[var(--color-border)]" />
-                          </div>
-                        </>
-                      );
-                    })()}
+                  <div style={{ width: THUMB_W, height: THUMB_H, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                    <iframe
+                      srcDoc={thumbnailHtmls[i]}
+                      style={{
+                        width: '1920px',
+                        height: '1080px',
+                        transform: `scale(${THUMB_SCALE})`,
+                        transformOrigin: 'top left',
+                        pointerEvents: 'none',
+                        border: 'none',
+                        display: 'block',
+                      }}
+                      loading="lazy"
+                      title={`Slide ${i + 1} preview`}
+                    />
                   </div>
                   <div className="px-2 py-1.5">
                     <div className="flex items-center gap-1.5">
