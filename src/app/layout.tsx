@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import DaemonStatusPill from "@/components/shared/DaemonStatusPill";
+import MongoStatusPill from "@/components/shared/MongoStatusPill";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -39,6 +40,7 @@ export default function RootLayout({
               </span>
             </Link>
             <nav className="flex items-center gap-4">
+              <MongoStatusPill />
               <DaemonStatusPill />
               <Link
                 href="/workspace"

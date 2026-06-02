@@ -36,6 +36,8 @@ export default function PreviewContent() {
   const [slides, setSlides] = useState<SlideOutline[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [downloading, setDownloading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<"idle" | "ok" | "err">("idle");
   const [layoutPickerOpen, setLayoutPickerOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -51,6 +53,37 @@ export default function PreviewContent() {
     a.click();
     URL.revokeObjectURL(url);
     setDownloadOpen(false);
+  };
+
+  const handleSaveToDb = async () => {
+    const deck = deckId ? getById(deckId) : undefined;
+    if (!deck) return;
+    setSaving(true);
+    setSaveResult("idle");
+    try {
+      const res = await fetch("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deckId: deck.id,
+          name: deck.name,
+          createdAt: deck.createdAt,
+          briefing: deck.briefing,
+          outline: deck.outline,
+          slides: deck.slides,
+          htmlContent: deck.htmlContent ?? "",
+          source: deck.source,
+          status: "built",
+          overlayBlocks: deck.overlayBlocks,
+        }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      setSaveResult("ok");
+    } catch {
+      setSaveResult("err");
+    } finally {
+      setSaving(false);
+    }
   };
   const overlayRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; startX: number; startY: number; blockX: number; blockY: number } | null>(null);
@@ -399,6 +432,16 @@ export default function PreviewContent() {
             )}
             <Link href={`/outline?deckId=${encodeURIComponent(deckId ?? "")}`}
               className="rounded border border-[var(--color-border)] px-3 py-2 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:bg-[var(--color-cpf-mint)]">Back to Outline</Link>
+            <button onClick={handleSaveToDb} disabled={saving || saveResult === "ok"}
+              className={`rounded px-4 py-2 text-xs font-medium transition-colors ${
+                saveResult === "ok"
+                  ? "border border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] text-[var(--color-cpf-green)]"
+                  : saveResult === "err"
+                    ? "border border-red-300 bg-red-50 text-red-600"
+                    : "border border-[var(--color-cpf-green)] text-[var(--color-cpf-green)] hover:bg-[var(--color-cpf-mint)]"
+              } disabled:cursor-not-allowed disabled:opacity-60`}>
+              {saving ? "Saving..." : saveResult === "ok" ? "Saved to DB ✓" : saveResult === "err" ? "Save failed ✗" : "Save to DB"}
+            </button>
             <div className="relative">
               <button onClick={(e) => { e.stopPropagation(); setDownloadOpen(!downloadOpen); }} disabled={downloading}
                 className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)] disabled:cursor-wait disabled:opacity-60">
