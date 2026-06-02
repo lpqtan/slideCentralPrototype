@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDeckStore } from "@/hooks/useDeckStore";
-import type { SlideOutline, GenerationSource } from "@/lib/types";
+import type { GenerationSource } from "@/lib/types";
 
 interface StatusEvent {
   formattedTime: string;
@@ -117,7 +117,6 @@ export default function GeneratingContent() {
             } else if (line.startsWith("data: ")) {
               currentData = line.slice(6);
             } else if (line === "" && currentData) {
-              // Process event
               if (currentEvent === "status") {
                 try {
                   const parsed = JSON.parse(currentData);
@@ -151,7 +150,7 @@ export default function GeneratingContent() {
               if (currentEvent === "complete") {
                 try {
                   const parsed = JSON.parse(currentData) as {
-                    outline: SlideOutline[];
+                    outline: import("@/lib/types").SlideOutline[];
                     source: GenerationSource;
                   };
                   if (abortedRef.current) return;
