@@ -36,6 +36,8 @@ export default function PreviewContent() {
   const [slides, setSlides] = useState<SlideOutline[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [downloading, setDownloading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<"idle" | "ok" | "err">("idle");
   const [layoutPickerOpen, setLayoutPickerOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -67,8 +69,42 @@ export default function PreviewContent() {
     URL.revokeObjectURL(url);
     setDownloadOpen(false);
   };
+
+  const handleSaveToDb = async () => {
+    const deck = deckId ? getById(deckId) : undefined;
+    if (!deck) return;
+    setSaving(true);
+    setSaveResult("idle");
+    try {
+      const res = await fetch("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deckId: deck.id,
+          name: deck.name,
+          createdAt: deck.createdAt,
+          briefing: deck.briefing,
+          outline: deck.outline,
+          slides: deck.slides,
+          htmlContent: deck.htmlContent ?? "",
+          source: deck.source,
+          status: "built",
+          overlayBlocks: deck.overlayBlocks,
+        }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      setSaveResult("ok");
+    } catch {
+      setSaveResult("err");
+    } finally {
+      setSaving(false);
+    }
+  };
   const overlayRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; startX: number; startY: number; blockX: number; blockY: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const slideFrameRef = useRef<HTMLDivElement>(null);
+  const [slideSize, setSlideSize] = useState<{ w: number; h: number } | null>(null);
 
   // Edit mode
   const [editMode, setEditMode] = useState(false);
@@ -276,6 +312,26 @@ export default function PreviewContent() {
     return () => window.removeEventListener("message", handler);
   }, []);
 
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const ro = new ResizeObserver((entries) => {
+      const { clientWidth: cw, clientHeight: ch } = entries[0].target;
+      const aspect = 16 / 9;
+      let w: number, h: number;
+      if (cw / ch > aspect) {
+        h = ch;
+        w = h * aspect;
+      } else {
+        w = cw;
+        h = w / aspect;
+      }
+      setSlideSize({ w: Math.floor(w), h: Math.floor(h) });
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [!!deckHtml]);
+
   if (!deckHtml) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -409,6 +465,16 @@ export default function PreviewContent() {
             )}
             <Link href={`/outline?deckId=${encodeURIComponent(deckId ?? "")}`}
               className="rounded border border-[var(--color-border)] px-3 py-2 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:bg-[var(--color-cpf-mint)]">Back to Outline</Link>
+            <button onClick={handleSaveToDb} disabled={saving || saveResult === "ok"}
+              className={`rounded px-4 py-2 text-xs font-medium transition-colors ${
+                saveResult === "ok"
+                  ? "border border-[var(--color-cpf-green)] bg-[var(--color-cpf-mint)] text-[var(--color-cpf-green)]"
+                  : saveResult === "err"
+                    ? "border border-red-300 bg-red-50 text-red-600"
+                    : "border border-[var(--color-cpf-green)] text-[var(--color-cpf-green)] hover:bg-[var(--color-cpf-mint)]"
+              } disabled:cursor-not-allowed disabled:opacity-60`}>
+              {saving ? "Saving..." : saveResult === "ok" ? "Saved to DB ✓" : saveResult === "err" ? "Save failed ✗" : "Save to DB"}
+            </button>
             <div className="relative">
               <button onClick={(e) => { e.stopPropagation(); setDownloadOpen(!downloadOpen); }} disabled={downloading}
                 className="rounded bg-[var(--color-cpf-green)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)] disabled:cursor-wait disabled:opacity-60">
@@ -459,51 +525,60 @@ export default function PreviewContent() {
         )}
 
         {/* Iframe + Overlay */}
-        <div className="min-h-0 flex-1 overflow-hidden border border-[var(--color-border)] mx-6 relative">
-          <iframe ref={iframeRef} srcDoc={deckHtml}
-            className="h-full w-full border-0" allowFullScreen title="Slide Deck Preview" />
-          {/* Overlay — edit mode only */}
-          {editMode && (() => {
-            const blocks = editBlocks;
-            if (!blocks.length) return null;
-            return (
-              <div ref={overlayRef} className="absolute inset-0 z-10" style={{ pointerEvents: editMode ? "auto" : "none" }}>
-                {blocks.map((block) => (
-                  <div key={block.id}
-                    style={{
-                      position: "absolute", left: `${block.x}%`, top: `${block.y}%`,
-                      transform: "translate(-50%, -50%)",
-                      zIndex: selectedId === block.id ? 20 : 10,
-                      cursor: editMode ? "move" : undefined,
-                    }}
-                    onPointerDown={editMode ? (e) => onPointerDown(e, block) : undefined}
-                    onDoubleClick={editMode ? () => startEdit(block) : undefined}>
-                    <div className={`rounded select-none ${editMode && selectedId === block.id ? "ring-2 ring-[var(--color-cpf-green)] ring-offset-1 ring-offset-black/5" : ""}`}
-                      style={{
-                        color: block.color, fontWeight: block.bold ? 700 : 400,
-                        fontStyle: block.italic ? "italic" : "normal",
-                        fontSize: "clamp(11px, 1.5cqw, 26px)",
-                        fontFamily: "Roboto, system-ui, sans-serif",
-                        textAlign: "center", maxWidth: "420px", wordBreak: "break-word",
-                        backgroundColor: "transparent",
-                        padding: editingId === block.id ? "6px 14px" : "3px 8px", borderRadius: 4,
-                      }}>
-                      {editMode && editingId === block.id ? (
-                        <input autoFocus value={editText} onChange={(e) => setEditText(e.target.value)}
-                          onBlur={commitEdit}
-                          onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditingId(null); }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="bg-transparent border-none outline-none text-center"
-                          style={{ color: block.color, fontWeight: block.bold ? 700 : 400, fontStyle: block.italic ? "italic" : "normal", fontSize: "inherit", fontFamily: "inherit", width: "100%", minWidth: "120px" }} />
-                      ) : (
-                        <span style={{ whiteSpace: "pre-wrap" }}>{block.text}</span>
-                      )}
+        <div ref={containerRef} className="min-h-0 flex-1 flex items-center justify-center mx-6 overflow-hidden">
+          {slideSize ? (
+            <div ref={slideFrameRef} className="relative overflow-hidden"
+              style={{ width: slideSize.w, height: slideSize.h }}>
+              <iframe ref={iframeRef} srcDoc={deckHtml}
+                className="h-full w-full border-0" allowFullScreen title="Slide Deck Preview" />
+              {/* Overlay — edit mode only */}
+              {editMode && (() => {
+                const blocks = editBlocks;
+                if (!blocks.length) return null;
+                return (
+                  <div ref={overlayRef} className="absolute inset-0 z-10" style={{ pointerEvents: editMode ? "auto" : "none" }}>
+                    {blocks.map((block) => (
+                      <div key={block.id}
+                        style={{
+                          position: "absolute", left: `${block.x}%`, top: `${block.y}%`,
+                          transform: "translate(-50%, -50%)",
+                          zIndex: selectedId === block.id ? 20 : 10,
+                          cursor: editMode ? "move" : undefined,
+                        }}
+                        onPointerDown={editMode ? (e) => onPointerDown(e, block) : undefined}
+                        onDoubleClick={editMode ? () => startEdit(block) : undefined}>
+                        <div className={`rounded select-none ${editMode && selectedId === block.id ? "ring-2 ring-[var(--color-cpf-green)] ring-offset-1 ring-offset-black/5" : ""}`}
+                          style={{
+                            color: block.color, fontWeight: block.bold ? 700 : 400,
+                            fontStyle: block.italic ? "italic" : "normal",
+                            fontSize: "clamp(11px, 1.5cqw, 26px)",
+                            fontFamily: "Roboto, system-ui, sans-serif",
+                            textAlign: "center", maxWidth: "420px", wordBreak: "break-word",
+                            backgroundColor: "transparent",
+                            padding: editingId === block.id ? "6px 14px" : "3px 8px", borderRadius: 4,
+                          }}>
+                          {editMode && editingId === block.id ? (
+                            <input autoFocus value={editText} onChange={(e) => setEditText(e.target.value)}
+                              onBlur={commitEdit}
+                              onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditingId(null); }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="bg-transparent border-none outline-none text-center"
+                              style={{ color: block.color, fontWeight: block.bold ? 700 : 400, fontStyle: block.italic ? "italic" : "normal", fontSize: "inherit", fontFamily: "inherit", width: "100%", minWidth: "120px" }} />
+                          ) : (
+                            <span style={{ whiteSpace: "pre-wrap" }}>{block.text}</span>
+                          )}
+                      </div>
+                      </div>
+                    ))}
                   </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[var(--color-cpf-green)] border-t-transparent" />
+            </div>
+          )}
         </div>
 
         {/* Brand bar */}
