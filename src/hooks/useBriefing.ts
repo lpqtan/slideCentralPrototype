@@ -135,8 +135,9 @@ export function useBriefing() {
       case 2:
         return briefing.keyMessage.trim().length > 0 && briefing.audienceAsk.trim().length > 0;
       case 3:
-        return briefing.narrativeArc !== null;
+        return true;
       case 4:
+        return briefing.narrativeArc !== null;
       case 5:
         return true;
       default:

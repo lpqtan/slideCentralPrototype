@@ -12,7 +12,7 @@ import StepTemplate from "@/components/wizard/StepTemplate";
 import StepContent from "@/components/wizard/StepContent";
 import { createMockDeck } from "@/lib/mock-deck";
 
-const STEP_LABELS = ["Context", "Message", "Narrative", "Template", "Content"];
+const STEP_LABELS = ["Context", "Message", "Content", "Narrative", "Template"];
 
 export default function BriefingPage() {
   const router = useRouter();
@@ -128,18 +128,18 @@ export default function BriefingPage() {
           />
         )}
         {step === 3 && (
-          <StepNarrative arc={briefing.narrativeArc} onChange={setNarrativeArc} />
-        )}
-        {step === 4 && (
-          <StepTemplate
-            selected={briefing.selectedLayouts[0] ?? null}
-            onSelect={setSelectedLayout}
-          />
-        )}
-        {step === 5 && (
           <StepContent
             additionalContent={briefing.additionalContent ?? ""}
             onChange={setAdditionalContent}
+          />
+        )}
+        {step === 4 && (
+          <StepNarrative arc={briefing.narrativeArc} onChange={setNarrativeArc} />
+        )}
+        {step === 5 && (
+          <StepTemplate
+            selected={briefing.selectedLayouts[0] ?? null}
+            onSelect={setSelectedLayout}
           />
         )}
       </div>

@@ -43,6 +43,12 @@ export default function RootLayout({
               <MongoStatusPill />
               <DaemonStatusPill />
               <Link
+                href="/gallery"
+                className="text-sm text-[var(--color-fg-soft)] transition-colors hover:text-[var(--color-cpf-green)]"
+              >
+                Gallery
+              </Link>
+              <Link
                 href="/workspace"
                 className="text-sm text-[var(--color-fg-soft)] transition-colors hover:text-[var(--color-cpf-green)]"
               >

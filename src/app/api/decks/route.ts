@@ -8,7 +8,7 @@ export async function GET() {
     const collection = db.collection<DbDeck>("decks");
 
     const docs = await collection
-      .find({}, { projection: { deckId: 1, name: 1, createdAt: 1, updatedAt: 1, status: 1, slides: 1, htmlContent: 1 } })
+      .find({}, { projection: { deckId: 1, name: 1, createdAt: 1, updatedAt: 1, status: 1, slides: 1, outline: 1, htmlContent: 1 } })
       .sort({ updatedAt: -1 })
       .toArray();
 
@@ -17,7 +17,7 @@ export async function GET() {
       name: doc.name,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
-      slideCount: doc.slides?.length ?? 0,
+      slideCount: doc.slides?.length ?? doc.outline?.length ?? 0,
       status: doc.status,
       htmlContent: doc.htmlContent ?? "",
     }));

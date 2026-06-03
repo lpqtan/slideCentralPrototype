@@ -1,7 +1,7 @@
 // Shared TypeScript types for the Slide Central application
 
 /** Briefing wizard step identifiers */
-export type BriefingStep = 1 | 2 | 3 | 4;
+export type BriefingStep = 1 | 2 | 3 | 4 | 5;
 
 /** Narrative arc types */
 export type NarrativeArc = "proposal" | "status" | "teaching";
