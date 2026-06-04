@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useDeckStore } from "@/hooks/useDeckStore";
 import { useHistory } from "@/hooks/useHistory";
-import { buildDeckHtml, injectAllOverlaysIntoHtml } from "@/lib/deck-builder";
-import type { SlideOutline, SlideContent, TextBlock } from "@/lib/types";
+import { buildSlidePreviewHtml } from "@/lib/preview-builder";
+import type { SlideContent, TextBlock } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
 
 const COLORS = [
@@ -31,9 +31,8 @@ export default function PreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deckId = searchParams.get("deckId");
-  const { getById, setOverlayBlocks, setDeckSlides, setDeckHtml: storeDeckHtml, patchOutlineLayout } = useDeckStore();
-  const [deckHtml, setDeckHtml] = useState<string | null>(null);
-  const [slides, setSlides] = useState<SlideOutline[]>([]);
+  const { getById, setOverlayBlocks, setDeckSlides, patchSlides, patchOutlineLayout } = useDeckStore();
+  const [slides, setSlides] = useState<SlideContent[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [dbSaving, setDbSaving] = useState(false);
@@ -41,22 +40,18 @@ export default function PreviewContent() {
   const [saveResult, setSaveResult] = useState<"idle" | "ok" | "err">("idle");
   const [layoutPickerOpen, setLayoutPickerOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
+  const SLIDE_W = 1333;
+  const SLIDE_H = 750;
   const THUMB_W = 180;
-  const THUMB_H = Math.round(THUMB_W * 1080 / 1920);
-  const THUMB_SCALE = THUMB_W / 1920;
+  const THUMB_H = Math.round(THUMB_W * SLIDE_H / SLIDE_W);
+  const THUMB_SCALE = THUMB_W / SLIDE_W;
 
-  const thumbnailHtmls = useMemo(() =>
-    slides.map((slide) =>
-      buildDeckHtml(
-        [{ ...slide, bodyContent: "", layoutOverride: undefined, imageUrl: undefined } as SlideContent],
-        undefined,
-        { thumbnail: true }
-      )
-    ),
+  const slidePreviewHtmls = useMemo(
+    () => slides.map((slide, i) => buildSlidePreviewHtml(slide, i, slides.length)),
     [slides]
   );
+
+  const currentSlideHtml = slidePreviewHtmls[currentSlide] ?? "";
 
   const handleDownloadHtml = () => {
     const deck = deckId ? getById(deckId) : undefined;
@@ -109,78 +104,62 @@ export default function PreviewContent() {
 
   // Edit mode
   const [editMode, setEditMode] = useState(false);
-  const [baseHtml, setBaseHtml] = useState<string | null>(null);
   const editHistory = useHistory<TextBlock[]>([]);
   const editBlocks = editHistory.state;
   const setEditBlocks = (v: TextBlock[]) => editHistory.push(v);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [activeInlineField, setActiveInlineField] = useState<"title" | "body" | null>(null);
 
   const selectedBlock = selectedId ? editBlocks.find((b) => b.id === selectedId) : null;
-  const currentSlideData = slides[currentSlide] as (SlideOutline & { bodyContent?: string }) | undefined;
-  const isHero = currentSlideData ? (LAYOUTS.find((l) => l.id === currentSlideData.suggestedLayout)?.dark ?? false) : false;
+  const currentSlideData = slides[currentSlide] as SlideContent | undefined;
+  const isHero = currentSlideData ? (LAYOUTS.find((l) => l.id === (currentSlideData.layoutOverride ?? currentSlideData.suggestedLayout))?.dark ?? false) : false;
 
   const enterEditMode = () => {
     const deck = getById(deckId ?? "");
-    const cleanHtml = baseHtml ?? (deck?.slides ? buildDeckHtml(deck.slides) : null);
-    if (cleanHtml) setDeckHtml(cleanHtml);
     const saved = deck?.overlayBlocks?.[currentSlide] || [];
     editHistory.push(saved.map((b) => ({ ...b })), true);
+    setEditTitle(slides[currentSlide]?.title ?? "");
+    setEditBody(slides[currentSlide]?.bodyContent ?? "");
     setEditMode(true);
     setSelectedId(null);
     setEditingId(null);
-    setTimeout(() => {
-      iframeRef.current?.contentWindow?.postMessage({ showNav: false, editMode: true }, "*");
-    }, 200);
+  };
+
+  const handleTitleChange = (val: string) => {
+    setEditTitle(val);
+    const updated = slides.map((s, i) => i === currentSlide ? { ...s, title: val } : s);
+    setSlides(updated);
+  };
+
+  const handleBodyChange = (val: string) => {
+    setEditBody(val);
+    const updated = slides.map((s, i) => i === currentSlide ? { ...s, bodyContent: val } : s);
+    setSlides(updated);
   };
 
   const saveEdit = async () => {
     if (!deckId) return;
     setSaving(true);
-    // Get the current iframe HTML (includes inline text edits)
-    const editedHtml = await new Promise<string>((resolve) => {
-      const handler = (e: MessageEvent) => {
-        if (e.data?.type === "deckContent") {
-          window.removeEventListener("message", handler);
-          resolve(e.data.html as string);
-        }
-      };
-      window.addEventListener("message", handler);
-      iframeRef.current?.contentWindow?.postMessage({ getContent: true }, "*");
-      setTimeout(() => { window.removeEventListener("message", handler); resolve(""); }, 3000);
-    });
-
-    const cleanedHtml = editedHtml.replace(/ contenteditable="true"/g, "");
-    setBaseHtml(cleanedHtml || null); // Preserve inline edits for next edit session
-
     setOverlayBlocks(deckId, currentSlide, editBlocks);
-    const deck = getById(deckId);
-    const allOverlay = { ...deck?.overlayBlocks, [currentSlide]: editBlocks };
-    const finalHtml = cleanedHtml ? injectAllOverlaysIntoHtml(cleanedHtml, allOverlay) : buildDeckHtml(deck?.slides ?? [], allOverlay);
-
-    storeDeckHtml(deckId, finalHtml);
-    setDeckHtml(finalHtml);
+    patchSlides(deckId, slides);
     setSaving(false);
     setEditMode(false);
     setSelectedId(null);
     setEditingId(null);
-    iframeRef.current?.contentWindow?.postMessage({ showNav: true, editMode: false }, "*");
   };
 
   const changeLayout = (layoutId: string) => {
     if (!deckId) return;
-    const deck = getById(deckId);
-    const source = deck?.slides?.length ? deck.slides : deck?.outline || [];
-    const updated = source.map((s, i) =>
+    const updated = slides.map((s, i) =>
       i === currentSlide ? { ...s, suggestedLayout: layoutId as SlideContent["suggestedLayout"] } : s
-    ) as SlideContent[];
-    setDeckSlides(deckId, updated);
-    patchOutlineLayout(deckId, currentSlide, layoutId);
-    const newHtml = buildDeckHtml(updated, deck?.overlayBlocks);
-    storeDeckHtml(deckId, newHtml);
-    setDeckHtml(newHtml);
+    );
     setSlides(updated);
+    patchSlides(deckId, updated);
+    patchOutlineLayout(deckId, currentSlide, layoutId);
     setLayoutPickerOpen(false);
   };
 
@@ -264,12 +243,14 @@ export default function PreviewContent() {
     document.addEventListener("pointerup", onUp);
   };
 
-  // Load overlay blocks when slide changes in edit mode
+  // Sync edit fields when slide changes in edit mode
   useEffect(() => {
     if (!editMode || !deckId) return;
     const deck = getById(deckId);
     const saved = deck?.overlayBlocks?.[currentSlide] || [];
     editHistory.push(saved.map((b) => ({ ...b })), true);
+    setEditTitle(slides[currentSlide]?.title ?? "");
+    setEditBody(slides[currentSlide]?.bodyContent ?? "");
     setSelectedId(null);
     setEditingId(null);
   }, [currentSlide]);
@@ -278,13 +259,15 @@ export default function PreviewContent() {
     setDownloading(true);
     try {
       const deck = deckId ? getById(deckId) : undefined;
-      const html = deck?.htmlContent ?? "";
       const res = await fetch("/api/export-pptx", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html }),
+        body: JSON.stringify({ slides: deck?.slides ?? [], overlayBlocks: deck?.overlayBlocks }),
       });
-      if (!res.ok) throw new Error("Export failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error ?? "Export failed");
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -300,17 +283,25 @@ export default function PreviewContent() {
   useEffect(() => {
     if (!deckId) { router.push("/briefing"); return; }
     const deck = getById(deckId);
-    if (deck?.htmlContent) setDeckHtml(deck.htmlContent);
-    if (deck?.outline) { setSlides(deck.outline); setCurrentSlide(0); }
+    if (deck?.slides?.length) {
+      setSlides(deck.slides);
+      setCurrentSlide(0);
+    } else if (deck?.outline) {
+      setSlides(deck.outline.map((o) => ({ ...o, bodyContent: "" })));
+      setCurrentSlide(0);
+    }
   }, [deckId, getById, router]);
 
   useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.data && typeof e.data.slide === "number") setCurrentSlide(e.data.slide);
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") setCurrentSlide((p) => Math.min(p + 1, slides.length - 1));
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") setCurrentSlide((p) => Math.max(p - 1, 0));
+      else if (e.key === "Home") setCurrentSlide(0);
+      else if (e.key === "End") setCurrentSlide(slides.length - 1);
     };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, []);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [slides.length]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -319,20 +310,39 @@ export default function PreviewContent() {
       const { clientWidth: cw, clientHeight: ch } = entries[0].target;
       const aspect = 16 / 9;
       let w: number, h: number;
-      if (cw / ch > aspect) {
-        h = ch;
-        w = h * aspect;
-      } else {
-        w = cw;
-        h = w / aspect;
-      }
+      if (cw / ch > aspect) { h = ch; w = h * aspect; }
+      else { w = cw; h = w / aspect; }
       setSlideSize({ w: Math.floor(w), h: Math.floor(h) });
     });
     ro.observe(container);
     return () => ro.disconnect();
-  }, [!!deckHtml]);
+  }, [slides.length > 0]);
 
-  if (!deckHtml) {
+  // Inline edit regions per layout (coordinates in inches, matching preview-builder.ts)
+  type InlineRegion = { field: "title" | "body"; x: number; y: number; w: number; h: number; fontSize: number; multiline: boolean; fontWeight?: number; color: string };
+  function getInlineRegions(layoutId: string): InlineRegion[] {
+    const dark = "#FFFFFF", muted = "#DDDDDD", fg = "#1A1A1A", soft = "#6B6B6B", body = "#3A3A3A";
+    const titleBlock = { field: "title" as const, x: 0.5, y: 0.35, w: 12.3, h: 0.45, fontSize: 24, multiline: false, fontWeight: 700, color: fg };
+    const defaultBody = { field: "body" as const, x: 0.8, y: 1.1, w: 11.7, h: 5.2, fontSize: 14, multiline: true, color: body };
+    if (layoutId === "cover")
+      return [{ field: "title", x: 1, y: 2, w: 11.3, h: 1.5, fontSize: 44, multiline: false, fontWeight: 700, color: dark },
+              { field: "body", x: 1, y: 3.95, w: 11.3, h: 1.5, fontSize: 18, multiline: true, color: muted }];
+    if (layoutId === "section-divider")
+      return [{ field: "title", x: 1, y: 2, w: 11.3, h: 1.0, fontSize: 36, multiline: false, fontWeight: 700, color: fg },
+              { field: "body", x: 1, y: 3.2, w: 11.3, h: 1.5, fontSize: 16, multiline: true, color: soft }];
+    if (layoutId === "big-stat")
+      return [{ field: "title", x: 0, y: 1.0, w: 13.333, h: 0.5, fontSize: 12, multiline: false, color: "AAAAAA" },
+              { field: "body", x: 1, y: 1.5, w: 11.3, h: 4.0, fontSize: 18, multiline: true, color: dark }];
+    if (layoutId === "quote-testimonial")
+      return [{ field: "title", x: 1.5, y: 0.5, w: 10.3, h: 0.5, fontSize: 12, multiline: false, color: "AAAAAA" },
+              { field: "body", x: 1.5, y: 1.5, w: 10.3, h: 4.0, fontSize: 24, multiline: true, color: dark }];
+    if (layoutId === "closing")
+      return [{ field: "title", x: 1, y: 2.5, w: 11.3, h: 0.75, fontSize: 40, multiline: false, fontWeight: 700, color: dark },
+              { field: "body", x: 1, y: 3.5, w: 11.3, h: 1.5, fontSize: 16, multiline: true, color: muted }];
+    return [titleBlock, defaultBody];
+  }
+
+  if (!slides.length) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <p className="text-sm text-[var(--color-muted)]">No deck to preview.</p>
@@ -352,26 +362,19 @@ export default function PreviewContent() {
           <div className="space-y-2">
             {slides.map((slide, i) => (
               <button key={slide.slideNumber}
-                onClick={() => {
-                  setCurrentSlide(i);
-                  iframeRef.current?.contentWindow?.postMessage({ slide: i }, "*");
-                }}
+                onClick={() => setCurrentSlide(i)}
                 className={`w-full cursor-pointer rounded text-left transition-all ${i === currentSlide ? "ring-2 ring-[var(--color-cpf-green)] ring-offset-1" : "hover:ring-1 hover:ring-[var(--color-border-strong)]"}`}>
                 <div className="overflow-hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)]">
                   <div style={{ width: THUMB_W, height: THUMB_H, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                    <iframe
-                      srcDoc={thumbnailHtmls[i]}
+                    <div
                       style={{
-                        width: '1920px',
-                        height: '1080px',
+                        width: SLIDE_W, height: SLIDE_H,
                         transform: `scale(${THUMB_SCALE})`,
                         transformOrigin: 'top left',
                         pointerEvents: 'none',
-                        border: 'none',
-                        display: 'block',
+                        position: 'absolute', top: 0, left: 0,
                       }}
-                      loading="lazy"
-                      title={`Slide ${i + 1} preview`}
+                      dangerouslySetInnerHTML={{ __html: slidePreviewHtmls[i] ?? "" }}
                     />
                   </div>
                   <div className="px-2 py-1.5">
@@ -529,11 +532,66 @@ export default function PreviewContent() {
           {slideSize ? (
             <div ref={slideFrameRef} className="relative overflow-hidden"
               style={{ width: slideSize.w, height: slideSize.h }}>
-              <iframe ref={iframeRef} srcDoc={deckHtml}
-                className="h-full w-full border-0" allowFullScreen title="Slide Deck Preview" />
-              {/* Overlay — edit mode only */}
-              {editMode && (() => {
-                const blocks = editBlocks;
+              <div
+                style={{
+                  width: SLIDE_W, height: SLIDE_H,
+                  transform: `scale(${slideSize.w / SLIDE_W})`,
+                  transformOrigin: 'top left',
+                  position: 'absolute', top: 0, left: 0,
+                }}
+                dangerouslySetInnerHTML={{ __html: currentSlideHtml }}
+              />
+              {/* Inline edit regions for title/body — edit mode only */}
+              {editMode && currentSlideData && (
+                <div
+                  className="absolute top-0 left-0"
+                  style={{
+                    width: SLIDE_W, height: SLIDE_H,
+                    transform: `scale(${slideSize.w / SLIDE_W})`,
+                    transformOrigin: 'top left',
+                    zIndex: 5,
+                  }}
+                >
+                  {getInlineRegions(currentSlideData.layoutOverride ?? currentSlideData.suggestedLayout).map((region) => {
+                    const isActive = activeInlineField === region.field;
+                    const px = (inch: number) => inch * 100;
+                    const fontPx = region.fontSize * (100 / 72);
+                    const commonStyle: React.CSSProperties = {
+                      position: "absolute",
+                      left: px(region.x), top: px(region.y),
+                      width: px(region.w), height: px(region.h),
+                      fontSize: fontPx, fontWeight: region.fontWeight ?? 400,
+                      fontFamily: "Roboto, system-ui, sans-serif",
+                      lineHeight: 1.3, color: region.color,
+                    };
+                    if (isActive) {
+                      return region.multiline ? (
+                        <textarea key={region.field} autoFocus value={editBody}
+                          onChange={(e) => handleBodyChange(e.target.value)}
+                          onBlur={() => setActiveInlineField(null)}
+                          style={{ ...commonStyle, background: "rgba(255,255,255,0.92)", color: "#1A1A1A", border: "2px solid #045941", borderRadius: 4, padding: 4, resize: "none", outline: "none" }} />
+                      ) : (
+                        <input key={region.field} autoFocus value={editTitle}
+                          onChange={(e) => handleTitleChange(e.target.value)}
+                          onBlur={() => setActiveInlineField(null)}
+                          onKeyDown={(e) => { if (e.key === "Enter") setActiveInlineField(null); }}
+                          style={{ ...commonStyle, background: "rgba(255,255,255,0.92)", color: "#1A1A1A", border: "2px solid #045941", borderRadius: 4, padding: "0 4px", outline: "none" }} />
+                      );
+                    }
+                    return (
+                      <div key={region.field}
+                        onClick={() => setActiveInlineField(region.field)}
+                        title={`Click to edit ${region.field}`}
+                        style={{ position: "absolute", left: px(region.x), top: px(region.y), width: px(region.w), height: px(region.h), cursor: "text", borderRadius: 4, background: "transparent", outline: "1px dashed rgba(4,89,65,0.35)" }} />
+                    );
+                  })}
+                </div>
+              )}
+              {/* Overlay — interactive in edit mode, static in view mode */}
+              {(() => {
+                const blocks = editMode
+                  ? editBlocks
+                  : (deckId ? (getById(deckId)?.overlayBlocks?.[currentSlide] ?? []) : []);
                 if (!blocks.length) return null;
                 return (
                   <div ref={overlayRef} className="absolute inset-0 z-10" style={{ pointerEvents: editMode ? "auto" : "none" }}>
@@ -551,7 +609,7 @@ export default function PreviewContent() {
                           style={{
                             color: block.color, fontWeight: block.bold ? 700 : 400,
                             fontStyle: block.italic ? "italic" : "normal",
-                            fontSize: "clamp(11px, 1.5cqw, 26px)",
+                            fontSize: slideSize ? `${Math.round(20 * (100 / 72) * slideSize.w / SLIDE_W)}px` : "14px",
                             fontFamily: "Roboto, system-ui, sans-serif",
                             textAlign: "center", maxWidth: "420px", wordBreak: "break-word",
                             backgroundColor: "transparent",
