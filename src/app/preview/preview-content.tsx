@@ -110,6 +110,8 @@ export default function PreviewContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
 
   const selectedBlock = selectedId ? editBlocks.find((b) => b.id === selectedId) : null;
   const currentSlideData = slides[currentSlide] as SlideContent | undefined;
@@ -119,15 +121,30 @@ export default function PreviewContent() {
     const deck = getById(deckId ?? "");
     const saved = deck?.overlayBlocks?.[currentSlide] || [];
     editHistory.push(saved.map((b) => ({ ...b })), true);
+    setEditTitle(slides[currentSlide]?.title ?? "");
+    setEditBody(slides[currentSlide]?.bodyContent ?? "");
     setEditMode(true);
     setSelectedId(null);
     setEditingId(null);
+  };
+
+  const handleTitleChange = (val: string) => {
+    setEditTitle(val);
+    const updated = slides.map((s, i) => i === currentSlide ? { ...s, title: val } : s);
+    setSlides(updated);
+  };
+
+  const handleBodyChange = (val: string) => {
+    setEditBody(val);
+    const updated = slides.map((s, i) => i === currentSlide ? { ...s, bodyContent: val } : s);
+    setSlides(updated);
   };
 
   const saveEdit = async () => {
     if (!deckId) return;
     setSaving(true);
     setOverlayBlocks(deckId, currentSlide, editBlocks);
+    patchSlides(deckId, slides);
     setSaving(false);
     setEditMode(false);
     setSelectedId(null);
@@ -225,12 +242,14 @@ export default function PreviewContent() {
     document.addEventListener("pointerup", onUp);
   };
 
-  // Load overlay blocks when slide changes in edit mode
+  // Sync edit fields when slide changes in edit mode
   useEffect(() => {
     if (!editMode || !deckId) return;
     const deck = getById(deckId);
     const saved = deck?.overlayBlocks?.[currentSlide] || [];
     editHistory.push(saved.map((b) => ({ ...b })), true);
+    setEditTitle(slides[currentSlide]?.title ?? "");
+    setEditBody(slides[currentSlide]?.bodyContent ?? "");
     setSelectedId(null);
     setEditingId(null);
   }, [currentSlide]);
@@ -497,9 +516,11 @@ export default function PreviewContent() {
                 }}
                 dangerouslySetInnerHTML={{ __html: currentSlideHtml }}
               />
-              {/* Overlay — edit mode only */}
-              {editMode && (() => {
-                const blocks = editBlocks;
+              {/* Overlay — interactive in edit mode, static in view mode */}
+              {(() => {
+                const blocks = editMode
+                  ? editBlocks
+                  : (deckId ? (getById(deckId)?.overlayBlocks?.[currentSlide] ?? []) : []);
                 if (!blocks.length) return null;
                 return (
                   <div ref={overlayRef} className="absolute inset-0 z-10" style={{ pointerEvents: editMode ? "auto" : "none" }}>
@@ -517,7 +538,7 @@ export default function PreviewContent() {
                           style={{
                             color: block.color, fontWeight: block.bold ? 700 : 400,
                             fontStyle: block.italic ? "italic" : "normal",
-                            fontSize: "clamp(11px, 1.5cqw, 26px)",
+                            fontSize: slideSize ? `${Math.round(20 * (100 / 72) * slideSize.w / SLIDE_W)}px` : "14px",
                             fontFamily: "Roboto, system-ui, sans-serif",
                             textAlign: "center", maxWidth: "420px", wordBreak: "break-word",
                             backgroundColor: "transparent",
@@ -546,6 +567,36 @@ export default function PreviewContent() {
             </div>
           )}
         </div>
+
+        {/* Slide content editor — edit mode only */}
+        {editMode && (
+          <div className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-3">
+            <div className="flex gap-4">
+              <div className="w-80 shrink-0">
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">Title</label>
+                <input
+                  value={editTitle}
+                  onChange={(e) => handleTitleChange(e.target.value)}
+                  className="w-full rounded border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-fg)] focus:border-[var(--color-cpf-green)] focus:outline-none"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+                  Body Content
+                  <span className="ml-2 font-normal normal-case text-[9px] text-[var(--color-muted)]">
+                    (one line per bullet · use | to separate columns/steps)
+                  </span>
+                </label>
+                <textarea
+                  value={editBody}
+                  onChange={(e) => handleBodyChange(e.target.value)}
+                  rows={3}
+                  className="w-full rounded border border-[var(--color-border)] px-3 py-2 text-xs text-[var(--color-fg)] focus:border-[var(--color-cpf-green)] focus:outline-none resize-none font-mono"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Brand bar */}
         <div className="mt-3 mb-4 shrink-0 flex items-center gap-2 px-6">

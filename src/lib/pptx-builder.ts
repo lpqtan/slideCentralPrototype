@@ -563,17 +563,24 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
 }
 
 function addOverlayBlocks(slide: PptxGenJS.Slide, blocks: TextBlock[]) {
+  const boxW = 4, boxH = 0.5;
   for (const block of blocks) {
+    // block.x/y are percentages of slide; preview centers text at that point via
+    // transform:translate(-50%,-50%), so match by centering the text box here too
+    const cx = (block.x / 100) * W;
+    const cy = (block.y / 100) * H;
     slide.addText(block.text, {
-      x: (block.x / 100) * W,
-      y: (block.y / 100) * H,
-      w: 4,
-      h: 0.5,
+      x: Math.max(0, Math.min(W - boxW, cx - boxW / 2)),
+      y: Math.max(0, Math.min(H - boxH, cy - boxH / 2)),
+      w: boxW,
+      h: boxH,
       fontFace: "Roboto",
-      fontSize: 14,
+      fontSize: 20,
       bold: block.bold,
       italic: block.italic,
       color: block.color.replace("#", ""),
+      align: "center",
+      valign: "middle",
     });
   }
 }
@@ -589,7 +596,7 @@ export async function buildPptx(
 
   slides.forEach((s, i) => {
     const slide = renderSlide(s, i, total, pptx);
-    const blocks = overlayBlocks?.[i + 1] ?? [];
+    const blocks = overlayBlocks?.[i] ?? [];
     if (blocks.length > 0) addOverlayBlocks(slide, blocks);
   });
 
