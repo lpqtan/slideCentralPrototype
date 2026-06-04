@@ -43,7 +43,7 @@ function addFooter(slide: PptxGenJS.Slide, text: string, num: number, total: num
 
 function addLogo(slide: PptxGenJS.Slide, position: "tr" | "br", dark: boolean) {
   const logoData = dark ? LOGO_WHITE_URI : LOGO_GREEN_URI;
-  const w = 0.9, h = 0.9;
+  const w = 0.7, h = 0.7;
   const x = W - w - 0.21;
   const y = position === "br" ? H - h - 0.38 : 0.21;
   slide.addImage({ data: logoData, x, y, w, h });
@@ -51,10 +51,10 @@ function addLogo(slide: PptxGenJS.Slide, position: "tr" | "br", dark: boolean) {
 
 function addTitleBlock(slide: PptxGenJS.Slide, title: string) {
   slide.addText(title, {
-    x: 0.5, y: 0.4, w: 12.3, h: 0.7,
-    fontFace: "Roboto", fontSize: 24, bold: true, color: BRAND.fg,
+    x: 0.5, y: 0.35, w: 12.3, h: 0.45,
+    fontFace: "Roboto", fontSize: 24, bold: true, color: BRAND.fg, margin: 0,
   });
-  slide.addShape("rect", { x: 0.5, y: 1.15, w: 0.56, h: 0.04, fill: { color: BRAND.green } });
+  slide.addShape("rect", { x: 0.5, y: 0.83, w: 0.56, h: 0.04, fill: { color: BRAND.green } });
 }
 
 function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGenJS): PptxGenJS.Slide {
@@ -72,13 +72,13 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
         fontFace: "Roboto", fontSize: 11, color: "AAAAAA",
       });
       slide.addText(s.title, {
-        x: 1, y: 2, w: 11.3, h: 2,
-        fontFace: "Roboto", fontSize: 44, bold: true, color: "FFFFFF",
+        x: 1, y: 2, w: 11.3, h: 1.5,
+        fontFace: "Roboto", fontSize: 44, bold: true, color: "FFFFFF", margin: 0,
       });
-      slide.addShape("rect", { x: 1, y: 4.1, w: 0.56, h: 0.04, fill: { color: "FFFFFF", transparency: 60 } });
+      slide.addShape("rect", { x: 1, y: 3.8, w: 0.56, h: 0.04, fill: { color: "FFFFFF", transparency: 60 } });
       if (lines.length > 0) {
         slide.addText(lines.join("\n"), {
-          x: 1, y: 4.2, w: 11.3, h: 1.5,
+          x: 1, y: 3.95, w: 11.3, h: 1.5,
           fontFace: "Roboto", fontSize: 18, color: "DDDDDD",
         });
       }
@@ -96,13 +96,13 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
       slide.background = { color: BRAND.surface };
       addLogo(slide, "tr", false);
       slide.addText(s.title, {
-        x: 1, y: 2, w: 11.3, h: 2,
-        fontFace: "Roboto", fontSize: 36, bold: true, color: BRAND.fg,
+        x: 1, y: 2, w: 11.3, h: 1.0,
+        fontFace: "Roboto", fontSize: 36, bold: true, color: BRAND.fg, margin: 0,
       });
-      slide.addShape("rect", { x: 1, y: 3.9, w: 0.56, h: 0.04, fill: { color: BRAND.green } });
+      slide.addShape("rect", { x: 1, y: 3.05, w: 0.56, h: 0.04, fill: { color: BRAND.green } });
       if (lines.length > 0) {
         slide.addText(lines.join("\n"), {
-          x: 1, y: 4.05, w: 11.3, h: 1.0,
+          x: 1, y: 2.8, w: 11.3, h: 1.5,
           fontFace: "Roboto", fontSize: 16, color: BRAND.muted,
         });
       }
@@ -177,13 +177,13 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
         fontFace: "Roboto", fontSize: 11, color: "AAAAAA", align: "center",
       });
       slide.addText(s.title, {
-        x: 1, y: 2.5, w: 11.3, h: 1.5,
+        x: 1, y: 2.5, w: 11.3, h: 0.75,
         fontFace: "Roboto", fontSize: 40, bold: true, color: "FFFFFF", align: "center",
       });
-      slide.addShape("rect", { x: W / 2 - 0.28, y: 4.2, w: 0.56, h: 0.04, fill: { color: "FFFFFF", transparency: 60 } });
+      slide.addShape("rect", { x: W / 2 - 0.28, y: 3.3, w: 0.56, h: 0.04, fill: { color: "FFFFFF", transparency: 60 } });
       if (lines.length > 0) {
         slide.addText(lines.join("\n"), {
-          x: 1, y: 4.35, w: 11.3, h: 1.5,
+          x: 1, y: 3.5, w: 11.3, h: 1.5,
           fontFace: "Roboto", fontSize: 16, color: "DDDDDD", align: "center",
         });
       }
@@ -204,10 +204,10 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
       });
       const kpiColors = [BRAND.green, BRAND.pine, BRAND.turq, BRAND.orange];
       const positions = [
-        { x: 0.5, y: 2.0 },
-        { x: 7.0, y: 2.0 },
-        { x: 0.5, y: 4.6 },
-        { x: 7.0, y: 4.6 },
+        { x: 0.5, y: 1.4 },
+        { x: 7.0, y: 1.4 },
+        { x: 0.5, y: 4.0 },
+        { x: 7.0, y: 4.0 },
       ];
       metrics.forEach((m, i) => {
         const pos = positions[i];
@@ -246,35 +246,35 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
           (side === "before" ? beforeLines : afterLines).push(line);
         }
       }
-      slide.addShape("rect", { x: 6.62, y: 1.8, w: 0.04, h: 4.5, fill: { color: BRAND.green } });
+      slide.addShape("rect", { x: 6.62, y: 1.2, w: 0.04, h: 5.1, fill: { color: BRAND.green } });
       // Before column
       slide.addText("BEFORE", {
-        x: 0.5, y: 1.8, w: 5.9, h: 0.4,
+        x: 0.5, y: 1.2, w: 5.9, h: 0.4,
         fontFace: "Roboto", fontSize: 10, bold: true, color: BRAND.muted,
       });
       slide.addText("Current State", {
-        x: 0.5, y: 2.25, w: 5.9, h: 0.5,
+        x: 0.5, y: 1.65, w: 5.9, h: 0.5,
         fontFace: "Roboto", fontSize: 15, bold: true, color: BRAND.fg,
       });
       if (beforeLines.length > 0) {
         slide.addText(
           beforeLines.map((b) => ({ text: b, options: { bullet: true, fontSize: 13, color: BRAND.fg } })),
-          { x: 0.5, y: 2.9, w: 5.9, h: 3.3, fontFace: "Roboto", paraSpaceAfter: 5 }
+          { x: 0.5, y: 2.3, w: 5.9, h: 3.9, fontFace: "Roboto", paraSpaceAfter: 5, valign: "top" }
         );
       }
       // After column
       slide.addText("AFTER", {
-        x: 6.9, y: 1.8, w: 6.0, h: 0.4,
+        x: 6.9, y: 1.2, w: 6.0, h: 0.4,
         fontFace: "Roboto", fontSize: 10, bold: true, color: BRAND.green,
       });
       slide.addText("Target State", {
-        x: 6.9, y: 2.25, w: 6.0, h: 0.5,
+        x: 6.9, y: 1.65, w: 6.0, h: 0.5,
         fontFace: "Roboto", fontSize: 15, bold: true, color: BRAND.fg,
       });
       if (afterLines.length > 0) {
         slide.addText(
           afterLines.map((b) => ({ text: b, options: { bullet: true, fontSize: 13, color: BRAND.fg } })),
-          { x: 6.9, y: 2.9, w: 6.0, h: 3.3, fontFace: "Roboto", paraSpaceAfter: 5 }
+          { x: 6.9, y: 2.3, w: 6.0, h: 3.9, fontFace: "Roboto", paraSpaceAfter: 5, valign: "top" }
         );
       }
       addFooter(slide, s.title, num, total);
@@ -292,26 +292,26 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
       });
       const count = Math.max(steps.length, 1);
       const stepW = (W - 1.0) / count;
-      slide.addShape("rect", { x: 0.5, y: 3.5, w: W - 1.0, h: 0.04, fill: { color: BRAND.green } });
+      slide.addShape("rect", { x: 0.5, y: 2.9, w: W - 1.0, h: 0.04, fill: { color: BRAND.green } });
       steps.forEach((step, i) => {
         const x = 0.5 + i * stepW;
         const cx = x + stepW / 2 - 0.08;
-        slide.addShape("rect", { x: cx, y: 3.3, w: 0.16, h: 0.44, fill: { color: BRAND.green } });
+        slide.addShape("rect", { x: cx, y: 2.7, w: 0.16, h: 0.44, fill: { color: BRAND.green } });
         if (step.yr) {
           slide.addText(step.yr, {
-            x, y: 2.5, w: stepW - 0.1, h: 0.6,
+            x, y: 1.9, w: stepW - 0.1, h: 0.6,
             fontFace: "Roboto", fontSize: 13, bold: true, color: BRAND.green, align: "center",
           });
         }
         if (step.title) {
           slide.addText(step.title, {
-            x, y: 3.9, w: stepW - 0.1, h: 0.6,
+            x, y: 3.3, w: stepW - 0.1, h: 0.6,
             fontFace: "Roboto", fontSize: 13, bold: true, color: BRAND.fg, align: "center",
           });
         }
         if (step.desc) {
           slide.addText(step.desc, {
-            x, y: 4.6, w: stepW - 0.1, h: 1.5,
+            x, y: 4.0, w: stepW - 0.1, h: 1.5,
             fontFace: "Roboto", fontSize: 11, color: BRAND.muted, align: "center",
           });
         }
@@ -335,22 +335,22 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
         const x = 0.5 + i * stepW;
         const isDark = i === 0;
         slide.addShape("rect", {
-          x, y: 2.0, w: stepW - 0.15, h: 3.8,
+          x, y: 1.4, w: stepW - 0.15, h: 4.4,
           fill: { color: BRAND.green, transparency: isDark ? 0 : 85 },
         });
         slide.addText(String(step.num).padStart(2, "0"), {
-          x: x + 0.15, y: 2.2, w: stepW - 0.3, h: 0.6,
+          x: x + 0.15, y: 1.6, w: stepW - 0.3, h: 0.6,
           fontFace: "Roboto", fontSize: 22, bold: true, color: isDark ? "FFFFFF" : BRAND.green,
         });
         if (step.title) {
           slide.addText(step.title, {
-            x: x + 0.15, y: 2.9, w: stepW - 0.3, h: 0.6,
+            x: x + 0.15, y: 2.3, w: stepW - 0.3, h: 0.6,
             fontFace: "Roboto", fontSize: 12, bold: true, color: isDark ? "FFFFFF" : BRAND.fg,
           });
         }
         if (step.desc) {
           slide.addText(step.desc, {
-            x: x + 0.15, y: 3.6, w: stepW - 0.3, h: 1.9,
+            x: x + 0.15, y: 3.0, w: stepW - 0.3, h: 2.5,
             fontFace: "Roboto", fontSize: 11, color: isDark ? "DDDDDD" : BRAND.muted,
           });
         }
@@ -392,7 +392,7 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
           }),
         ];
         slide.addTable(tableRows, {
-          x: 0.5, y: 1.8, w: W - 1.0,
+          x: 0.5, y: 1.2, w: W - 1.0,
           colW: headers.map(() => colW),
           border: { type: "none" },
           rowH: 0.4,
@@ -414,27 +414,27 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
         return { role: parts[0] || "", name: parts[1] || "", sub: parts[2] || "" };
       });
       const topX = (W - 4) / 2;
-      slide.addShape("rect", { x: topX, y: 1.9, w: 4, h: 1.0, fill: { color: BRAND.green } });
+      slide.addShape("rect", { x: topX, y: 1.3, w: 4, h: 1.0, fill: { color: BRAND.green } });
       slide.addText([topParts[0], topParts[1]].filter(Boolean).join("\n"), {
-        x: topX + 0.1, y: 1.9, w: 3.8, h: 1.0,
+        x: topX + 0.1, y: 1.3, w: 3.8, h: 1.0,
         fontFace: "Roboto", fontSize: 13, bold: true, color: "FFFFFF",
         align: "center", valign: "middle",
       });
       if (children.length > 0) {
-        slide.addShape("rect", { x: W / 2 - 0.02, y: 2.9, w: 0.04, h: 0.4, fill: { color: BRAND.green } });
-        slide.addShape("rect", { x: 0.5, y: 3.3, w: W - 1.0, h: 0.04, fill: { color: BRAND.green } });
+        slide.addShape("rect", { x: W / 2 - 0.02, y: 2.3, w: 0.04, h: 0.4, fill: { color: BRAND.green } });
+        slide.addShape("rect", { x: 0.5, y: 2.7, w: W - 1.0, h: 0.04, fill: { color: BRAND.green } });
         const childW = (W - 1.0) / children.length;
         children.forEach((child, i) => {
           const x = 0.5 + i * childW;
           const cx = x + childW / 2 - 0.02;
-          slide.addShape("rect", { x: cx, y: 3.3, w: 0.04, h: 0.4, fill: { color: BRAND.green } });
+          slide.addShape("rect", { x: cx, y: 2.7, w: 0.04, h: 0.4, fill: { color: BRAND.green } });
           slide.addShape("rect", {
-            x: x + 0.1, y: 3.7, w: childW - 0.2, h: 1.1,
+            x: x + 0.1, y: 3.1, w: childW - 0.2, h: 1.1,
             fill: { color: BRAND.surface },
             line: { color: BRAND.green, width: 1 },
           });
           slide.addText([child.role, child.name].filter(Boolean).join("\n"), {
-            x: x + 0.1, y: 3.7, w: childW - 0.2, h: 1.1,
+            x: x + 0.1, y: 3.1, w: childW - 0.2, h: 1.1,
             fontFace: "Roboto", fontSize: 11, color: BRAND.fg,
             align: "center", valign: "middle",
           });
@@ -451,21 +451,21 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
       addTitleBlock(slide, s.title);
       const sidebarText = lines.slice(0, 2);
       const bulletLines = lines.slice(2);
-      slide.addShape("rect", { x: 0.5, y: 1.8, w: 3.5, h: 4.5, fill: { color: BRAND.green } });
+      slide.addShape("rect", { x: 0.5, y: 1.2, w: 3.5, h: 5.1, fill: { color: BRAND.green } });
       slide.addText("Why this matters", {
-        x: 0.65, y: 2.0, w: 3.2, h: 0.4,
+        x: 0.65, y: 1.4, w: 3.2, h: 0.4,
         fontFace: "Roboto", fontSize: 10, color: "AAAAAA",
       });
       if (sidebarText.length > 0) {
         slide.addText(sidebarText.join("\n\n"), {
-          x: 0.65, y: 2.5, w: 3.2, h: 3.6,
+          x: 0.65, y: 1.9, w: 3.2, h: 4.0,
           fontFace: "Roboto", fontSize: 14, color: "FFFFFF",
         });
       }
       if (bulletLines.length > 0) {
         slide.addText(
           bulletLines.map((b) => ({ text: b, options: { bullet: true, fontSize: 14, color: BRAND.fg } })),
-          { x: 4.3, y: 1.8, w: 8.5, h: 4.5, fontFace: "Roboto", paraSpaceAfter: 6 }
+          { x: 4.3, y: 1.2, w: 8.5, h: 5.1, fontFace: "Roboto", paraSpaceAfter: 6, valign: "top" }
         );
       }
       addFooter(slide, s.title, num, total);
@@ -481,12 +481,12 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
       if (contentLines.length > 0) {
         slide.addText(
           contentLines.map((b) => ({ text: b, options: { bullet: true, fontSize: 14, color: BRAND.fg } })),
-          { x: 0.5, y: 1.8, w: 7.5, h: 4.5, fontFace: "Roboto", paraSpaceAfter: 6 }
+          { x: 0.5, y: 1.2, w: 7.5, h: 5.1, fontFace: "Roboto", paraSpaceAfter: 6, valign: "top" }
         );
       }
-      slide.addShape("rect", { x: 8.3, y: 1.8, w: 4.5, h: 4.5, fill: { color: "D8D8D8" } });
+      slide.addShape("rect", { x: 8.3, y: 1.2, w: 4.5, h: 5.1, fill: { color: "D8D8D8" } });
       slide.addText("Image", {
-        x: 8.3, y: 3.8, w: 4.5, h: 0.5,
+        x: 8.3, y: 3.4, w: 4.5, h: 0.5,
         fontFace: "Roboto", fontSize: 14, color: "888888", align: "center",
       });
       addFooter(slide, s.title, num, total);
@@ -498,16 +498,16 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
       slide.background = { color: BRAND.mint };
       addDesignBar(slide);
       addTitleBlock(slide, s.title);
-      slide.addShape("rect", { x: 0.5, y: 1.8, w: 4.5, h: 4.5, fill: { color: "D8D8D8" } });
+      slide.addShape("rect", { x: 0.5, y: 1.2, w: 4.5, h: 5.1, fill: { color: "D8D8D8" } });
       slide.addText("Image", {
-        x: 0.5, y: 3.8, w: 4.5, h: 0.5,
+        x: 0.5, y: 3.4, w: 4.5, h: 0.5,
         fontFace: "Roboto", fontSize: 14, color: "888888", align: "center",
       });
       const contentLines = lines.slice(1);
       if (contentLines.length > 0) {
         slide.addText(
           contentLines.map((b) => ({ text: b, options: { bullet: true, fontSize: 14, color: BRAND.fg } })),
-          { x: 5.3, y: 1.8, w: 7.5, h: 4.5, fontFace: "Roboto", paraSpaceAfter: 6 }
+          { x: 5.3, y: 1.2, w: 7.5, h: 5.1, fontFace: "Roboto", paraSpaceAfter: 6, valign: "top" }
         );
       }
       addFooter(slide, s.title, num, total);
@@ -545,11 +545,11 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
       if (lines.length > 0) {
         slide.addText(
           lines.map((b) => ({ text: b, options: { bullet: true, fontSize: 14, color: "3A3A3A" } })),
-          { x: 0.8, y: 1.7, w: 11.7, h: 4.5, fontFace: "Roboto", paraSpaceAfter: 6 }
+          { x: 0.8, y: 1.1, w: 11.7, h: 5.2, fontFace: "Roboto", paraSpaceAfter: 6, valign: "top" }
         );
       } else if (s.contentPrompt) {
         slide.addText(s.contentPrompt, {
-          x: 0.8, y: 1.7, w: 11.7, h: 4.5,
+          x: 0.8, y: 1.1, w: 11.7, h: 5.2,
           fontFace: "Roboto", fontSize: 16, italic: true, color: BRAND.muted,
         });
       }

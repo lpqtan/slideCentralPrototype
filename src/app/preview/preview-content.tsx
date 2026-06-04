@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useDeckStore } from "@/hooks/useDeckStore";
 import { useHistory } from "@/hooks/useHistory";
-import { buildDeckHtml, injectAllOverlaysIntoHtml } from "@/lib/deck-builder";
-import type { SlideOutline, SlideContent, TextBlock } from "@/lib/types";
+import { buildSlidePreviewHtml } from "@/lib/preview-builder";
+import type { SlideContent, TextBlock } from "@/lib/types";
 import { LAYOUTS } from "@/lib/layouts";
 
 const COLORS = [
@@ -31,9 +31,8 @@ export default function PreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deckId = searchParams.get("deckId");
-  const { getById, setOverlayBlocks, setDeckSlides, setDeckHtml: storeDeckHtml, patchOutlineLayout } = useDeckStore();
-  const [deckHtml, setDeckHtml] = useState<string | null>(null);
-  const [slides, setSlides] = useState<SlideOutline[]>([]);
+  const { getById, setOverlayBlocks, setDeckSlides, patchSlides, patchOutlineLayout } = useDeckStore();
+  const [slides, setSlides] = useState<SlideContent[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [dbSaving, setDbSaving] = useState(false);
@@ -41,22 +40,18 @@ export default function PreviewContent() {
   const [saveResult, setSaveResult] = useState<"idle" | "ok" | "err">("idle");
   const [layoutPickerOpen, setLayoutPickerOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
+  const SLIDE_W = 1333;
+  const SLIDE_H = 750;
   const THUMB_W = 180;
-  const THUMB_H = Math.round(THUMB_W * 1080 / 1920);
-  const THUMB_SCALE = THUMB_W / 1920;
+  const THUMB_H = Math.round(THUMB_W * SLIDE_H / SLIDE_W);
+  const THUMB_SCALE = THUMB_W / SLIDE_W;
 
-  const thumbnailHtmls = useMemo(() =>
-    slides.map((slide) =>
-      buildDeckHtml(
-        [{ ...slide, bodyContent: "", layoutOverride: undefined, imageUrl: undefined } as SlideContent],
-        undefined,
-        { thumbnail: true }
-      )
-    ),
+  const slidePreviewHtmls = useMemo(
+    () => slides.map((slide, i) => buildSlidePreviewHtml(slide, i, slides.length)),
     [slides]
   );
+
+  const currentSlideHtml = slidePreviewHtmls[currentSlide] ?? "";
 
   const handleDownloadHtml = () => {
     const deck = deckId ? getById(deckId) : undefined;
@@ -109,7 +104,6 @@ export default function PreviewContent() {
 
   // Edit mode
   const [editMode, setEditMode] = useState(false);
-  const [baseHtml, setBaseHtml] = useState<string | null>(null);
   const editHistory = useHistory<TextBlock[]>([]);
   const editBlocks = editHistory.state;
   const setEditBlocks = (v: TextBlock[]) => editHistory.push(v);
@@ -118,69 +112,36 @@ export default function PreviewContent() {
   const [editText, setEditText] = useState("");
 
   const selectedBlock = selectedId ? editBlocks.find((b) => b.id === selectedId) : null;
-  const currentSlideData = slides[currentSlide] as (SlideOutline & { bodyContent?: string }) | undefined;
-  const isHero = currentSlideData ? (LAYOUTS.find((l) => l.id === currentSlideData.suggestedLayout)?.dark ?? false) : false;
+  const currentSlideData = slides[currentSlide] as SlideContent | undefined;
+  const isHero = currentSlideData ? (LAYOUTS.find((l) => l.id === (currentSlideData.layoutOverride ?? currentSlideData.suggestedLayout))?.dark ?? false) : false;
 
   const enterEditMode = () => {
     const deck = getById(deckId ?? "");
-    const cleanHtml = baseHtml ?? (deck?.slides ? buildDeckHtml(deck.slides) : null);
-    if (cleanHtml) setDeckHtml(cleanHtml);
     const saved = deck?.overlayBlocks?.[currentSlide] || [];
     editHistory.push(saved.map((b) => ({ ...b })), true);
     setEditMode(true);
     setSelectedId(null);
     setEditingId(null);
-    setTimeout(() => {
-      iframeRef.current?.contentWindow?.postMessage({ showNav: false, editMode: true }, "*");
-    }, 200);
   };
 
   const saveEdit = async () => {
     if (!deckId) return;
     setSaving(true);
-    // Get the current iframe HTML (includes inline text edits)
-    const editedHtml = await new Promise<string>((resolve) => {
-      const handler = (e: MessageEvent) => {
-        if (e.data?.type === "deckContent") {
-          window.removeEventListener("message", handler);
-          resolve(e.data.html as string);
-        }
-      };
-      window.addEventListener("message", handler);
-      iframeRef.current?.contentWindow?.postMessage({ getContent: true }, "*");
-      setTimeout(() => { window.removeEventListener("message", handler); resolve(""); }, 3000);
-    });
-
-    const cleanedHtml = editedHtml.replace(/ contenteditable="true"/g, "");
-    setBaseHtml(cleanedHtml || null); // Preserve inline edits for next edit session
-
     setOverlayBlocks(deckId, currentSlide, editBlocks);
-    const deck = getById(deckId);
-    const allOverlay = { ...deck?.overlayBlocks, [currentSlide]: editBlocks };
-    const finalHtml = cleanedHtml ? injectAllOverlaysIntoHtml(cleanedHtml, allOverlay) : buildDeckHtml(deck?.slides ?? [], allOverlay);
-
-    storeDeckHtml(deckId, finalHtml);
-    setDeckHtml(finalHtml);
     setSaving(false);
     setEditMode(false);
     setSelectedId(null);
     setEditingId(null);
-    iframeRef.current?.contentWindow?.postMessage({ showNav: true, editMode: false }, "*");
   };
 
   const changeLayout = (layoutId: string) => {
     if (!deckId) return;
-    const deck = getById(deckId);
-    const source = deck?.slides?.length ? deck.slides : deck?.outline || [];
-    const updated = source.map((s, i) =>
+    const updated = slides.map((s, i) =>
       i === currentSlide ? { ...s, suggestedLayout: layoutId as SlideContent["suggestedLayout"] } : s
-    ) as SlideContent[];
-    setDeckSlides(deckId, updated);
-    patchOutlineLayout(deckId, currentSlide, layoutId);
-    const newHtml = buildDeckHtml(updated, deck?.overlayBlocks);
-    storeDeckHtml(deckId, newHtml);
-    setDeckHtml(newHtml);
+    );
     setSlides(updated);
+    patchSlides(deckId, updated);
+    patchOutlineLayout(deckId, currentSlide, layoutId);
     setLayoutPickerOpen(false);
   };
 
@@ -302,17 +263,25 @@ export default function PreviewContent() {
   useEffect(() => {
     if (!deckId) { router.push("/briefing"); return; }
     const deck = getById(deckId);
-    if (deck?.htmlContent) setDeckHtml(deck.htmlContent);
-    if (deck?.outline) { setSlides(deck.outline); setCurrentSlide(0); }
+    if (deck?.slides?.length) {
+      setSlides(deck.slides);
+      setCurrentSlide(0);
+    } else if (deck?.outline) {
+      setSlides(deck.outline.map((o) => ({ ...o, bodyContent: "" })));
+      setCurrentSlide(0);
+    }
   }, [deckId, getById, router]);
 
   useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.data && typeof e.data.slide === "number") setCurrentSlide(e.data.slide);
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") setCurrentSlide((p) => Math.min(p + 1, slides.length - 1));
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") setCurrentSlide((p) => Math.max(p - 1, 0));
+      else if (e.key === "Home") setCurrentSlide(0);
+      else if (e.key === "End") setCurrentSlide(slides.length - 1);
     };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, []);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [slides.length]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -321,20 +290,15 @@ export default function PreviewContent() {
       const { clientWidth: cw, clientHeight: ch } = entries[0].target;
       const aspect = 16 / 9;
       let w: number, h: number;
-      if (cw / ch > aspect) {
-        h = ch;
-        w = h * aspect;
-      } else {
-        w = cw;
-        h = w / aspect;
-      }
+      if (cw / ch > aspect) { h = ch; w = h * aspect; }
+      else { w = cw; h = w / aspect; }
       setSlideSize({ w: Math.floor(w), h: Math.floor(h) });
     });
     ro.observe(container);
     return () => ro.disconnect();
-  }, [!!deckHtml]);
+  }, [slides.length > 0]);
 
-  if (!deckHtml) {
+  if (!slides.length) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <p className="text-sm text-[var(--color-muted)]">No deck to preview.</p>
@@ -354,26 +318,19 @@ export default function PreviewContent() {
           <div className="space-y-2">
             {slides.map((slide, i) => (
               <button key={slide.slideNumber}
-                onClick={() => {
-                  setCurrentSlide(i);
-                  iframeRef.current?.contentWindow?.postMessage({ slide: i }, "*");
-                }}
+                onClick={() => setCurrentSlide(i)}
                 className={`w-full cursor-pointer rounded text-left transition-all ${i === currentSlide ? "ring-2 ring-[var(--color-cpf-green)] ring-offset-1" : "hover:ring-1 hover:ring-[var(--color-border-strong)]"}`}>
                 <div className="overflow-hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)]">
                   <div style={{ width: THUMB_W, height: THUMB_H, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                    <iframe
-                      srcDoc={thumbnailHtmls[i]}
+                    <div
                       style={{
-                        width: '1920px',
-                        height: '1080px',
+                        width: SLIDE_W, height: SLIDE_H,
                         transform: `scale(${THUMB_SCALE})`,
                         transformOrigin: 'top left',
                         pointerEvents: 'none',
-                        border: 'none',
-                        display: 'block',
+                        position: 'absolute', top: 0, left: 0,
                       }}
-                      loading="lazy"
-                      title={`Slide ${i + 1} preview`}
+                      dangerouslySetInnerHTML={{ __html: slidePreviewHtmls[i] ?? "" }}
                     />
                   </div>
                   <div className="px-2 py-1.5">
@@ -531,8 +488,15 @@ export default function PreviewContent() {
           {slideSize ? (
             <div ref={slideFrameRef} className="relative overflow-hidden"
               style={{ width: slideSize.w, height: slideSize.h }}>
-              <iframe ref={iframeRef} srcDoc={deckHtml}
-                className="h-full w-full border-0" allowFullScreen title="Slide Deck Preview" />
+              <div
+                style={{
+                  width: SLIDE_W, height: SLIDE_H,
+                  transform: `scale(${slideSize.w / SLIDE_W})`,
+                  transformOrigin: 'top left',
+                  position: 'absolute', top: 0, left: 0,
+                }}
+                dangerouslySetInnerHTML={{ __html: currentSlideHtml }}
+              />
               {/* Overlay — edit mode only */}
               {editMode && (() => {
                 const blocks = editBlocks;
