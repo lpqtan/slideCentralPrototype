@@ -1,0 +1,550 @@
+CPF BOARD — COPILOT SLIDE GENERATION TEST SCENARIOS
+=====================================================
+5 scenarios for testing Microsoft 365 Copilot's presentation generation quality.
+Each scenario provides all briefing fields and a content upload block.
+Fill in the bracketed fields of your prompt template, then paste the content upload
+into the "Additional Context" section.
+
+=====================================================
+SCENARIO 1 — USING CPF TO PAY FOR YOUR HDB FLAT
+=====================================================
+
+Objective:      Teaching
+Audience:       Public / External
+Mode:           Reading (detailed, self-explanatory, optimised for skimming)
+Key Message:    CPF Ordinary Account savings can cover your HDB flat's down payment,
+                monthly instalments, and stamp duties — reducing your cash outlay
+                significantly.
+The Ask:        Understand the three ways CPF can be used for housing so you can plan
+                your flat purchase confidently.
+Narrative Arc:  Teaching
+                (What It Is → Why It Matters → How It Works → How to Apply It)
+Slide Count:    10
+
+--- CONTENT UPLOAD ---
+
+CPF Housing Usage — Key Policy Details (as at 2025)
+
+1. Eligible uses of CPF Ordinary Account (OA) for HDB flats:
+   - Down payment (minimum 5% cash for HDB loan; 20% cash if using bank loan)
+   - Monthly mortgage instalments (HDB loan or bank loan)
+   - Buyer's Stamp Duty (BSD) and Additional Buyer's Stamp Duty (ABSD) where applicable
+   - Legal fees and HDB conveyancing fees
+
+2. Withdrawal limits:
+   - Valuation Limit (VL): Maximum CPF that can be used = lower of purchase price
+     or market valuation
+   - Withdrawal Limit (WL): Once CPF usage hits 120% of VL, members must set aside
+     the Full Retirement Sum (FRS) in OA+SA before using more CPF
+   - Members aged 55+ must have FRS set aside before withdrawing for housing
+
+3. Accrued interest:
+   - CPF withdrawn for housing accrues interest at OA rate (currently 2.5% p.a.)
+   - Accrued interest must be returned to CPF upon sale of property (not to another party)
+   - Accrued interest can significantly reduce cash proceeds from resale — e.g. a member
+     who withdrew S$200,000 in CPF over 25 years may owe S$120,000+ in accrued interest
+     back to CPF upon selling
+
+4. Retirement adequacy impact:
+   - Heavy CPF housing drawdown can leave members with insufficient retirement savings
+   - CPF Board encourages members to use cash for housing where possible to preserve
+     OA balance for retirement
+   - Right-sizing flat choice matters — a 4-room flat vs 5-room flat can mean
+     S$100,000–S$200,000 difference in total CPF usage over a 25-year loan
+
+5. Common member misconceptions:
+   - "I can use all my CPF for housing" — No. Valuation Limit and Withdrawal Limit cap usage.
+   - "The money I put in doesn't need to come back" — Accrued interest must be refunded on sale.
+   - "I can use my SA for housing" — SA cannot be used for housing; only OA applies.
+   - "Accrued interest is paid to the bank" — No. It is returned to the member's own CPF account.
+
+6. Key figures for context:
+   - OA interest rate: 2.5% p.a. (guaranteed)
+   - Median HDB resale price (4-room, 2025): approx. S$550,000
+   - Typical CPF usage over a 25-year HDB loan: S$180,000–S$320,000 depending on loan size
+   - Members with insufficient CPF for FRS at 55 due to housing withdrawals: est. 1 in 4
+
+--- END CONTENT UPLOAD ---
+
+
+=====================================================
+SCENARIO 2 — CPF SCAM INCIDENT RESPONSE BRIEFING TO EXCO
+=====================================================
+
+Objective:      Guidance
+Audience:       EXCO (Executive Committee — approve, steer, decide)
+Mode:           Presenting (concise, speaker-led, 1–2 min per slide)
+Key Message:    CPF-impersonation scams surged 38% in Q3 FY2025, costing members
+                an estimated S$14m — a coordinated response across communications,
+                tech, and enforcement is required before the year-end peak period.
+The Ask:        Direct the team on which of three escalation options to proceed with,
+                and endorse a joint press statement with SPF by end of week.
+Narrative Arc:  Proposal
+                (Problem or Opportunity → Why It Matters → Root Cause →
+                 What Success Looks Like → What Gets Us There)
+Slide Count:    10
+
+--- CONTENT UPLOAD ---
+
+Scam Incident Data — Internal Briefing Pack (Q3 FY2025)
+
+INCIDENT SUMMARY
+- Total CPF-impersonation scam cases reported to SPF: 1,847 in Q3 FY2025
+  (+38% vs Q3 FY2024)
+- Estimated financial losses to members: S$14.2m in Q3 FY2025
+  (vs S$9.1m same period last year)
+- Most affected demographic: members aged 50–65 (41% of cases),
+  followed by 35–49 (32%)
+- Peak scam activity: Fridays 4pm–8pm and Saturday mornings
+  (consistent with scammer call-centre shift patterns)
+- Average financial loss per victim: S$7,700 (up from S$5,900 in Q3 FY2024)
+
+ATTACK VECTORS BREAKDOWN
+1. Fake SPF / CPF officer phone calls (55% of cases)
+   - Scammers claim member's CPF account has been "flagged for illegal activity"
+   - Instruct victim to transfer CPF funds to a "safe account" or reveal OTP
+   - Use caller ID spoofing to display official CPF Board number (+65 1800-227-1188)
+   - Calls typically last 45–90 minutes; victims kept on the line to prevent them
+     seeking a second opinion
+
+2. Phishing SMS (30% of cases)
+   - SMS with link claiming member has "unclaimed CPF credits" or
+     "account verification required"
+   - Links lead to fake CPF website that harvests SingPass credentials
+   - 12 unique phishing domains identified and taken down by IMDA in Q3
+   - Average time from domain registration to takedown: 11 days (too slow)
+
+3. Fraudulent withdrawal requests (15% of cases)
+   - Insider-assisted or SIM-swap cases where scammer has member's full personal data
+   - Submits CPF withdrawal request and intercepts OTP via SIM swap
+   - Average loss per case: S$38,000 — the highest loss category
+
+CURRENT CONTROLS AND GAPS
+- CPF Board sends in-app notification for all withdrawal requests — but only 23% of
+  members have CPF mobile app installed
+- OTP validity window is currently 10 minutes — industry standard moving to 3 minutes
+- No outbound call capability to warn members before large withdrawals are processed
+- Member reporting lag: average 4.7 days before victim reports to SPF
+  (funds typically transferred overseas within 2 hours of theft)
+
+PEER AGENCY RESPONSES
+- IRAS: Implemented 24-hour cooling period for first-time bank account changes;
+  reduced fraud losses by 61% in 6 months
+- HDB: Added mandatory video call verification for large e-payment transactions
+- MAS: ScamShield integration for all major bank apps — CPF app not yet integrated
+
+THREE PROPOSED OPTIONS
+
+Option A — Hardened OTP and Transaction Controls (cost: S$0.8m, timeline: 3 months)
+  - Reduce OTP validity window from 10 minutes to 3 minutes
+  - Introduce 6-hour cooling period for new payee additions
+  - Block withdrawals to bank accounts registered less than 72 hours ago
+  - Send SMS alert to member's registered mobile before any withdrawal above S$5,000
+  Expected impact: eliminate ~60% of fraudulent withdrawal cases
+
+Option B — Accelerated Public Awareness Campaign (cost: S$2.1m, timeline: 6 weeks)
+  - Mass SMS blast to all 4.2m active members with scam warning and verification tips
+  - CPF spokesperson media appearances (CNA, Lianhe Zaobao, Tamil Murasu, Berita Harian)
+  - Pop-up alerts on CPF website and mobile app for 90 days
+  - Partner with community centres for roadshows targeting members aged 50–65
+  Expected impact: reduce victim rate among aware members by ~40%; slower to show effect
+
+Option C — Joint Enforcement Task Force with SPF (cost: S$0.5m staff time, ongoing)
+  - Dedicated joint team to fast-track investigation of reported cases
+  - Real-time data sharing between CPF Board and SPF for case triage
+  - Target: reduce case-to-arrest timeline from current 47 days to under 14 days
+  - Deter scam syndicates through higher arrest visibility
+  Expected impact: deterrence effect; limited near-term victim reduction
+
+RECOMMENDED APPROACH: Option A + Option C in parallel (combined ~S$1.3m),
+with Option B as Phase 2 if Q4 volumes remain elevated above 1,500 cases/month.
+
+--- END CONTENT UPLOAD ---
+
+
+=====================================================
+SCENARIO 3 — MEDISAVE: PAYING FOR HEALTHCARE WITHOUT CASH
+(Staff Training — Department Meeting)
+=====================================================
+
+Objective:      Teaching
+Audience:       Department Meeting (CPF Member Services staff — internal training)
+Mode:           Presenting (concise, speaker-led, 1–2 min per slide)
+Key Message:    MediSave covers far more than hospitalisation — most Singaporeans are
+                unaware they can use it for approved outpatient treatments and insurance
+                premiums, and staff need to be confident answering these questions.
+The Ask:        By end of this session, staff should be able to answer the top 5
+                MediSave eligibility questions that members raise at service centres
+                and via the call centre.
+Narrative Arc:  Teaching
+                (What It Is → Why It Matters → How It Works → How to Apply It)
+Slide Count:    12
+
+--- CONTENT UPLOAD ---
+
+MediSave Usage Reference Guide — Staff Training Edition (FY2025)
+
+WHAT IS MEDISAVE
+- MediSave is the healthcare savings component of CPF, separate from OA and SA
+- Employee contributions: 8%–10.5% of monthly wages, depending on age
+  (under 35: 8%; 35–44: 9%; 45–49: 9.5%; 50–55: 10.5%)
+- Basic Healthcare Sum (BHS) FY2025: S$75,500 — balances above BHS flow to SA or RA
+- Interest rate: 4% p.a. (same as SA), guaranteed by the government
+- Unused MediSave can be used for immediate family members (spouse, children, parents,
+  grandparents) who are Singapore Citizens or Permanent Residents
+
+APPROVED USES
+
+1. Hospitalisation and Day Surgery
+   - Covers ward charges, surgical fees, anaesthesiologist fees, medical investigations
+     during a hospital admission
+   - Daily withdrawal limits by ward class:
+     C-class: S$450/day | B2: S$650/day | B1 and above: S$900/day
+   - No annual cap on hospitalisation — only limited by MediSave balance
+   - Integrated Shield Plan (IP) hospital insurance premiums: MediSave can pay the
+     basic MediShield Life component; riders must be paid cash
+
+2. Outpatient Chronic Disease Management Programme (CDMP)
+   - Covers treatment for 24 MOH-approved chronic conditions including diabetes,
+     hypertension, high cholesterol, asthma, schizophrenia, and major depression
+   - Withdrawal limit: S$500/year per patient at polyclinics
+     (or S$700/year if patient is seen at a CHAS GP clinic)
+   - Can be used for immediate family members at the same annual cap
+   - Members must check that their clinic is CDMP-accredited before assuming coverage
+
+3. Vaccinations — MediSave 700 Scheme
+   - Covers MOH National Childhood Immunisation Schedule (NCIS) and approved
+     adult flexi-vaccinations
+   - Annual cap: S$700 per MediSave account (shared across all approved vaccinations)
+   - Approved adult vaccines include: flu, pneumococcal, HPV, hepatitis B, varicella
+   - Vaccination must be administered at an approved clinic to qualify
+
+4. MediShield Life Premiums
+   - MediSave can pay the full MediShield Life premium for the member and their dependants
+   - Premium amounts are tiered by age band — published annually by MOH
+   - Rider premiums (for Integrated Shield Plans) cannot use MediSave; cash only
+   - CareShield Life and ElderShield supplement premiums: also payable via MediSave
+
+5. Maternity and Delivery Charges
+   - S$900 per confinement, up to 3 confinements per lifetime (per MediSave account)
+   - Covers pre-delivery check-ups, ultrasounds, delivery charges, and post-natal
+     inpatient stays
+   - Father's MediSave can also be used for spouse's delivery
+
+COMMON MISCONCEPTIONS STAFF ENCOUNTER (and correct responses)
+
+Q: "Can I use MediSave for dental?"
+A: Only for hospitalisation resulting from dental surgery (e.g. jaw surgery under GA).
+   Routine dental scaling, fillings, and extractions at dental clinics are NOT covered.
+
+Q: "Can I withdraw MediSave as cash if I don't need it for medical expenses?"
+A: No. MediSave cannot be withdrawn as cash at any age — it is ring-fenced for healthcare.
+   (Exception: upon death, MediSave balance is distributed to nominees/beneficiaries.)
+
+Q: "Does my MediSave expire if I don't use it?"
+A: No. MediSave does not expire. Unused balances accrue 4% interest annually
+   and can be passed to immediate family members for their approved medical expenses.
+
+Q: "Can I use my child's MediSave for my own hospitalisation?"
+A: No. MediSave usage flows from parent to child (or member to dependant), not reverse.
+   A child cannot authorise their own MediSave for the parent's treatment.
+
+Q: "My MediSave balance is above S$75,500. Do I lose the extra money?"
+A: No. The excess above the Basic Healthcare Sum (BHS) flows automatically into your
+   Special Account (if under 55) or Retirement Account (if above 55). It is not lost.
+
+TOP 5 MEMBER CALL CENTRE QUESTIONS (FY2025 call data, n=18,400 MediSave calls)
+
+1. "How do I check my MediSave balance?"
+   → Direct to CPF online portal (my.cpf.gov.sg) or CPF mobile app → My CPF → MediSave
+
+2. "Can I use MediSave at a private clinic?"
+   → Yes, but only for CDMP-approved treatments at CDMP-accredited private clinics.
+     For all other uses, must be at a hospital or registered vaccination clinic.
+
+3. "Why was my MediSave claim rejected?"
+   → Most common reasons: (a) treatment not on approved list, (b) clinic not accredited,
+     (c) annual cap already reached, (d) treatment claimed under wrong scheme code
+
+4. "Can I use MediSave for my elderly parent's hospitalisation?"
+   → Yes, if the parent is a Singapore Citizen or PR. Submit via CPF portal under
+     "Immediate Family Member Claim."
+
+5. "How much can I use per year?"
+   → There is no single annual cap across all categories. Limits vary:
+     hospitalisation (no cap), CDMP (S$500–S$700/year), vaccinations (S$700/year).
+     Large hospitalisation bills are limited only by MediSave balance.
+
+--- END CONTENT UPLOAD ---
+
+
+=====================================================
+SCENARIO 4 — CPF LIFE PAYOUT ADEQUACY REVIEW
+(EXCO Strategic Update)
+=====================================================
+
+Objective:      Guidance
+Audience:       EXCO (Executive Committee — approve, steer, decide)
+Mode:           Presenting (concise, speaker-led, 1–2 min per slide)
+Key Message:    Current CPF LIFE monthly payouts for the bottom 30% of members fall
+                short of the basic retirement standard by S$400–S$600/month —
+                three intervention options are ready for EXCO direction.
+The Ask:        Endorse one of three proposed policy options (or a combination) for
+                increasing payout adequacy for low-income members by FY2027.
+Narrative Arc:  Proposal
+                (Problem or Opportunity → Why It Matters → Root Cause →
+                 What Success Looks Like → What Gets Us There)
+Slide Count:    14
+
+--- CONTENT UPLOAD ---
+
+CPF LIFE Payout Adequacy Review — EXCO Briefing Data Pack (Q4 FY2025)
+
+CURRENT STATE: PAYOUT DISTRIBUTION
+- CPF LIFE launched in 2009; currently 780,000+ members receiving CPF LIFE payouts
+- Median monthly payout (Standard Plan, age 65): S$1,380/month
+- Bottom 30% monthly payout range: S$680–S$980/month
+- Basic Retirement Standard (MOF benchmark for basic standard of living, 2025):
+  S$1,379/month for a single elderly person
+- Gap for bottom 30% of members: S$400–S$700/month below basic retirement standard
+- Projected to worsen: without intervention, bottom 30% gap widens to S$500–S$900/month
+  by 2030 due to ageing cohort demographics
+
+CPF LIFE PLAN DISTRIBUTION (as at December 2025)
+- Standard Plan (higher monthly payouts, smaller bequest): 71% of members
+- Basic Plan (lower monthly payouts, larger bequest): 24% of members
+- Escalating Plan (inflation-adjusted payouts, starts lower): 5% of members
+- Default plan for members who did not choose: Standard Plan (since 2016)
+
+RETIREMENT SUM TIERS AND CORRESPONDING PAYOUTS (2025 figures)
+- Basic Retirement Sum (BRS): S$106,500 → approx. S$830–S$900/month payout at 65
+- Full Retirement Sum (FRS): S$213,000 → approx. S$1,570–S$1,700/month payout at 65
+- Enhanced Retirement Sum (ERS): S$426,000 → approx. S$2,500–S$2,700/month payout at 65
+- Members reaching FRS at 55: 48% of active members
+- Members reaching only BRS at 55: 31% of active members
+- Members below BRS at 55: 21% of active members (most vulnerable cohort)
+
+ROOT CAUSE ANALYSIS
+
+1. Low-wage contribution gap (primary driver, est. 55% of explained variance)
+   - Members earning below S$2,000/month contribute S$400–S$600/month less in CPF
+     than median earners over a working lifetime
+   - A 40-year contribution gap compounds to S$150,000–S$200,000 difference in
+     Retirement Account (RA) balance at 65, even before housing withdrawals
+
+2. Contribution disruptions (secondary driver, est. 25% of explained variance)
+   - Average Singaporean has 4.2 years of zero or minimal CPF contribution during
+     working life (career gaps, caregiving leave, self-employment periods, illness)
+   - Each contribution-free year reduces CPF LIFE payout by approx. S$35–S$50/month
+     at retirement due to forgone compounding
+
+3. Early and heavy housing withdrawals (tertiary driver, est. 20% of explained variance)
+   - Members who use the maximum CPF allowable for housing have 28% lower RA balances
+     at 55 compared to members who use cash for housing
+   - OA-to-RA transfer at 55 partially mitigates this but cannot recover
+     compounding lost interest on 20–25 years of withdrawn OA funds
+
+THREE POLICY OPTIONS FOR CONSIDERATION
+
+Option 1 — Enhanced Voluntary Top-Up Incentives (MOF/CPF joint funding)
+  Mechanism: Government co-matches voluntary cash top-ups to RA at S$0.50 per S$1.00
+             topped up, capped at S$3,000/year (i.e. max government co-contribution S$1,500/year)
+  Target: Incentivise 200,000 low-income members (bottom 40% by CPF balance)
+          to top up S$1,000–S$2,000/year
+  Estimated cost to government: S$100m–S$150m/year at full programme scale
+  Projected payout increase for participants: S$120–S$180/month at 65
+  Timeline to implementation: 18 months (requires Budget 2026 announcement and legislation)
+  Key risk: Uptake may be low among members most in need (behavioural inertia)
+
+Option 2 — Employer Retirement Contribution Nudge
+  Mechanism: Amend CPF Act to allow (not mandate) employers to make voluntary
+             top-ups to employees' RA as part of total compensation
+             Tax incentive: employer RA top-ups deductible at 150% of contribution amount
+  Target employers: SMEs with >50 employees in low-wage sectors
+                   (food & beverage, cleaning, retail, security)
+  Projected coverage: 85,000 workers in first 2 years at 30% employer adoption rate
+  Timeline: 12 months (legislative amendment to CPF Act required)
+  Key risk: SMEs may resist additional compensation costs even with tax incentive
+
+Option 3 — BRS Recalibration and Drawdown Flexibility (quickest to implement)
+  Mechanism A: Raise BRS to S$130,000 (phased over 3 years, +S$8,000/year)
+               to reflect updated retirement cost data from MOF's 2025 spending survey
+  Mechanism B: Allow members with FRS or above to defer CPF LIFE payouts from 65 to 70
+               — deferred payouts are approx. 30% higher per month
+  Mechanism C: Introduce one-time partial lump-sum withdrawal of up to S$10,000 at 65
+               without reducing monthly LIFE payout amount
+  Timeline: 6 months (no legislative change required — policy instrument only)
+  Key risk: BRS increase may create public perception of "moving goalposts"
+
+WORKING GROUP RECOMMENDATION
+Pursue Option 3 immediately (6 months) to address urgent adequacy gap and signal action.
+Announce Option 1 in Budget 2026 for medium-term impact.
+Commission feasibility study on Option 2 for 2027 Budget consideration.
+Combined estimated payout improvement for bottom 30%: +S$250–S$380/month by FY2028.
+
+SUCCESS METRICS (2-year horizon)
+- Primary: Bottom 30% average monthly payout increases from S$830 to S$1,080+
+- Secondary: Members reaching FRS at 55 increases from 48% to 55%
+- Tertiary: Voluntary top-up participation rate among target cohort reaches 25%
+
+--- END CONTENT UPLOAD ---
+
+
+=====================================================
+SCENARIO 5 — SELF-EMPLOYED PERSONS AND CPF: CLOSING THE GAP
+(CMM Budget Approval Paper)
+=====================================================
+
+Objective:      Approval
+Audience:       CMM (Corporate Management Meeting — structured, formal)
+Mode:           Reading (detailed, self-explanatory, optimised for skimming)
+Key Message:    Only 42% of self-employed persons (SEPs) contribute to CPF beyond the
+                mandatory MediSave minimum — a targeted pilot programme can close this
+                gap and demonstrate results ahead of the 2026 SEP policy review.
+The Ask:        Approve a S$1.2m budget for a 12-month SEP voluntary contribution nudge
+                pilot targeting gig economy workers, to commence January 2026.
+Narrative Arc:  Proposal
+                (Problem or Opportunity → Why It Matters → Root Cause →
+                 What Success Looks Like → What Gets Us There)
+Slide Count:    16
+
+--- CONTENT UPLOAD ---
+
+SEP CPF Contribution Gap — CMM Budget Paper Background (November 2025)
+
+WHO ARE SELF-EMPLOYED PERSONS (SEPs)?
+- SEPs include: freelancers, sole proprietors, commission-based agents (insurance,
+  property), gig platform workers (Grab, Gojek, Lalamove, Deliveroo, Shopee Food),
+  and independent contractors
+- Estimated SEP population in Singapore: 225,000 (MOM Labour Force Survey 2025)
+- Growing segment: SEP workforce grew 18% from 2020–2025, driven primarily by
+  gig economy platform expansion
+- Median annual net trade income (NTI) of SEPs: S$28,000
+  (vs S$55,000 for full-time employees)
+- Age distribution: 38% are aged 30–45 (the critical savings-building window)
+
+CPF RULES FOR SEPs
+- MediSave contributions: Mandatory for SEPs earning above S$6,000 NTI/year
+  Rate: 8%–10.5% of NTI depending on age (same rate as employees)
+- OA and SA contributions: Entirely voluntary for SEPs
+  No employer contribution; no mandatory employee OA or SA deduction
+- Key difference from employees: An employee earning S$3,000/month accumulates
+  approx. S$17,280/year in combined CPF contributions (employee + employer)
+  A SEP earning the same income contributes only S$2,520/year (MediSave only)
+  — a gap of S$14,760/year
+
+THE RETIREMENT ADEQUACY GAP: SEP vs EMPLOYEE
+
+By age 55:
+- Median CPF balance for an employee:   S$298,000
+- Median CPF balance for a SEP:         S$142,000
+- Gap:                                  S$156,000
+
+CPF LIFE monthly payout projection at 65:
+- Median employee payout:               S$1,380/month
+- Median SEP payout:                    S$780/month
+- Gap:                                  S$600/month
+
+Retirement Sum achievement at 55:
+- Employees reaching Full Retirement Sum (FRS): 48%
+- SEPs reaching FRS:                            18%
+- SEPs below Basic Retirement Sum (BRS):        47%
+
+Voluntary contribution rate:
+- Only 42% of SEPs contribute anything beyond the mandatory MediSave minimum
+- Of those who do contribute voluntarily, median annual voluntary amount: S$2,800
+
+BARRIERS TO VOLUNTARY CONTRIBUTION (2025 SEP Sentiment Survey, n=1,200)
+1. Irregular income — 68% of respondents
+   "I don't know how much to set aside when my income is unpredictable month-to-month."
+2. Low awareness of voluntary contribution options — 54%
+   "I didn't know I could contribute to my OA or SA voluntarily."
+3. Preference for liquid emergency savings — 47%
+   "I need cash accessible for business expenses. I can't afford to lock money in CPF."
+4. Complexity of CPF portal for SEPs — 38%
+   "It's confusing to fill in net trade income versus gross income fields."
+5. Distrust in CPF lock-in and payout age — 29%
+   "My money will be locked until I'm 55 or 65. I'd rather invest it myself."
+
+PROPOSED PILOT: SEP VOLUNTARY CONTRIBUTION NUDGE PROGRAMME
+Duration:  12 months (January – December 2026)
+Target:    20,000 SEPs aged 30–50, earning S$20,000–S$60,000 NTI,
+           primarily in gig economy and freelance sectors
+
+Component 1 — Auto-Enrolment Nudge via Singpass/MyInfo (Budget: S$300,000)
+  Trigger: When an SEP files income tax via myTax Portal (IRAS), display a
+           CPF voluntary contribution calculator with pre-filled NTI data from MyInfo
+  Mechanism: Default suggested contribution = 10% of NTI, presented as a split
+             across OA and SA. One-click to initiate contribution, redirect to CPF portal
+  Expected conversion: 15% of nudged SEPs make at least one voluntary contribution
+                       during the pilot year
+  Timeline: Requires IRAS and CPF API integration; 4 months lead time
+
+Component 2 — Financial Literacy Webinar Series (Budget: S$200,000)
+  Format: 12 webinars across 12 months, 45 minutes each, conducted online
+  Promotion channels: Grab/Gojek driver apps (in-app push notification),
+                      SME Centre newsletters, freelancer Facebook groups,
+                      NTUC Self-Employed Unit mailing list
+  Topics (sample):
+    - "How to pay yourself a CPF salary as a freelancer"
+    - "Tax relief you're leaving on the table: voluntary CPF contributions"
+    - "Why your retirement risk is 3x higher than your salaried friends"
+    - "CPF for gig workers: myth vs reality"
+  Target attendance: 5,000 unique SEP attendees across 12 sessions
+
+Component 3 — Platform Partnership with Gig Operators (Budget: S$400,000)
+  Partners targeted: Grab, Gojek, Lalamove, Shopee Food, Deliveroo
+                     (combined: ~90,000 active gig workers in Singapore)
+  Mechanism: Embed a "CPF Contribution" feature in driver/rider payout screens
+             Allow SEPs to auto-set-aside a % of each payout direct to CPF
+             (similar concept to Australia's SuperStream for gig workers)
+  Pilot sequence: Start with Grab (largest platform, 60,000 active drivers)
+                  Expand to 2 additional platforms in Month 6 based on Grab uptake
+  Incentive for platforms: CPF Board co-branding, CSR credit, MAS regulatory goodwill
+  Technical dependency: Platforms must integrate with CPF payment API (est. 3-month build)
+
+Component 4 — Monitoring, Evaluation, and Policy Recommendation (Budget: S$300,000)
+  Monthly tracking: Voluntary contribution rate and amounts by cohort and channel
+  Mid-pilot survey: 500 participants at Month 6 on behaviour change and barriers
+  End-pilot report: Full evaluation with policy recommendation for 2026 SEP CPF review
+  Publication: Findings to be submitted to MTI/MOF for consideration in next policy cycle
+
+BUDGET SUMMARY
+  Component 1 — MyInfo Nudge Integration:     S$300,000
+  Component 2 — Financial Literacy Webinars:  S$200,000
+  Component 3 — Platform Partnerships:        S$400,000
+  Component 4 — Monitoring and Evaluation:    S$300,000
+  TOTAL:                                       S$1,200,000
+
+Funding source: CPF Board Member Education and Outreach Fund
+Current uncommitted balance: S$2.8m (FY2025 budget)
+Contingency (not included in ask): S$150,000 held in reserve for overruns
+
+SUCCESS KPIs (12-month pilot)
+  Primary:   SEP voluntary contribution rate increases from 42% to 55% within pilot cohort
+  Secondary: Average voluntary contribution per participating SEP ≥ S$3,000 for the year
+  Tertiary:  70% participant satisfaction score in exit survey
+             ≥ 3 platform partners live by Month 9
+
+RISKS AND MITIGATIONS
+  Risk 1: Low gig platform uptake
+  Mitigation: Offer platforms co-branding rights and formal government endorsement letter;
+              Grab has indicated preliminary interest pending MOU
+
+  Risk 2: Privacy concerns around MyInfo tax data integration
+  Mitigation: PDPC consultation required; expected 3-month lead time already factored
+              into January 2026 start date; data minimisation approach to be adopted
+
+  Risk 3: SEP scepticism / low webinar attendance
+  Mitigation: Use incentivised registration (S$10 FairPrice voucher for attendees);
+              partner with NTUC, SME Centre for trusted channel distribution
+
+  Risk 4: Budget overrun on platform integration
+  Mitigation: Fixed-fee platform agreements; contingency S$150k available if needed
+
+--- END CONTENT UPLOAD ---
+
+
+=====================================================
+END OF TEST SCENARIOS
+=====================================================
