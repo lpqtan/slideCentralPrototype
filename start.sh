@@ -16,7 +16,7 @@ shutdown(){
     echo "[mongo] Container '${CONTAINER_NAME}' is not running"
   fi
 
-  cd open-design-open-design-v0.6.0
+  cd open-design
   pnpm tools-dev stop web
   cd ..
 
