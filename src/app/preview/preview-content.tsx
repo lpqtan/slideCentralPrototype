@@ -278,13 +278,15 @@ export default function PreviewContent() {
     setDownloading(true);
     try {
       const deck = deckId ? getById(deckId) : undefined;
-      const html = deck?.htmlContent ?? "";
       const res = await fetch("/api/export-pptx", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html }),
+        body: JSON.stringify({ slides: deck?.slides ?? [], overlayBlocks: deck?.overlayBlocks }),
       });
-      if (!res.ok) throw new Error("Export failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error ?? "Export failed");
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

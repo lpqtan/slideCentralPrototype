@@ -31,7 +31,7 @@ export default function BuildingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deckId = searchParams.get("deckId");
-  const { getById, setDeckHtml } = useDeckStore();
+  const { getById, setDeckHtml, patchSlides } = useDeckStore();
 
   const [events, setEvents] = useState<StatusEvent[]>([]);
   const [textDeltas, setTextDeltas] = useState("");
@@ -85,6 +85,9 @@ export default function BuildingContent() {
       ...o,
       bodyContent: "",
     })) ?? [];
+
+    // Ensure slides are persisted so PPTX export has structured data to work with
+    if (slides.length > 0) patchSlides(deckId, slides);
 
     abortedRef.current = false;
 

@@ -186,6 +186,15 @@ export function useDeckStore() {
     }
   }, []);
 
+  const patchSlides = useCallback((id: string, slides: SlideContent[]) => {
+    const decks = loadDecks();
+    const idx = decks.findIndex((d) => d.id === id);
+    if (idx >= 0) {
+      decks[idx] = { ...decks[idx], slides, updatedAt: Date.now() };
+      saveDecks(decks);
+    }
+  }, []);
+
   const patchOutlineLayout = useCallback((id: string, slideIndex: number, layoutId: string) => {
     const decks = loadDecks();
     const idx = decks.findIndex((d) => d.id === id);
@@ -213,5 +222,5 @@ export function useDeckStore() {
     }
   }, []);
 
-  return { getAll, getById, save, updateOutline, updateSlides, updateName, remove, getAllDecks, setDeckHtml, setDeckSlides, setOverlayBlocks, patchOutlineLayout };
+  return { getAll, getById, save, updateOutline, updateSlides, updateName, remove, getAllDecks, setDeckHtml, setDeckSlides, setOverlayBlocks, patchOutlineLayout, patchSlides };
 }
