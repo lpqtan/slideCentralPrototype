@@ -37,6 +37,7 @@ export default function PreviewContent() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [dbSaving, setDbSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<"idle" | "ok" | "err">("idle");
   const [layoutPickerOpen, setLayoutPickerOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
@@ -108,7 +109,6 @@ export default function PreviewContent() {
 
   // Edit mode
   const [editMode, setEditMode] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [baseHtml, setBaseHtml] = useState<string | null>(null);
   const editHistory = useHistory<TextBlock[]>([]);
   const editBlocks = editHistory.state;
