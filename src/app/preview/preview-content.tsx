@@ -112,6 +112,7 @@ export default function PreviewContent() {
   const [editText, setEditText] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [editBody, setEditBody] = useState("");
+  const [activeInlineField, setActiveInlineField] = useState<"title" | "body" | null>(null);
 
   const selectedBlock = selectedId ? editBlocks.find((b) => b.id === selectedId) : null;
   const currentSlideData = slides[currentSlide] as SlideContent | undefined;
@@ -317,6 +318,30 @@ export default function PreviewContent() {
     return () => ro.disconnect();
   }, [slides.length > 0]);
 
+  // Inline edit regions per layout (coordinates in inches, matching preview-builder.ts)
+  type InlineRegion = { field: "title" | "body"; x: number; y: number; w: number; h: number; fontSize: number; multiline: boolean; fontWeight?: number; color: string };
+  function getInlineRegions(layoutId: string): InlineRegion[] {
+    const dark = "#FFFFFF", muted = "#DDDDDD", fg = "#1A1A1A", soft = "#6B6B6B", body = "#3A3A3A";
+    const titleBlock = { field: "title" as const, x: 0.5, y: 0.35, w: 12.3, h: 0.45, fontSize: 24, multiline: false, fontWeight: 700, color: fg };
+    const defaultBody = { field: "body" as const, x: 0.8, y: 1.1, w: 11.7, h: 5.2, fontSize: 14, multiline: true, color: body };
+    if (layoutId === "cover")
+      return [{ field: "title", x: 1, y: 2, w: 11.3, h: 1.5, fontSize: 44, multiline: false, fontWeight: 700, color: dark },
+              { field: "body", x: 1, y: 3.95, w: 11.3, h: 1.5, fontSize: 18, multiline: true, color: muted }];
+    if (layoutId === "section-divider")
+      return [{ field: "title", x: 1, y: 2, w: 11.3, h: 1.0, fontSize: 36, multiline: false, fontWeight: 700, color: fg },
+              { field: "body", x: 1, y: 3.2, w: 11.3, h: 1.5, fontSize: 16, multiline: true, color: soft }];
+    if (layoutId === "big-stat")
+      return [{ field: "title", x: 0, y: 1.0, w: 13.333, h: 0.5, fontSize: 12, multiline: false, color: "AAAAAA" },
+              { field: "body", x: 1, y: 1.5, w: 11.3, h: 4.0, fontSize: 18, multiline: true, color: dark }];
+    if (layoutId === "quote-testimonial")
+      return [{ field: "title", x: 1.5, y: 0.5, w: 10.3, h: 0.5, fontSize: 12, multiline: false, color: "AAAAAA" },
+              { field: "body", x: 1.5, y: 1.5, w: 10.3, h: 4.0, fontSize: 24, multiline: true, color: dark }];
+    if (layoutId === "closing")
+      return [{ field: "title", x: 1, y: 2.5, w: 11.3, h: 0.75, fontSize: 40, multiline: false, fontWeight: 700, color: dark },
+              { field: "body", x: 1, y: 3.5, w: 11.3, h: 1.5, fontSize: 16, multiline: true, color: muted }];
+    return [titleBlock, defaultBody];
+  }
+
   if (!slides.length) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -516,6 +541,52 @@ export default function PreviewContent() {
                 }}
                 dangerouslySetInnerHTML={{ __html: currentSlideHtml }}
               />
+              {/* Inline edit regions for title/body — edit mode only */}
+              {editMode && currentSlideData && (
+                <div
+                  className="absolute top-0 left-0"
+                  style={{
+                    width: SLIDE_W, height: SLIDE_H,
+                    transform: `scale(${slideSize.w / SLIDE_W})`,
+                    transformOrigin: 'top left',
+                    zIndex: 5,
+                  }}
+                >
+                  {getInlineRegions(currentSlideData.layoutOverride ?? currentSlideData.suggestedLayout).map((region) => {
+                    const isActive = activeInlineField === region.field;
+                    const px = (inch: number) => inch * 100;
+                    const fontPx = region.fontSize * (100 / 72);
+                    const commonStyle: React.CSSProperties = {
+                      position: "absolute",
+                      left: px(region.x), top: px(region.y),
+                      width: px(region.w), height: px(region.h),
+                      fontSize: fontPx, fontWeight: region.fontWeight ?? 400,
+                      fontFamily: "Roboto, system-ui, sans-serif",
+                      lineHeight: 1.3, color: region.color,
+                    };
+                    if (isActive) {
+                      return region.multiline ? (
+                        <textarea key={region.field} autoFocus value={editBody}
+                          onChange={(e) => handleBodyChange(e.target.value)}
+                          onBlur={() => setActiveInlineField(null)}
+                          style={{ ...commonStyle, background: "rgba(255,255,255,0.92)", color: "#1A1A1A", border: "2px solid #045941", borderRadius: 4, padding: 4, resize: "none", outline: "none" }} />
+                      ) : (
+                        <input key={region.field} autoFocus value={editTitle}
+                          onChange={(e) => handleTitleChange(e.target.value)}
+                          onBlur={() => setActiveInlineField(null)}
+                          onKeyDown={(e) => { if (e.key === "Enter") setActiveInlineField(null); }}
+                          style={{ ...commonStyle, background: "rgba(255,255,255,0.92)", color: "#1A1A1A", border: "2px solid #045941", borderRadius: 4, padding: "0 4px", outline: "none" }} />
+                      );
+                    }
+                    return (
+                      <div key={region.field}
+                        onClick={() => setActiveInlineField(region.field)}
+                        title={`Click to edit ${region.field}`}
+                        style={{ position: "absolute", left: px(region.x), top: px(region.y), width: px(region.w), height: px(region.h), cursor: "text", borderRadius: 4, background: "transparent", outline: "1px dashed rgba(4,89,65,0.35)" }} />
+                    );
+                  })}
+                </div>
+              )}
               {/* Overlay — interactive in edit mode, static in view mode */}
               {(() => {
                 const blocks = editMode
@@ -567,36 +638,6 @@ export default function PreviewContent() {
             </div>
           )}
         </div>
-
-        {/* Slide content editor — edit mode only */}
-        {editMode && (
-          <div className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-3">
-            <div className="flex gap-4">
-              <div className="w-80 shrink-0">
-                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">Title</label>
-                <input
-                  value={editTitle}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  className="w-full rounded border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-fg)] focus:border-[var(--color-cpf-green)] focus:outline-none"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">
-                  Body Content
-                  <span className="ml-2 font-normal normal-case text-[9px] text-[var(--color-muted)]">
-                    (one line per bullet · use | to separate columns/steps)
-                  </span>
-                </label>
-                <textarea
-                  value={editBody}
-                  onChange={(e) => handleBodyChange(e.target.value)}
-                  rows={3}
-                  className="w-full rounded border border-[var(--color-border)] px-3 py-2 text-xs text-[var(--color-fg)] focus:border-[var(--color-cpf-green)] focus:outline-none resize-none font-mono"
-                />
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Brand bar */}
         <div className="mt-3 mb-4 shrink-0 flex items-center gap-2 px-6">
