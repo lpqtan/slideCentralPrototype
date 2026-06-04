@@ -1,10 +1,3 @@
-CPF BOARD — COPILOT SLIDE GENERATION TEST SCENARIOS
-=====================================================
-5 scenarios for testing Microsoft 365 Copilot's presentation generation quality.
-Each scenario provides all briefing fields and a content upload block.
-Fill in the bracketed fields of your prompt template, then paste the content upload
-into the "Additional Context" section.
-
 =====================================================
 SCENARIO 1 — USING CPF TO PAY FOR YOUR HDB FLAT
 =====================================================
@@ -19,7 +12,7 @@ The Ask:        Understand the three ways CPF can be used for housing so you can
                 your flat purchase confidently.
 Narrative Arc:  Teaching
                 (What It Is → Why It Matters → How It Works → How to Apply It)
-Slide Count:    10
+Slide Count:    20
 
 --- CONTENT UPLOAD ---
 
@@ -82,7 +75,7 @@ The Ask:        Direct the team on which of three escalation options to proceed 
 Narrative Arc:  Proposal
                 (Problem or Opportunity → Why It Matters → Root Cause →
                  What Success Looks Like → What Gets Us There)
-Slide Count:    10
+Slide Count:    15
 
 --- CONTENT UPLOAD ---
 
@@ -178,7 +171,7 @@ The Ask:        By end of this session, staff should be able to answer the top 5
                 and via the call centre.
 Narrative Arc:  Teaching
                 (What It Is → Why It Matters → How It Works → How to Apply It)
-Slide Count:    12
+Slide Count:    13
 
 --- CONTENT UPLOAD ---
 
@@ -545,6 +538,4 @@ RISKS AND MITIGATIONS
 --- END CONTENT UPLOAD ---
 
 
-=====================================================
-END OF TEST SCENARIOS
-=====================================================
+
