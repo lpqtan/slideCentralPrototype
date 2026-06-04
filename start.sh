@@ -67,7 +67,7 @@ echo "[mongo] Ready"
 
 echo "[app] Starting Next.js dev server..."
 
-cd open-design-open-design-v0.6.0
+cd open-design
 pnpm install
 pnpm tools-dev start web --daemon-port 7456 --web-port 7457
 
