@@ -1,4 +1,32 @@
 #!/usr/bin/env bash
+
+shutdown(){
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  CONTAINER_NAME="mongo-test"
+
+  echo "=== Slide Central Shutdown ==="
+
+  if docker ps --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
+    echo "[mongo] Stopping container '${CONTAINER_NAME}'..."
+    docker stop "${CONTAINER_NAME}" >/dev/null
+    echo "[mongo] Stopped"
+  else
+    echo "[mongo] Container '${CONTAINER_NAME}' is not running"
+  fi
+
+  cd open-design-open-design-v0.6.0
+  pnpm tools-dev stop web
+  cd ..
+
+
+  echo "[app] Shutdown complete"
+}
+
+trap shutdown INT
+
+
 set -euo pipefail
 
 CONTAINER_NAME="mongo-test"
@@ -38,4 +66,13 @@ done
 echo "[mongo] Ready"
 
 echo "[app] Starting Next.js dev server..."
+
+cd open-design-open-design-v0.6.0
+pnpm install
+pnpm tools-dev start web --daemon-port 7456 --web-port 7457
+
+cd ..
+
 npm run dev
+
+
