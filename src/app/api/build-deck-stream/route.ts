@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       request.signal?.addEventListener("abort", () => { aborted = true; });
 
       try {
+        const startTime = Date.now();
         const body = await request.json();
         const {
           slides,
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
 
           const { buildDeckHtml } = await import("@/lib/deck-builder");
           const html = buildDeckHtml(slides);
-          sse(controller, "complete", { html });
+          sse(controller, "complete", { html, elapsed: Math.floor((Date.now() - startTime) / 1000) });
           controller.close();
           return;
         }
@@ -170,6 +171,16 @@ export async function POST(request: Request) {
         });
 
         sse(controller, "status", { stage: "building", message: `Agent '${agent}' building deck...` });
+
+        const buildStart = Date.now();
+        const progressTimer = setInterval(() => {
+          if (aborted) { clearInterval(progressTimer); return; }
+          const secs = Math.floor((Date.now() - buildStart) / 1000);
+          const mins = Math.floor(secs / 60);
+          const remain = secs % 60;
+          const display = mins > 0 ? `Agent working... ${mins}m ${remain}s elapsed` : `Agent working... ${secs}s elapsed`;
+          sse(controller, "status", { stage: "building", message: display });
+        }, 15_000);
 
         const systemPrompt = `You are an expert presentation designer for CPF (Central Provident Fund Board).
 
@@ -318,7 +329,12 @@ Read outline.md, brand-spec.md, and instructions.md first. Then build the comple
           if (ev.event === "end") break;
         }
 
-        if (agentError) throw new Error(agentError);
+        if (agentError) {
+          clearInterval(progressTimer);
+          throw new Error(agentError);
+        }
+
+        clearInterval(progressTimer);
 
         sse(controller, "status", { stage: "fetching", message: "Fetching generated deck..." });
 
@@ -336,7 +352,7 @@ Read outline.md, brand-spec.md, and instructions.md first. Then build the comple
           html = fallback(slides);
         }
 
-        sse(controller, "complete", { html });
+        sse(controller, "complete", { html, elapsed: Math.floor((Date.now() - startTime) / 1000) });
         controller.close();
       } catch (error) {
         if (!aborted) {
