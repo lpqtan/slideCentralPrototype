@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDeckStore } from "@/hooks/useDeckStore";
 import type { GenerationSource } from "@/lib/types";
@@ -21,6 +21,12 @@ function badgeLabel(settings: { strategy: string; provider?: string; daemonAgent
   return `${agent} / ${model}`;
 }
 
+function fmtElapsed(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
 export default function BuildingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,6 +38,8 @@ export default function BuildingContent() {
   const [prompt, setPrompt] = useState<{ systemPrompt: string; userPrompt: string; outlineMd?: string; brandSpec?: string; instructions?: string } | null>(null);
   const [error, setError] = useState("");
   const [elapsed, setElapsed] = useState(0);
+  const [completed, setCompleted] = useState(false);
+  const [totalElapsed, setTotalElapsed] = useState(0);
   const startRef = useRef(Date.now());
   const abortedRef = useRef(false);
   const [settings, setSettings] = useState<{
@@ -147,10 +155,11 @@ export default function BuildingContent() {
 
               if (currentEvent === "complete") {
                 try {
-                  const parsed = JSON.parse(currentData) as { html: string; source?: GenerationSource };
+                  const parsed = JSON.parse(currentData) as { html: string; source?: GenerationSource; elapsed?: number };
                   if (abortedRef.current) return;
                   setDeckHtml(deckId, parsed.html);
-                  router.push(`/preview?deckId=${encodeURIComponent(deckId)}`);
+                  setTotalElapsed(parsed.elapsed ?? elapsed);
+                  setCompleted(true);
                   return;
                 } catch { /* ignore */ }
               }
@@ -180,6 +189,29 @@ export default function BuildingContent() {
     };
   }, [deckId, getById, router, setDeckHtml]);
 
+  const viewDeck = useCallback(() => {
+    router.push(`/preview?deckId=${encodeURIComponent(deckId ?? "")}`);
+  }, [router, deckId]);
+
+  const agentPhase = ((): string => {
+    if (!textDeltas) return "";
+    if (textDeltas.includes("<!doctype") || textDeltas.includes("<section") || textDeltas.includes("<style")) return "Generating HTML...";
+    if (textDeltas.includes("Slide rhythm") || textDeltas.includes("plan") || textDeltas.includes("structure")) return "Planning slide structure...";
+    if (textDeltas.includes("Writing") || textDeltas.includes("write") || textDeltas.includes("index.html")) return "Writing index.html...";
+    return "Agent reasoning...";
+  })();
+
+  const statusMessage = ((): string => {
+    if (completed) return "Deck built successfully";
+    if (error) return "Build failed";
+    if (events.length > 0) {
+      const last = events[events.length - 1];
+      if (last.stage === "building" && agentPhase) return agentPhase;
+      return last.message;
+    }
+    return "Initializing...";
+  })();
+
   return (
     <div className="flex flex-1 flex-col">
       {/* Header */}
@@ -193,26 +225,32 @@ export default function BuildingContent() {
         </p>
       </div>
 
-      {/* Spinner */}
-      <div className="mb-6 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+      {/* Spinner / Completion */}
+      <div className={`mb-6 rounded border bg-[var(--color-surface)] p-6 ${completed ? "border-[var(--color-cpf-green)]" : "border-[var(--color-border)]"}`}>
         <div className="flex items-center gap-4">
           {error ? (
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
               <span className="text-sm text-red-500">!</span>
+            </div>
+          ) : completed ? (
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-cpf-mint)]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-cpf-green)" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
             </div>
           ) : (
             <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-[var(--color-cpf-green)] border-t-transparent" />
           )}
           <div>
             <p className="text-sm font-semibold text-[var(--color-fg)]">
-              {error
-                ? "Build failed"
-                : events.length > 0
-                  ? events[events.length - 1].message
-                  : "Initializing..."}
+              {statusMessage}
             </p>
             <p className="text-xs text-[var(--color-muted)]">
-              {error ? error : `Elapsed: ${elapsed}s`}
+              {error
+                ? error
+                : completed
+                  ? `Deck built in ${fmtElapsed(totalElapsed)}`
+                  : `Elapsed: ${fmtElapsed(elapsed)}`}
             </p>
           </div>
         </div>
@@ -223,6 +261,22 @@ export default function BuildingContent() {
           >
             Back to Outline
           </button>
+        )}
+        {completed && (
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={viewDeck}
+              className="rounded bg-[var(--color-cpf-green)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)]"
+            >
+              View Deck
+            </button>
+            <button
+              onClick={() => router.push(`/outline?deckId=${encodeURIComponent(deckId ?? "")}`)}
+              className="rounded border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-fg-soft)] transition-colors hover:bg-[var(--color-cpf-mint)]"
+            >
+              Back to Outline
+            </button>
+          </div>
         )}
       </div>
 
@@ -314,11 +368,11 @@ export default function BuildingContent() {
 
       {/* Agent output */}
       {textDeltas && (
-        <details className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+        <details open className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)] hover:text-[var(--color-fg-soft)]">
-            Agent Output
+            Agent Output {completed ? `(${fmtElapsed(totalElapsed)})` : ""}
           </summary>
-          <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
+          <pre className="mt-3 max-h-[50vh] overflow-auto whitespace-pre-wrap rounded bg-[var(--color-cpf-paper)] p-3 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
             {textDeltas}
           </pre>
         </details>
