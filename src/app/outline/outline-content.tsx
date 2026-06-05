@@ -458,7 +458,7 @@ export default function OutlineContent() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  {editingField?.slide === slide.slideNumber && editingField.field === "title" ? (
+                  {editingField?.slide === slide.slideNumber && editingField?.field === "title" ? (
                     <input
                       autoFocus
                       value={editValue}
@@ -479,7 +479,7 @@ export default function OutlineContent() {
                     </h3>
                   )}
                   {/* Content prompt with label prefix */}
-                  {editingField?.slide === slide.slideNumber && editingField.field === "prompt" ? (
+                  {editingField?.slide === slide.slideNumber && editingField?.field === "prompt" ? (
                     <textarea
                       autoFocus
                       value={editValue}
@@ -530,7 +530,7 @@ export default function OutlineContent() {
 
               {/* Body content */}
               <div className="mb-1">
-                {editingField?.slide === slide.slideNumber && editingField.field === "body" ? (
+                {editingField?.slide === slide.slideNumber && editingField?.field === "body" ? (
                   <textarea
                     autoFocus
                     value={editValue}
