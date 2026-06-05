@@ -23,7 +23,28 @@ No test script or test files exist. No explicit typecheck script; use `npx tsc -
   - App works without MongoDB; only Gallery/Save-to-DB features are unavailable
 - **`.env.local`** — not committed. Expected keys: `MONGODB_URI`, `MONGODB_DB`
 
+## Docker Deployment
+
+Three services in `docker-compose.yml`:
+- **mongo** — MongoDB on port 27017 (health-checked)
+- **daemon** — Open Design daemon (Node 24, pnpm, OpenCode CLI) on port 7456, built from `Dockerfile.daemon` with context `./open-design`
+- **app** — Next.js standalone (Node 20) on port 3000, built from `Dockerfile`
+
+App connects to daemon via `DAEMON_URL=http://daemon:7456` and MongoDB via `MONGODB_URI=mongodb://mongo:27017`.
+
+`tsconfig.json` excludes `open-design` — the daemon's TypeScript would fail the app build.
+
 ## Architecture
+
+### Authentication
+
+JWT-based auth with httpOnly cookies (`sc_auth`). Users stored in MongoDB `users` collection.
+- Middleware (`src/middleware.ts`) checks cookie presence; API routes do full JWT verification
+- Public routes: `/login`, `/api/auth/*`, `/api/health*`
+- API keys stored server-side per-user in MongoDB (not localStorage)
+- Settings saved via `PUT /api/settings`, loaded via `GET /api/settings`
+- Seed initial user: `node scripts/seed-user.mjs [username] [password]` (defaults: admin/slidecentral)
+- Logout clears cookie via `POST /api/auth/logout`
 
 ### AI Backend Strategies (`src/lib/strategies/`)
 

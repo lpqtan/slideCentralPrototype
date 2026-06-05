@@ -86,7 +86,6 @@ export default function GeneratingContent() {
                 ? (settings.daemonAgent ?? "opencode")
                 : settings.provider,
             model: settings.strategy === "daemon" ? (settings.daemonModel ?? "opencode/big-pickle") : undefined,
-            apiKey: settings.apiKey,
             existingOutline: regenPrompt ? (deck.outline ?? undefined) : undefined,
             lockedSlideNumbers: lockedIds.length > 0 ? lockedIds : undefined,
             regenerationPrompt: regenPrompt || undefined,

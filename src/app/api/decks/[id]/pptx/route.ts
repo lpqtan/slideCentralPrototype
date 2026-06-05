@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/mongodb";
+import { requireAuth } from "@/lib/auth";
 import type { DbDeck } from "@/lib/db-types";
 import { buildPptx } from "@/lib/pptx-builder";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await requireAuth(request);
     const { id } = await params;
     const db = await getDb();
     const collection = db.collection<DbDeck>("decks");
 
-    const doc = await collection.findOne({ deckId: id });
+    const doc = await collection.findOne({ deckId: id, createdBy: userId });
     if (!doc) {
       return NextResponse.json({ error: "Deck not found" }, { status: 404 });
     }
@@ -30,6 +32,9 @@ export async function GET(
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.name === "AuthError") {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

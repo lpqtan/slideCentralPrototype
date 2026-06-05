@@ -1,6 +1,7 @@
 import { callProvider } from "@/lib/strategies/llm";
 import { chatOpenCode } from "@/lib/strategies/opencode-direct";
 import { buildChatBriefingSystemPrompt, buildChatBriefingUserPrompt } from "@/lib/prompts-chat-briefing";
+import { getUserSettings, getAuthTokenFromRequest, verifyAuthToken } from "@/lib/auth";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const FALLBACK_MODEL = "openrouter/free";
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
 
       try {
         const body = await request.json();
-        const { messages, extractOnly, strategy, provider, apiKey } = body as {
+        const { messages, extractOnly, strategy, provider: bodyProvider, apiKey: bodyApiKey } = body as {
           messages: Array<{ role: string; content: string }>;
           extractOnly?: boolean;
           strategy?: string;
@@ -48,6 +49,13 @@ export async function POST(request: Request) {
           controller.close();
           return;
         }
+
+        // Resolve API key: user settings (server-side) > request body > env
+        const token = getAuthTokenFromRequest(request);
+        const userId = token ? verifyAuthToken(token) : null;
+        const userSettings = userId ? await getUserSettings(userId) : null;
+        const provider = bodyProvider ?? userSettings?.provider;
+        const apiKey = bodyApiKey ?? userSettings?.apiKey;
 
         const systemPrompt = buildChatBriefingSystemPrompt();
         const userPrompt = buildChatBriefingUserPrompt(messages, extractOnly ?? false);

@@ -3,6 +3,7 @@ import type { SavedDeck } from "@/lib/types";
 export interface DbDeck {
   deckId: string;
   name: string;
+  createdBy: string;
   createdAt: number;
   updatedAt: number;
   briefing: SavedDeck["briefing"];

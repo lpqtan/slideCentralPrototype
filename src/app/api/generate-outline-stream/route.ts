@@ -2,6 +2,8 @@ import { getStrategy } from "@/lib/strategies/registry";
 import { findAgent, parseSseStream } from "@/lib/strategies/daemon";
 import { streamProvider, extractJson } from "@/lib/strategies/llm";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts-od";
+import { getUserSettings } from "@/lib/auth";
+import { getAuthTokenFromRequest, verifyAuthToken } from "@/lib/auth";
 import type { BriefingData, SlideOutline, GenerationSource } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -22,8 +24,8 @@ export async function POST(request: Request) {
         const {
           briefing,
           strategy: strategyId,
-          provider,
-          apiKey,
+          provider: bodyProvider,
+          apiKey: bodyApiKey,
           model,
           existingOutline,
           lockedSlideNumbers,
@@ -47,6 +49,13 @@ export async function POST(request: Request) {
 
         const activeStrategy = strategyId ?? "mock";
         const source: GenerationSource = { strategy: activeStrategy, timestamp: Date.now() };
+
+        // Resolve API key: user settings (server-side) > request body (backward compat) > env
+        const token = getAuthTokenFromRequest(request);
+        const userId = token ? verifyAuthToken(token) : null;
+        const userSettings = userId ? await getUserSettings(userId) : null;
+        const provider = bodyProvider ?? userSettings?.provider;
+        const apiKey = bodyApiKey ?? userSettings?.apiKey;
 
         sse(controller, "status", { stage: "connecting", message: `Connecting to ${activeStrategy}...` });
 
@@ -151,11 +160,6 @@ export async function POST(request: Request) {
               return slide;
             });
           }
-        }
-
-        // ── Daemon ──────────────────────────────────────
-        if (activeStrategy === "daemon") {
-          // ... (unchanged)
         }
 
         // ── LLM API ─────────────────────────────────────

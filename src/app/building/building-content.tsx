@@ -102,7 +102,6 @@ export default function BuildingContent() {
             strategy: s.strategy ?? "llm",
             provider: s.strategy === "daemon" ? (s.daemonAgent ?? "opencode") : (s.provider ?? "gemini"),
             model: s.strategy === "daemon" ? (s.daemonModel ?? "opencode/big-pickle") : "gemini-3.5-flash",
-            apiKey: s.apiKey,
           }),
         });
 

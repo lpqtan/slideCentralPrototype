@@ -348,18 +348,11 @@ const llmStrategy: BackendStrategy = {
   id: "llm",
 
   async healthCheck(): Promise<boolean> {
-    // Check if any provider key is set
+    // Check if any provider key is set via environment
     const providers = ["gemini", "groq", "openrouter", "openai"];
     for (const p of providers) {
       if (process.env[`${p.toUpperCase()}_API_KEY`]) return true;
     }
-    try {
-      const raw = typeof localStorage !== "undefined" ? localStorage.getItem("slidecentral-settings") : null;
-      if (raw) {
-        const s = JSON.parse(raw) as { apiKey?: string };
-        if (s.apiKey) return true;
-      }
-    } catch { /* ignore */ }
     return false;
   },
 

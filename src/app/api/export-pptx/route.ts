@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import type { SlideContent, TextBlock } from "@/lib/types";
 import { buildPptx } from "@/lib/pptx-builder";
+import { requireAuth } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
+    await requireAuth(request);
+
     const body = await request.json();
     const { slides, overlayBlocks } = body as {
       slides: SlideContent[];
@@ -23,6 +26,9 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.name === "AuthError") {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { findAgent, streamChat } from "@/lib/strategies/daemon";
+import { requireAuth } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
+    await requireAuth(request);
+
     const body = await request.json();
     const { agentId } = body as { agentId?: string };
 
@@ -26,6 +29,9 @@ export async function POST(request: Request) {
       durationMs,
     });
   } catch (error) {
+    if (error instanceof Error && error.name === "AuthError") {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }

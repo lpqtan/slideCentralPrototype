@@ -243,13 +243,19 @@ npm start
 
 ### Docker Deployment
 
-Build and run with MongoDB in one command:
+Builds and runs three services: **MongoDB**, **Open Design Daemon** (with OpenCode), and the **Next.js app**.
 
 ```bash
 docker compose up --build -d
 ```
 
-Opens at **http://localhost:3000**. The app connects to the MongoDB container automatically.
+| Service | Port | Purpose |
+|---|---|---|
+| MongoDB | 27017 | Persistent deck storage |
+| Daemon | 7456 | AI agent orchestration (OpenCode) |
+| App | 3000 | Web UI |
+
+Opens at **http://localhost:3000**. The app connects to MongoDB and the daemon automatically via Docker networking.
 
 Stop everything:
 
@@ -257,16 +263,26 @@ Stop everything:
 docker compose down
 ```
 
-To stop MongoDB only (keeps app running):
+To stop individual services:
 
 ```bash
-docker compose stop mongo
+docker compose stop app      # stop web UI only
+docker compose stop daemon   # stop AI daemon only
+docker compose stop mongo    # stop MongoDB only
 ```
 
 To rebuild after code changes:
 
 ```bash
 docker compose up --build -d
+```
+
+View logs:
+
+```bash
+docker compose logs -f app       # app logs
+docker compose logs -f daemon    # daemon logs
+docker compose logs -f mongo     # MongoDB logs
 ```
 
 ---
@@ -304,8 +320,9 @@ npm run lint
 slideCentralPrototype/
 ├── .env.local                    # MongoDB connection config
 ├── .nvmrc                        # Node version pin (20)
-├── docker-compose.yml            # MongoDB + app container definitions
-├── Dockerfile                    # Multi-stage production build
+├── docker-compose.yml            # MongoDB + daemon + app services
+├── Dockerfile                    # App: multi-stage Next.js standalone build
+├── Dockerfile.daemon             # Daemon: Node 24 + OpenCode + OD daemon
 ├── .dockerignore                 # Build context exclusions
 ├── start.sh                      # Start MongoDB + daemon + dev server (local dev)
 ├── stop.sh                       # Stop MongoDB container

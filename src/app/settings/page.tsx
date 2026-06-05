@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const STRATEGIES = [
   { id: "mock", label: "Mock", description: "Hardcoded responses for UI testing" },
@@ -28,13 +29,7 @@ const DAEMON_AGENTS = [
   { id: "gemini", label: "Gemini CLI", description: "Google's coding agent" },
   { id: "cursor-agent", label: "Cursor Agent", description: "Cursor's coding agent" },
   { id: "qwen", label: "Qwen Code", description: "Alibaba's coding agent" },
-  { id: "opencode", label: "OpenCode", description: "Default — open source coding agent" },
 ] as const;
-
-// Deduplicate by id
-const DAEMON_AGENTS_UNIQUE = DAEMON_AGENTS.filter(
-  (a, i, arr) => arr.findIndex((x) => x.id === a.id) === i
-);
 
 const FREE_MODELS = [
   { id: "opencode/big-pickle", label: "Big Pickle", description: "Free — general purpose" },
@@ -60,15 +55,8 @@ const DEFAULT_SETTINGS: SettingsState = {
   daemonModel: "opencode/big-pickle",
 };
 
-function loadSettings(): SettingsState {
-  try {
-    const raw = localStorage.getItem("slidecentral-settings");
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  return DEFAULT_SETTINGS;
-}
-
 export default function SettingsPage() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [strategy, setStrategy] = useState(DEFAULT_SETTINGS.strategy);
@@ -88,15 +76,25 @@ export default function SettingsPage() {
     error?: string;
   } | null>(null);
 
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  // Load settings from server
   useEffect(() => {
-    const s = loadSettings();
-    setSaved(s);
-    setStrategy(s.strategy);
-    setProvider(s.provider);
-    setApiKey(s.apiKey);
-    setDaemonAgent(s.daemonAgent ?? "opencode");
-    setDaemonModel(s.daemonModel ?? "opencode/big-pickle");
-    setMounted(true);
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data: SettingsState & { error?: string }) => {
+        if (!data.error) {
+          setSaved(data);
+          setStrategy(data.strategy);
+          setProvider(data.provider);
+          setApiKey(data.apiKey);
+          setDaemonAgent(data.daemonAgent ?? "opencode");
+          setDaemonModel(data.daemonModel ?? "opencode/big-pickle");
+        }
+      })
+      .catch(() => { /* use defaults */ })
+      .finally(() => setMounted(true));
   }, []);
 
   useEffect(() => {
@@ -135,10 +133,26 @@ export default function SettingsPage() {
   const keyIsSet = saved.apiKey.length > 0;
   const keyIsPopulated = apiKey.length > 0;
 
-  const save = () => {
-    const next: SettingsState = { strategy, provider, apiKey, daemonAgent, daemonModel };
-    localStorage.setItem("slidecentral-settings", JSON.stringify(next));
-    window.location.reload();
+  const save = async () => {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ strategy, provider, apiKey, daemonAgent, daemonModel }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? "Save failed");
+      }
+      setSaved({ strategy, provider, apiKey, daemonAgent, daemonModel });
+      router.refresh();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -157,7 +171,7 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-[var(--color-fg)]">AI Settings</h1>
           <p className="mt-1 text-sm text-[var(--color-fg-soft)]">
-            Configure the AI backend and provider keys
+            Configure the AI backend and provider keys — stored securely on the server
           </p>
         </div>
       </div>
@@ -281,7 +295,7 @@ export default function SettingsPage() {
               API Key
             </label>
             <p className="mb-2 text-xs text-[var(--color-muted)]">
-              Required for BYOK providers. Stored locally in your browser.
+              Required for BYOK providers. Stored securely on the server.
             </p>
             <input
               type="password"
@@ -320,7 +334,7 @@ export default function SettingsPage() {
               Must be installed and on your <code className="rounded bg-[var(--color-cpf-mint)] px-1 py-0.5 font-mono text-[10px]">PATH</code>.
             </p>
             <div className="grid grid-cols-3 gap-3">
-              {DAEMON_AGENTS_UNIQUE.map((a) => {
+              {DAEMON_AGENTS.map((a) => {
                 const isSaved = saved.strategy === "daemon" && saved.daemonAgent === a.id;
                 const isSelected = daemonAgent === a.id;
                 return (
@@ -501,8 +515,7 @@ export default function SettingsPage() {
             <p className="mt-2 text-xs text-[var(--color-muted)]">
               Expected at localhost:7456. Run{" "}
               <code className="rounded bg-[var(--color-cpf-mint)] px-1 py-0.5 font-mono text-[10px]">pnpm tools-dev</code>{" "}
-              in{" "}
-              <code className="rounded bg-[var(--color-cpf-mint)] px-1 py-0.5 font-mono text-[10px]">referenceRepos/open-design-main</code>.
+              in the open-design directory.
             </p>
           </div>
         </>
@@ -510,21 +523,24 @@ export default function SettingsPage() {
 
       {/* Save area */}
       <div className="flex items-center justify-between self-end">
-        {hasChanges ? (
+        {saveError && (
+          <span className="mr-4 text-xs text-red-500">{saveError}</span>
+        )}
+        {!saveError && hasChanges ? (
           <span className="mr-4 text-xs text-[var(--color-orange)]">
             Unsaved changes
           </span>
-        ) : (
+        ) : !saveError && (
           <span className="mr-4 text-xs text-[var(--color-cpf-green)]">
             Up to date
           </span>
         )}
         <button
           onClick={save}
-          disabled={!hasChanges}
+          disabled={!hasChanges || saving}
           className="rounded bg-[var(--color-cpf-green)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-cpf-green-dim)] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Save Settings
+          {saving ? "Saving..." : "Save Settings"}
         </button>
       </div>
 
