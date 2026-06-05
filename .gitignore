@@ -42,3 +42,6 @@ slideCentral/
 *.swp
 *.swo
 *~
+
+# Dockerfile
+Dockerfile
