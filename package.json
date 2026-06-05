@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "build:worker": "node scripts/build-worker.mjs"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
