@@ -234,10 +234,61 @@ Landing Page
 
 ## Production Build
 
+### Local Production
+
 ```bash
 npm run build
 npm start
 ```
+
+### Docker Deployment
+
+Build and run with MongoDB in one command:
+
+```bash
+docker compose up --build -d
+```
+
+Opens at **http://localhost:3000**. The app connects to the MongoDB container automatically.
+
+Stop everything:
+
+```bash
+docker compose down
+```
+
+To stop MongoDB only (keeps app running):
+
+```bash
+docker compose stop mongo
+```
+
+To rebuild after code changes:
+
+```bash
+docker compose up --build -d
+```
+
+---
+
+## Local Development
+
+For local development with MongoDB + dev server (and optionally the Open Design daemon), use `start.sh`:
+
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+This starts MongoDB, the Open Design daemon, and the Next.js dev server on port 3000.
+
+To stop everything:
+
+```bash
+./stop.sh
+```
+
+Or manually: `docker compose down`
 
 Lint:
 
@@ -253,8 +304,10 @@ npm run lint
 slideCentralPrototype/
 ├── .env.local                    # MongoDB connection config
 ├── .nvmrc                        # Node version pin (20)
-├── docker-compose.yml            # MongoDB container definition
-├── start.sh                      # Start MongoDB + dev server
+├── docker-compose.yml            # MongoDB + app container definitions
+├── Dockerfile                    # Multi-stage production build
+├── .dockerignore                 # Build context exclusions
+├── start.sh                      # Start MongoDB + daemon + dev server (local dev)
 ├── stop.sh                       # Stop MongoDB container
 ├── package.json
 ├── tsconfig.json
