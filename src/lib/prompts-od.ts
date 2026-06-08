@@ -17,7 +17,68 @@ function buildLayoutIds(): string {
   return LAYOUTS.map((l) => `\`${l.id}\``).join(", ");
 }
 
-export function buildSystemPrompt(): string {
+function buildLayoutContentGuide(): string {
+  return `
+## contentPrompt Format by Layout
+
+Match the format exactly — the renderers parse contentPrompt using layout-specific patterns:
+
+- \`kpi-dashboard\` → 4 lines, each "VALUE: Label | trend" e.g. "1.2M: Active Members | +12%"
+- \`timeline\` → up to 5 lines, each "YEAR | Milestone title | Brief description"
+- \`two-column\` → lines prefixed "Before: ..." / "After: ..." or line 1 = left heading + points, line 2 = right heading + points
+- \`process-pipeline\` → up to 5 lines, each "Step name | Brief description"
+- \`data-table\` → first line = pipe-separated headers, remaining lines = pipe-separated data rows
+- \`quote-testimonial\` → line 1: the quote text. Line 2: "— Name, Title"
+- \`org-chart\` → line 1: top leader "Name | Title". Lines 2–5: direct reports "Name | Title"
+- \`sidebar-bullets\` → line 1: sidebar label/topic. Remaining lines: bullet points
+- \`big-stat\`, \`section-divider\`, \`closing\` → contentPrompt must be "" (empty string)
+- All other layouts → plain lines of content separated by \\n`;
+}
+
+function buildStrategyPersonality(strategy?: string, provider?: string, model?: string): string {
+  if (strategy === "daemon") {
+    return `\n## Your Creative Mandate
+You have the most creative freedom of any mode. You are running as a full agentic loop — think like a senior consultant writing a first draft. Be bold with layout choices, experiment with narrative sequencing, write strong opinionated slide titles, and avoid defaulting to the obvious structure. Surprise the reader with how you frame the story.`;
+  }
+
+  if (strategy === "opencode-direct") {
+    return `\n## Your Approach
+Be pragmatic and precise. Prioritise clarity over creativity. Keep slide count lean — fewer, denser slides are better than many thin ones. Favour \`process-pipeline\` and \`timeline\` layouts for structure. Write concise, direct content prompts.`;
+  }
+
+  if (strategy === "llm") {
+    const p = provider ?? "";
+    const m = (model ?? "").toLowerCase();
+
+    if (p === "gemini" || p.startsWith("gemini")) {
+      return `\n## Your Approach
+Be analytical and data-driven. Favour \`kpi-dashboard\`, \`big-stat\`, and \`timeline\` layouts where the briefing supports it. Use precise, factual language. Surface metrics and measurable outcomes prominently.`;
+    }
+
+    if (p === "openai" || p === "azure") {
+      if (m.includes("gpt-4o") && !m.includes("mini")) {
+        return `\n## Your Approach
+Write like a senior executive consultant. Use rich narrative flow with polished, opinionated slide titles. Prefer storytelling layouts — \`content-image-60-40\`, \`two-column\`, \`quote-testimonial\`. Make the title sequence read as a compelling argument from cover to closing.`;
+      }
+      return `\n## Your Approach
+Balance structure and narrative. Write clear, professional content. Mix data layouts (\`kpi-dashboard\`, \`big-stat\`) with storytelling layouts (\`two-column\`, \`bullet-list\`). Keep titles punchy and insight-driven.`;
+    }
+
+    if (p === "groq") {
+      return `\n## Your Approach
+Be concise and direct. High signal-to-noise ratio — cut anything that isn't essential. Favour \`bullet-list\` and \`sidebar-bullets\`. Target the lower end of the slide count range. Each slide should carry one tight, clear idea.`;
+    }
+
+    if (p === "openrouter") {
+      return `\n## Your Approach
+Take a balanced, moderately creative approach. Mix layout types thoughtfully. Aim for a narrative that flows naturally from problem to solution. Moderate slide count.`;
+    }
+  }
+
+  return "";
+}
+
+export function buildSystemPrompt(strategy?: string, provider?: string, model?: string): string {
   return `# Slide Outline Architect
 
 Output ONLY a valid JSON object. No markdown fences, no explanation — JUST the JSON.
@@ -47,8 +108,9 @@ Set needsDiagram/needsChart/needsData/needsPlaceholder=true only when the user m
 - One idea per slide. Two ideas = two slides.
 - No 3+ consecutive slides of the same layout.
 - One visual anchor per slide. Two parallel items → use \`two-column\`.
-- \`section-divider\` (3–5 word title, 0.5 min) between every arc phase.
-- First slide = \`cover\`. Last slide = \`closing\`.
+- \`section-divider\` (3–5 word title, 0.5 min) between every arc phase. contentPrompt = "".
+- First slide = \`cover\`. Last slide = \`closing\` with title "Thank You" and contentPrompt = "".
+- \`big-stat\` title IS the metric (e.g. "87%" or "$1.2M"). contentPrompt = "".
 
 ## Narrative Arcs
 
@@ -58,7 +120,7 @@ Map slides to the selected arc's phases. Cover before Phase 1, closing after fin
 
 ## Layout Selection
 
-Pick layout by content type:
+Choose freely from the available layouts based on what best serves your narrative and the content type. Guidelines:
 
 | Content type | Layout |
 |---|---|
@@ -80,6 +142,7 @@ Default: \`bullet-list\`. Arc phase layout hints:
 - teaching — What It Is: \`content-image-60-40\` · Why: \`big-stat\`/\`quote-testimonial\` · How: \`process-pipeline\`/\`timeline\` · Apply: \`process-pipeline\`
 
 Valid layout IDs: ${buildLayoutIds()}
+${buildLayoutContentGuide()}
 
 ## Do Not
 
@@ -88,7 +151,8 @@ Valid layout IDs: ${buildLayoutIds()}
 - Put 3+ same-layout slides in a row
 - Write numbered list prefixes in contentPrompt
 - Write research instructions in contentPrompt
-- Over-flag — only flag when user action is truly required`;
+- Over-flag — only flag when user action is truly required
+- Write contentPrompt for \`section-divider\`, \`big-stat\`, or \`closing\` — set contentPrompt to "" for these layouts${buildStrategyPersonality(strategy, provider, model)}`;
 }
 
 export function buildUserPrompt(briefing: BriefingData): string {

@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
           sse(controller, "status", { stage: "generating", message: `Agent '${agentId}' starting with ${source.model}...` });
 
-          const systemPrompt = buildSystemPrompt();
+          const systemPrompt = buildSystemPrompt("daemon", agentId, source.model);
 
           let userPrompt = buildUserPrompt(briefing);
 
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
 
           sse(controller, "status", { stage: "generating", message: `Calling ${llmProvider} API...` });
 
-          const systemPrompt = buildSystemPrompt();
+          const systemPrompt = buildSystemPrompt("llm", llmProvider, model);
           const userPrompt = buildUserPrompt(briefing);
 
           sse(controller, "prompt", { systemPrompt, userPrompt });
