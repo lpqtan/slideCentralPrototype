@@ -31,10 +31,6 @@ function addDesignBar(slide: PptxGenJS.Slide) {
 
 function addFooter(slide: PptxGenJS.Slide, text: string, num: number, total: number, dark = false) {
   const color = dark ? "AAAAAA" : BRAND.muted;
-  slide.addText(text, {
-    x: 0.4, y: 7.15, w: 5, h: 0.3,
-    fontFace: "Roboto", fontSize: 8, color,
-  });
   slide.addText(`${num} / ${total}`, {
     x: 12.1, y: 7.15, w: 0.9, h: 0.3,
     fontFace: "Roboto", fontSize: 8, color, align: "right",
@@ -114,29 +110,11 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
     // ── Big Stat ───────────────────────────────────────────────────
     case "big-stat": {
       slide.background = { color: BRAND.green };
-      const stat = lines[0] || "—";
-      const note = lines[1] || "";
-      const src = lines[2] || "";
-      slide.addText(s.title.toUpperCase(), {
-        x: 0, y: 1.0, w: W, h: 0.5,
-        fontFace: "Roboto", fontSize: 12, color: "AAAAAA", align: "center",
+      slide.addText(s.title, {
+        x: 0, y: 0, w: W, h: H,
+        fontFace: "Roboto", fontSize: 64, bold: true, color: "FFFFFF",
+        align: "center", valign: "middle",
       });
-      slide.addText(stat, {
-        x: 0, y: 1.5, w: W, h: 3,
-        fontFace: "Roboto", fontSize: 72, bold: true, color: "FFFFFF", align: "center",
-      });
-      if (note) {
-        slide.addText(note, {
-          x: 2, y: 4.5, w: 9.3, h: 1.0,
-          fontFace: "Roboto", fontSize: 18, color: "DDDDDD", align: "center",
-        });
-      }
-      if (src) {
-        slide.addText(src, {
-          x: 2, y: 5.6, w: 9.3, h: 0.4,
-          fontFace: "Roboto", fontSize: 11, color: "AAAAAA", align: "center",
-        });
-      }
       addLogo(slide, "br", true);
       addFooter(slide, s.title, num, total, true);
       break;
@@ -172,21 +150,11 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
     // ── Closing ────────────────────────────────────────────────────
     case "closing": {
       slide.background = { color: BRAND.green };
-      slide.addText("Thank you", {
-        x: 1, y: 2.0, w: 11.3, h: 0.5,
-        fontFace: "Roboto", fontSize: 11, color: "AAAAAA", align: "center",
-      });
       slide.addText(s.title, {
-        x: 1, y: 2.5, w: 11.3, h: 0.75,
-        fontFace: "Roboto", fontSize: 40, bold: true, color: "FFFFFF", align: "center",
+        x: 0, y: 0, w: W, h: H,
+        fontFace: "Roboto", fontSize: 64, bold: true, color: "FFFFFF",
+        align: "center", valign: "middle",
       });
-      slide.addShape("rect", { x: W / 2 - 0.28, y: 3.3, w: 0.56, h: 0.04, fill: { color: "FFFFFF", transparency: 60 } });
-      if (lines.length > 0) {
-        slide.addText(lines.join("\n"), {
-          x: 1, y: 3.5, w: 11.3, h: 1.5,
-          fontFace: "Roboto", fontSize: 16, color: "DDDDDD", align: "center",
-        });
-      }
       addLogo(slide, "br", true);
       addFooter(slide, s.title, num, total, true);
       break;
@@ -248,33 +216,25 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
       }
       slide.addShape("rect", { x: 6.62, y: 1.2, w: 0.04, h: 5.1, fill: { color: BRAND.green } });
       // Before column
-      slide.addText("BEFORE", {
-        x: 0.5, y: 1.2, w: 5.9, h: 0.4,
-        fontFace: "Roboto", fontSize: 10, bold: true, color: BRAND.muted,
-      });
       slide.addText("Current State", {
-        x: 0.5, y: 1.65, w: 5.9, h: 0.5,
+        x: 0.5, y: 1.2, w: 5.9, h: 0.5,
         fontFace: "Roboto", fontSize: 15, bold: true, color: BRAND.fg,
       });
       if (beforeLines.length > 0) {
         slide.addText(
           beforeLines.map((b) => ({ text: b, options: { bullet: true, fontSize: 13, color: BRAND.fg } })),
-          { x: 0.5, y: 2.3, w: 5.9, h: 3.9, fontFace: "Roboto", paraSpaceAfter: 5, valign: "top" }
+          { x: 0.5, y: 1.75, w: 5.9, h: 4.45, fontFace: "Roboto", paraSpaceAfter: 5, valign: "top" }
         );
       }
       // After column
-      slide.addText("AFTER", {
-        x: 6.9, y: 1.2, w: 6.0, h: 0.4,
-        fontFace: "Roboto", fontSize: 10, bold: true, color: BRAND.green,
-      });
       slide.addText("Target State", {
-        x: 6.9, y: 1.65, w: 6.0, h: 0.5,
+        x: 6.9, y: 1.2, w: 6.0, h: 0.5,
         fontFace: "Roboto", fontSize: 15, bold: true, color: BRAND.fg,
       });
       if (afterLines.length > 0) {
         slide.addText(
           afterLines.map((b) => ({ text: b, options: { bullet: true, fontSize: 13, color: BRAND.fg } })),
-          { x: 6.9, y: 2.3, w: 6.0, h: 3.9, fontFace: "Roboto", paraSpaceAfter: 5, valign: "top" }
+          { x: 6.9, y: 1.75, w: 6.0, h: 4.45, fontFace: "Roboto", paraSpaceAfter: 5, valign: "top" }
         );
       }
       addFooter(slide, s.title, num, total);
@@ -465,7 +425,7 @@ function renderSlide(s: SlideContent, index: number, total: number, pptx: PptxGe
       if (bulletLines.length > 0) {
         slide.addText(
           bulletLines.map((b) => ({ text: b, options: { bullet: true, fontSize: 14, color: BRAND.fg } })),
-          { x: 4.3, y: 1.2, w: 8.5, h: 5.1, fontFace: "Roboto", paraSpaceAfter: 6, valign: "top" }
+          { x: 4.3, y: 1.9, w: 8.5, h: 4.4, fontFace: "Roboto", paraSpaceAfter: 6, valign: "top" }
         );
       }
       addFooter(slide, s.title, num, total);
