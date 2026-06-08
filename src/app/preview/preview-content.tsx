@@ -331,14 +331,12 @@ export default function PreviewContent() {
       return [{ field: "title", x: 1, y: 2, w: 11.3, h: 1.0, fontSize: 36, multiline: false, fontWeight: 700, color: fg },
               { field: "body", x: 1, y: 3.2, w: 11.3, h: 1.5, fontSize: 16, multiline: true, color: soft }];
     if (layoutId === "big-stat")
-      return [{ field: "title", x: 0, y: 1.0, w: 13.333, h: 0.5, fontSize: 12, multiline: false, color: "AAAAAA" },
-              { field: "body", x: 1, y: 1.5, w: 11.3, h: 4.0, fontSize: 18, multiline: true, color: dark }];
+      return [{ field: "title", x: 0, y: 0, w: 13.333, h: 7.5, fontSize: 64, multiline: false, fontWeight: 700, color: dark }];
     if (layoutId === "quote-testimonial")
       return [{ field: "title", x: 1.5, y: 0.5, w: 10.3, h: 0.5, fontSize: 12, multiline: false, color: "AAAAAA" },
               { field: "body", x: 1.5, y: 1.5, w: 10.3, h: 4.0, fontSize: 24, multiline: true, color: dark }];
     if (layoutId === "closing")
-      return [{ field: "title", x: 1, y: 2.5, w: 11.3, h: 0.75, fontSize: 40, multiline: false, fontWeight: 700, color: dark },
-              { field: "body", x: 1, y: 3.5, w: 11.3, h: 1.5, fontSize: 16, multiline: true, color: muted }];
+      return [{ field: "title", x: 0, y: 0, w: 13.333, h: 7.5, fontSize: 64, multiline: false, fontWeight: 700, color: dark }];
     return [titleBlock, defaultBody];
   }
 
