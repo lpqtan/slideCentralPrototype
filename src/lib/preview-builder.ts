@@ -104,10 +104,7 @@ function designBar(): string {
 
 function addFooter(text_: string, num: number, total: number, dark = false): string {
   const color = dark ? "AAAAAA" : BRAND.muted;
-  return (
-    T(text_, 0.4, 7.15, 5, 0.3, { size: 8, color }) +
-    T(`${num} / ${total}`, 12.1, 7.15, 0.9, 0.3, { size: 8, color, align: "right" })
-  );
+  return T(`${num} / ${total}`, 12.1, 7.15, 0.9, 0.3, { size: 8, color, align: "right" });
 }
 
 function addLogo(position: "tr" | "br", dark: boolean): string {
@@ -162,14 +159,8 @@ function renderSlide(s: SlideContent, index: number, total: number): string {
 
     case "big-stat": {
       bg = BRAND.green;
-      const stat = lines[0] || "—";
-      const note = lines[1] || "";
-      const src  = lines[2] || "";
       body =
-        T(s.title.toUpperCase(), 0, 1.0, 13.333, 0.5, { size: 12, color: "AAAAAA", align: "center" }) +
-        T(stat, 0, 1.5, 13.333, 3, { size: 72, bold: true, color: "FFFFFF", align: "center" }) +
-        (note ? T(note, 2, 4.5, 9.3, 1.0, { size: 18, color: "DDDDDD", align: "center" }) : "") +
-        (src  ? T(src,  2, 5.6, 9.3, 0.4, { size: 11, color: "AAAAAA", align: "center" }) : "") +
+        T(s.title, 0, 0, 13.333, 7.5, { size: 64, bold: true, color: "FFFFFF", align: "center", valign: "middle" }) +
         addLogo("br", true) +
         addFooter(s.title, num, total, true);
       break;
@@ -192,10 +183,7 @@ function renderSlide(s: SlideContent, index: number, total: number): string {
     case "closing": {
       bg = BRAND.green;
       body =
-        T("Thank you", 1, 2.0, 11.3, 0.5, { size: 11, color: "AAAAAA", align: "center" }) +
-        T(s.title, 1, 2.5, 11.3, 0.75, { size: 40, bold: true, color: "FFFFFF", align: "center" }) +
-        R(13.333 / 2 - 0.28, 3.3, 0.56, 0.04, "FFFFFF", 60) +
-        (lines.length > 0 ? T(lines.join("\n"), 1, 3.5, 11.3, 1.5, { size: 16, color: "DDDDDD", align: "center" }) : "") +
+        T(s.title, 0, 0, 13.333, 7.5, { size: 64, bold: true, color: "FFFFFF", align: "center", valign: "middle" }) +
         addLogo("br", true) +
         addFooter(s.title, num, total, true);
       break;
@@ -248,12 +236,10 @@ function renderSlide(s: SlideContent, index: number, total: number): string {
         designBar() +
         titleBlock(s.title) +
         R(6.62, 1.2, 0.04, 5.1, BRAND.green) +
-        T("BEFORE", 0.5, 1.2, 5.9, 0.4, { size: 10, bold: true, color: BRAND.muted }) +
-        T("Current State", 0.5, 1.65, 5.9, 0.5, { size: 15, bold: true }) +
-        (beforeLines.length > 0 ? B(beforeLines, 0.5, 2.3, 5.9, 3.9, { size: 13 }) : "") +
-        T("AFTER", 6.9, 1.2, 6.0, 0.4, { size: 10, bold: true, color: BRAND.green }) +
-        T("Target State", 6.9, 1.65, 6.0, 0.5, { size: 15, bold: true }) +
-        (afterLines.length > 0 ? B(afterLines, 6.9, 2.3, 6.0, 3.9, { size: 13 }) : "") +
+        T("Current State", 0.5, 1.2, 5.9, 0.5, { size: 15, bold: true }) +
+        (beforeLines.length > 0 ? B(beforeLines, 0.5, 1.75, 5.9, 4.45, { size: 13 }) : "") +
+        T("Target State", 6.9, 1.2, 6.0, 0.5, { size: 15, bold: true }) +
+        (afterLines.length > 0 ? B(afterLines, 6.9, 1.75, 6.0, 4.45, { size: 13 }) : "") +
         addFooter(s.title, num, total);
       break;
     }
@@ -374,7 +360,7 @@ function renderSlide(s: SlideContent, index: number, total: number): string {
         R(0.5, 1.2, 3.5, 5.1, BRAND.green) +
         T("Why this matters", 0.65, 1.4, 3.2, 0.4, { size: 10, color: "AAAAAA" }) +
         (sidebarText.length > 0 ? T(sidebarText.join("\n\n"), 0.65, 1.9, 3.2, 4.0, { size: 14, color: "FFFFFF" }) : "") +
-        (bulletLines.length > 0 ? B(bulletLines, 4.3, 1.2, 8.5, 5.1) : "") +
+        (bulletLines.length > 0 ? B(bulletLines, 4.3, 1.9, 8.5, 4.4) : "") +
         addFooter(s.title, num, total);
       break;
     }
