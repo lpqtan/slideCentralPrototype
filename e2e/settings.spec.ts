@@ -5,7 +5,7 @@ test.describe("Settings Page", () => {
     await page.goto("/settings");
 
     await expect(page.getByText(/AI Settings/i)).toBeVisible();
-    await expect(page.getByText("Mock")).toBeVisible();
+    await expect(page.getByText("Mock", { exact: true })).toBeVisible();
     await expect(page.getByText("Local OpenCode")).toBeVisible();
     await expect(page.getByText("Open Design Daemon")).toBeVisible();
     await expect(page.getByText("Direct LLM API")).toBeVisible();
@@ -16,11 +16,12 @@ test.describe("Settings Page", () => {
 
     await page.getByText("Direct LLM API").click();
 
-    // Provider section should be visible
-    await expect(page.getByText(/Gemini 2.5 Flash Lite/i)).toBeVisible();
-    await expect(page.getByText(/Groq/i)).toBeVisible();
-    await expect(page.getByText(/OpenRouter/i)).toBeVisible();
-    await expect(page.getByText(/OpenAI/i)).toBeVisible();
+    // Provider section should be visible — use exact match to avoid
+    // matching substrings in the strategy description "OpenAI / Gemini / Groq / OpenRouter"
+    await expect(page.getByText("Gemini 2.5 Flash Lite", { exact: true })).toBeVisible();
+    await expect(page.getByText("Groq", { exact: true })).toBeVisible();
+    await expect(page.getByText("OpenRouter", { exact: true })).toBeVisible();
+    await expect(page.getByText("OpenAI", { exact: true })).toBeVisible();
   });
 
   test("selecting daemon strategy shows agent options", async ({ page }) => {
@@ -28,11 +29,12 @@ test.describe("Settings Page", () => {
 
     await page.getByText("Open Design Daemon").click();
 
-    // Agent section should be visible
-    await expect(page.getByText("OpenCode")).toBeVisible();
-    await expect(page.getByText("Claude Code")).toBeVisible();
-    await expect(page.getByText("Codex CLI")).toBeVisible();
-    await expect(page.getByText("Gemini CLI")).toBeVisible();
+    // Agent section should be visible — use exact match to avoid
+    // "OpenCode" matching inside "Local OpenCode"
+    await expect(page.getByText("OpenCode", { exact: true })).toBeVisible();
+    await expect(page.getByText("Claude Code", { exact: true })).toBeVisible();
+    await expect(page.getByText("Codex CLI", { exact: true })).toBeVisible();
+    await expect(page.getByText("Gemini CLI", { exact: true })).toBeVisible();
   });
 
   test("saving settings persists to localStorage", async ({ page }) => {
