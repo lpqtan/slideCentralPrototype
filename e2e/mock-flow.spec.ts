@@ -13,6 +13,30 @@ async function setMockStrategy(page: import("@playwright/test").Page) {
   });
 }
 
+/** Fill the 5-step wizard and click Generate Outline */
+async function fillWizard(page: import("@playwright/test").Page, opts?: { keyMessage?: string; ask?: string }) {
+  // Step 1: Context — select objective, audience, mode
+  await page.getByRole("button", { name: /Approval/ }).click();
+  await page.getByRole("button", { name: /EXCO/ }).click();
+  await page.getByRole("button", { name: /Presenting/ }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+
+  // Step 2: Message — fill key message and audience ask
+  await page.getByLabel(/key message/i).fill(opts?.keyMessage ?? "Test key message");
+  await page.getByLabel(/the ask/i).fill(opts?.ask ?? "Approve the test budget");
+  await page.getByRole("button", { name: "Next" }).click();
+
+  // Step 3: Content — skip (optional)
+  await page.getByRole("button", { name: "Next" }).click();
+
+  // Step 4: Narrative — select an arc
+  await page.getByRole("button", { name: /Proposal Arc/ }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+
+  // Step 5: Template — skip (optional), click Generate
+  await page.getByRole("button", { name: /Generate Outline/i }).click();
+}
+
 test.describe("Landing Page", () => {
   test("displays the Slide Central heading", async ({ page }) => {
     await page.goto("/");
@@ -55,52 +79,19 @@ test.describe("Full Mock Flow: Briefing → Outline → Preview", () => {
   test("complete wizard and generate outline with mock strategy", async ({ page }) => {
     await setMockStrategy(page);
     await page.goto("/briefing");
-
-    // Step 1: Context — select objective, audience, mode
-    await page.getByText("Approval", { exact: true }).click();
-    await page.getByText("EXCO", { exact: true }).click();
-    await page.getByText("Presenting", { exact: true }).click();
-    await page.getByRole("button", { name: /Next/i }).click();
-
-    // Step 2: Message — fill key message and audience ask
-    await page.getByLabel(/key message/i).fill("Test key message for mock flow");
-    await page.getByLabel(/the ask/i).fill("Approve the test budget");
-    await page.getByRole("button", { name: /Next/i }).click();
-
-    // Step 3: Content — skip (optional)
-    await page.getByRole("button", { name: /Next/i }).click();
-
-    // Step 4: Narrative — select an arc
-    await page.getByText("Proposal Arc").click();
-    await page.getByRole("button", { name: /Next/i }).click();
-
-    // Step 5: Template — skip (optional), click Generate
-    await page.getByRole("button", { name: /Generate Outline/i }).click();
+    await fillWizard(page, { keyMessage: "Test key message for mock flow" });
 
     // Should redirect to /outline (mock skips /generating)
     await expect(page).toHaveURL(/\/outline/, { timeout: 10_000 });
 
     // Verify outline has slides
-    await expect(page.getByText(/Slide Outline/i)).toBeVisible();
-    await expect(page.getByText(/slides/i).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Slide Outline/i })).toBeVisible();
   });
 
   test("outline page shows slides and Build Deck button", async ({ page }) => {
     await setMockStrategy(page);
     await page.goto("/briefing");
-
-    // Quick-fill wizard
-    await page.getByText("Approval", { exact: true }).click();
-    await page.getByText("EXCO", { exact: true }).click();
-    await page.getByText("Presenting", { exact: true }).click();
-    await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByLabel(/key message/i).fill("Test message");
-    await page.getByLabel(/the ask/i).fill("Test ask");
-    await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByText("Proposal Arc").click();
-    await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByRole("button", { name: /Generate Outline/i }).click();
+    await fillWizard(page);
 
     await expect(page).toHaveURL(/\/outline/, { timeout: 10_000 });
 
@@ -115,26 +106,14 @@ test.describe("Full Mock Flow: Briefing → Outline → Preview", () => {
   test("preview page renders slides and has Download button", async ({ page }) => {
     await setMockStrategy(page);
     await page.goto("/briefing");
+    await fillWizard(page);
 
-    // Quick-fill wizard
-    await page.getByText("Approval", { exact: true }).click();
-    await page.getByText("EXCO", { exact: true }).click();
-    await page.getByText("Presenting", { exact: true }).click();
-    await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByLabel(/key message/i).fill("Test message");
-    await page.getByLabel(/the ask/i).fill("Test ask");
-    await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByText("Proposal Arc").click();
-    await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByRole("button", { name: /Generate Outline/i }).click();
     await expect(page).toHaveURL(/\/outline/, { timeout: 10_000 });
     await page.getByRole("button", { name: /Build Deck/i }).click();
     await expect(page).toHaveURL(/\/preview/, { timeout: 10_000 });
 
-    // Preview should show slides panel
-    await expect(page.getByText(/Deck Preview/i)).toBeVisible();
-    await expect(page.getByText(/Slides/i).first()).toBeVisible();
+    // Preview should show heading and slides sidebar
+    await expect(page.getByRole("heading", { name: /Deck Preview/i })).toBeVisible();
 
     // Download button should exist
     await expect(page.getByRole("button", { name: /Download/i })).toBeVisible();

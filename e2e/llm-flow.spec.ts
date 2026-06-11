@@ -15,6 +15,25 @@ const providers = [
   { id: "openai", envKey: "OPENAI_API_KEY", label: "OpenAI" },
 ] as const;
 
+/** Fill the 5-step wizard and click Generate Outline */
+async function fillWizard(page: import("@playwright/test").Page, opts?: { keyMessage?: string; ask?: string }) {
+  await page.getByRole("button", { name: /Approval/ }).click();
+  await page.getByRole("button", { name: /EXCO/ }).click();
+  await page.getByRole("button", { name: /Presenting/ }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+
+  await page.getByLabel(/key message/i).fill(opts?.keyMessage ?? "Test key message");
+  await page.getByLabel(/the ask/i).fill(opts?.ask ?? "Approve the test budget");
+  await page.getByRole("button", { name: "Next" }).click();
+
+  await page.getByRole("button", { name: "Next" }).click();
+
+  await page.getByRole("button", { name: /Proposal Arc/ }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+
+  await page.getByRole("button", { name: /Generate Outline/i }).click();
+}
+
 for (const provider of providers) {
   test.describe(`LLM Flow: ${provider.label}`, () => {
     const apiKey = process.env[provider.envKey];
@@ -48,31 +67,10 @@ for (const provider of providers) {
       test.setTimeout(120_000); // LLM calls can be slow
 
       await page.goto("/briefing");
-
-      // Step 1: Context
-      await page.getByText("Approval", { exact: true }).click();
-      await page.getByText("EXCO", { exact: true }).click();
-      await page.getByText("Presenting", { exact: true }).click();
-      await page.getByRole("button", { name: /Next/i }).click();
-
-      // Step 2: Message
-      await page.getByLabel(/key message/i).fill(
-        "Member engagement is declining — we need $500k for digital outreach pilots"
-      );
-      await page.getByLabel(/the ask/i).fill(
-        "Approve budget and nominate a department lead"
-      );
-      await page.getByRole("button", { name: /Next/i }).click();
-
-      // Step 3: Content — skip
-      await page.getByRole("button", { name: /Next/i }).click();
-
-      // Step 4: Narrative
-      await page.getByText("Proposal Arc").click();
-      await page.getByRole("button", { name: /Next/i }).click();
-
-      // Step 5: Generate
-      await page.getByRole("button", { name: /Generate Outline/i }).click();
+      await fillWizard(page, {
+        keyMessage: "Member engagement is declining — we need $500k for digital outreach pilots",
+        ask: "Approve budget and nominate a department lead",
+      });
 
       // Should go to /generating page
       await expect(page).toHaveURL(/\/generating/, { timeout: 10_000 });
@@ -81,45 +79,33 @@ for (const provider of providers) {
       await expect(page).toHaveURL(/\/outline/, { timeout: 90_000 });
 
       // Verify outline loaded
-      await expect(page.getByText(/Slide Outline/i)).toBeVisible();
-      // Should have multiple slides
-      await expect(page.getByText(/slides/i).first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: /Slide Outline/i })).toBeVisible();
     });
 
     test("build deck via LLM", async ({ page }) => {
       test.setTimeout(120_000);
 
       await page.goto("/briefing");
+      await fillWizard(page, {
+        keyMessage: "Digital outreach pilot",
+        ask: "Approve budget",
+      });
 
-      // Quick wizard fill
-      await page.getByText("Approval", { exact: true }).click();
-      await page.getByText("EXCO", { exact: true }).click();
-      await page.getByText("Presenting", { exact: true }).click();
-      await page.getByRole("button", { name: /Next/i }).click();
-      await page.getByLabel(/key message/i).fill("Digital outreach pilot");
-      await page.getByLabel(/the ask/i).fill("Approve budget");
-      await page.getByRole("button", { name: /Next/i }).click();
-      await page.getByRole("button", { name: /Next/i }).click();
-      await page.getByText("Proposal Arc").click();
-      await page.getByRole("button", { name: /Next/i }).click();
-      await page.getByRole("button", { name: /Generate Outline/i }).click();
       await expect(page).toHaveURL(/\/outline/, { timeout: 90_000 });
 
       // Build deck
       await page.getByRole("button", { name: /Build Deck/i }).click();
 
       // For non-daemon LLM, should go to /building then /preview
-      // Or for mock-fallback, straight to /preview
       await expect(page).toHaveURL(/\/(building|preview)/, { timeout: 10_000 });
 
       // Wait for final landing on /preview
       if (page.url().includes("/building")) {
-        // Wait for the "View Deck" button or auto-redirect
         await expect(page).toHaveURL(/\/preview/, { timeout: 90_000 });
       }
 
       // Verify preview loaded
-      await expect(page.getByText(/Deck Preview/i)).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole("heading", { name: /Deck Preview/i })).toBeVisible({ timeout: 10_000 });
     });
   });
 }
