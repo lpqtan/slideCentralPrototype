@@ -82,7 +82,7 @@ export function extractJson(text: string): SlideOutline[] {
   } catch { /* not a JSON wrapper, continue */ }
 
   // Skip text prefix before first JSON character
-  const jsonStart = cleaned.search(/[\{\[]/);
+  const jsonStart = cleaned.search(/[[{]/);
   const jsonText = jsonStart >= 0 ? cleaned.slice(jsonStart) : cleaned;
 
   // Try direct parse first (handles { "outline": [...] } or bare [...])

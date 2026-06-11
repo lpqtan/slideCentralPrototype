@@ -31,7 +31,7 @@ export default function PreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deckId = searchParams.get("deckId");
-  const { getById, setOverlayBlocks, setDeckSlides, patchSlides, patchOutlineLayout } = useDeckStore();
+  const { getById, setOverlayBlocks, patchSlides, patchOutlineLayout } = useDeckStore();
   const [slides, setSlides] = useState<SlideContent[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [downloading, setDownloading] = useState(false);
@@ -243,8 +243,9 @@ export default function PreviewContent() {
     document.addEventListener("pointerup", onUp);
   };
 
-  // Sync edit fields when slide changes in edit mode
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Sync edit fields when slide changes in edit mode.
+  // Intentionally only re-runs on slide change — editMode/deckId/getById/slides
+  // are stable within an edit session and including them would cause loops.
   useEffect(() => {
     if (!editMode || !deckId) return;
     const deck = getById(deckId);
@@ -254,9 +255,7 @@ export default function PreviewContent() {
     setEditBody(slides[currentSlide]?.bodyContent ?? "");
     setSelectedId(null);
     setEditingId(null);
-    // Intentionally only re-runs on slide change — editMode/deckId/getById/slides
-    // are stable within an edit session and including them would cause loops.
-  }, [currentSlide]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentSlide]);
 
   const handleDownloadPptx = async () => {
     setDownloading(true);
