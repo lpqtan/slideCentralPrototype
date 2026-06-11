@@ -244,6 +244,7 @@ export default function PreviewContent() {
   };
 
   // Sync edit fields when slide changes in edit mode
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!editMode || !deckId) return;
     const deck = getById(deckId);
@@ -253,7 +254,9 @@ export default function PreviewContent() {
     setEditBody(slides[currentSlide]?.bodyContent ?? "");
     setSelectedId(null);
     setEditingId(null);
-  }, [currentSlide]);
+    // Intentionally only re-runs on slide change — editMode/deckId/getById/slides
+    // are stable within an edit session and including them would cause loops.
+  }, [currentSlide]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDownloadPptx = async () => {
     setDownloading(true);

@@ -280,6 +280,7 @@ export async function* streamProvider(
         } catch { /* skip corrupt SSE chunks */ }
       }
     }
+    return; // Gemini path complete — do not fall through to OpenAI-compatible block
   }
 
   // OpenAI-compatible streaming
@@ -348,18 +349,22 @@ const llmStrategy: BackendStrategy = {
   id: "llm",
 
   async healthCheck(): Promise<boolean> {
-    // Check if any provider key is set
+    // Check server-side env vars first
     const providers = ["gemini", "groq", "openrouter", "openai"];
     for (const p of providers) {
       if (process.env[`${p.toUpperCase()}_API_KEY`]) return true;
     }
-    try {
-      const raw = typeof localStorage !== "undefined" ? localStorage.getItem("slidecentral-settings") : null;
-      if (raw) {
-        const s = JSON.parse(raw) as { apiKey?: string };
-        if (s.apiKey) return true;
-      }
-    } catch { /* ignore */ }
+    // localStorage is only available in the browser; this path is unreachable in
+    // API routes but kept here so the strategy can also be called client-side.
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("slidecentral-settings");
+        if (raw) {
+          const s = JSON.parse(raw) as { apiKey?: string };
+          if (s.apiKey) return true;
+        }
+      } catch { /* ignore */ }
+    }
     return false;
   },
 

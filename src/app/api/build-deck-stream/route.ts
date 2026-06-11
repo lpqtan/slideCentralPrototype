@@ -35,11 +35,14 @@ export async function POST(request: Request) {
         const {
           slides,
           strategy: strategyId,
+          // Client sends `provider` for both daemon agent id and llm provider name
+          provider,
           agentId,
           model,
         } = body as {
           slides: SlideContent[];
           strategy?: string;
+          provider?: string;
           agentId?: string;
           model?: string;
         };
@@ -67,7 +70,8 @@ export async function POST(request: Request) {
         }
 
         // ── Daemon — full OD pipeline ─────────────────────
-        const agent = agentId ?? (await findAgent());
+        // `provider` carries the daemon agent id as sent by building-content.tsx
+        const agent = provider ?? agentId ?? (await findAgent());
         const projectId = `deck-${Date.now().toString(36)}`;
 
         sse(controller, "status", { stage: "setup", message: "Creating project..." });

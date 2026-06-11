@@ -153,11 +153,6 @@ export async function POST(request: Request) {
           }
         }
 
-        // ── Daemon ──────────────────────────────────────
-        if (activeStrategy === "daemon") {
-          // ... (unchanged)
-        }
-
         // ── LLM API ─────────────────────────────────────
         else if (activeStrategy === "llm") {
           const llmProvider = provider ?? "gemini";
