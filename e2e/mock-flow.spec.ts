@@ -55,14 +55,14 @@ test.describe("Full Mock Flow: Briefing → Outline → Preview", () => {
     await page.goto("/briefing");
 
     // Step 1: Context — select objective, audience, mode
-    await page.getByText("Seek Approval").click();
-    await page.getByText("ExCo").click();
+    await page.getByText("Approval").click();
+    await page.getByText("EXCO").click();
     await page.getByText("Presenting").click();
     await page.getByRole("button", { name: /Next/i }).click();
 
     // Step 2: Message — fill key message and audience ask
-    await page.getByPlaceholder(/key message/i).fill("Test key message for mock flow");
-    await page.getByPlaceholder(/ask/i).fill("Approve the test budget");
+    await page.getByLabel(/key message/i).fill("Test key message for mock flow");
+    await page.getByLabel(/the ask/i).fill("Approve the test budget");
     await page.getByRole("button", { name: /Next/i }).click();
 
     // Step 3: Content — skip (optional)
@@ -88,12 +88,12 @@ test.describe("Full Mock Flow: Briefing → Outline → Preview", () => {
     await page.goto("/briefing");
 
     // Quick-fill wizard
-    await page.getByText("Seek Approval").click();
-    await page.getByText("ExCo").click();
+    await page.getByText("Approval").click();
+    await page.getByText("EXCO").click();
     await page.getByText("Presenting").click();
     await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByPlaceholder(/key message/i).fill("Test message");
-    await page.getByPlaceholder(/ask/i).fill("Test ask");
+    await page.getByLabel(/key message/i).fill("Test message");
+    await page.getByLabel(/the ask/i).fill("Test ask");
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByText("Proposal").click();
@@ -115,12 +115,12 @@ test.describe("Full Mock Flow: Briefing → Outline → Preview", () => {
     await page.goto("/briefing");
 
     // Quick-fill wizard
-    await page.getByText("Seek Approval").click();
-    await page.getByText("ExCo").click();
+    await page.getByText("Approval").click();
+    await page.getByText("EXCO").click();
     await page.getByText("Presenting").click();
     await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByPlaceholder(/key message/i).fill("Test message");
-    await page.getByPlaceholder(/ask/i).fill("Test ask");
+    await page.getByLabel(/key message/i).fill("Test message");
+    await page.getByLabel(/the ask/i).fill("Test ask");
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByText("Proposal").click();
