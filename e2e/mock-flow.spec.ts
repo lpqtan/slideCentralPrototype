@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-// Helper: set strategy in localStorage before navigating
+// Helper: set strategy in localStorage and clear stale wizard state
 async function setMockStrategy(page: import("@playwright/test").Page) {
   await page.goto("/");
   await page.evaluate(() => {
@@ -8,6 +8,8 @@ async function setMockStrategy(page: import("@playwright/test").Page) {
       "slidecentral-settings",
       JSON.stringify({ strategy: "mock", provider: "gemini", apiKey: "", daemonAgent: "opencode", daemonModel: "opencode/big-pickle" })
     );
+    localStorage.removeItem("slidecentral-current-briefing");
+    localStorage.removeItem("slidecentral-current-step");
   });
 }
 
@@ -44,7 +46,7 @@ test.describe("Briefing Wizard", () => {
   test("shows all 5 step labels", async ({ page }) => {
     await page.goto("/briefing");
     for (const label of ["Context", "Message", "Content", "Narrative", "Template"]) {
-      await expect(page.getByText(label)).toBeVisible();
+      await expect(page.getByText(label).first()).toBeVisible();
     }
   });
 });
@@ -55,9 +57,9 @@ test.describe("Full Mock Flow: Briefing → Outline → Preview", () => {
     await page.goto("/briefing");
 
     // Step 1: Context — select objective, audience, mode
-    await page.getByText("Approval").click();
-    await page.getByText("EXCO").click();
-    await page.getByText("Presenting").click();
+    await page.getByText("Approval", { exact: true }).click();
+    await page.getByText("EXCO", { exact: true }).click();
+    await page.getByText("Presenting", { exact: true }).click();
     await page.getByRole("button", { name: /Next/i }).click();
 
     // Step 2: Message — fill key message and audience ask
@@ -69,7 +71,7 @@ test.describe("Full Mock Flow: Briefing → Outline → Preview", () => {
     await page.getByRole("button", { name: /Next/i }).click();
 
     // Step 4: Narrative — select an arc
-    await page.getByText("Proposal").click();
+    await page.getByText("Proposal Arc").click();
     await page.getByRole("button", { name: /Next/i }).click();
 
     // Step 5: Template — skip (optional), click Generate
@@ -80,7 +82,7 @@ test.describe("Full Mock Flow: Briefing → Outline → Preview", () => {
 
     // Verify outline has slides
     await expect(page.getByText(/Slide Outline/i)).toBeVisible();
-    await expect(page.getByText(/slides/i)).toBeVisible();
+    await expect(page.getByText(/slides/i).first()).toBeVisible();
   });
 
   test("outline page shows slides and Build Deck button", async ({ page }) => {
@@ -88,15 +90,15 @@ test.describe("Full Mock Flow: Briefing → Outline → Preview", () => {
     await page.goto("/briefing");
 
     // Quick-fill wizard
-    await page.getByText("Approval").click();
-    await page.getByText("EXCO").click();
-    await page.getByText("Presenting").click();
+    await page.getByText("Approval", { exact: true }).click();
+    await page.getByText("EXCO", { exact: true }).click();
+    await page.getByText("Presenting", { exact: true }).click();
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByLabel(/key message/i).fill("Test message");
     await page.getByLabel(/the ask/i).fill("Test ask");
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByText("Proposal").click();
+    await page.getByText("Proposal Arc").click();
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByRole("button", { name: /Generate Outline/i }).click();
 
@@ -115,15 +117,15 @@ test.describe("Full Mock Flow: Briefing → Outline → Preview", () => {
     await page.goto("/briefing");
 
     // Quick-fill wizard
-    await page.getByText("Approval").click();
-    await page.getByText("EXCO").click();
-    await page.getByText("Presenting").click();
+    await page.getByText("Approval", { exact: true }).click();
+    await page.getByText("EXCO", { exact: true }).click();
+    await page.getByText("Presenting", { exact: true }).click();
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByLabel(/key message/i).fill("Test message");
     await page.getByLabel(/the ask/i).fill("Test ask");
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByRole("button", { name: /Next/i }).click();
-    await page.getByText("Proposal").click();
+    await page.getByText("Proposal Arc").click();
     await page.getByRole("button", { name: /Next/i }).click();
     await page.getByRole("button", { name: /Generate Outline/i }).click();
     await expect(page).toHaveURL(/\/outline/, { timeout: 10_000 });

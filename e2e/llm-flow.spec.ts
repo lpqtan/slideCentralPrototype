@@ -50,9 +50,9 @@ for (const provider of providers) {
       await page.goto("/briefing");
 
       // Step 1: Context
-      await page.getByText("Approval").click();
-      await page.getByText("EXCO").click();
-      await page.getByText("Presenting").click();
+      await page.getByText("Approval", { exact: true }).click();
+      await page.getByText("EXCO", { exact: true }).click();
+      await page.getByText("Presenting", { exact: true }).click();
       await page.getByRole("button", { name: /Next/i }).click();
 
       // Step 2: Message
@@ -68,7 +68,7 @@ for (const provider of providers) {
       await page.getByRole("button", { name: /Next/i }).click();
 
       // Step 4: Narrative
-      await page.getByText("Proposal").click();
+      await page.getByText("Proposal Arc").click();
       await page.getByRole("button", { name: /Next/i }).click();
 
       // Step 5: Generate
@@ -83,7 +83,7 @@ for (const provider of providers) {
       // Verify outline loaded
       await expect(page.getByText(/Slide Outline/i)).toBeVisible();
       // Should have multiple slides
-      await expect(page.getByText(/slides/i)).toBeVisible();
+      await expect(page.getByText(/slides/i).first()).toBeVisible();
     });
 
     test("build deck via LLM", async ({ page }) => {
@@ -92,15 +92,15 @@ for (const provider of providers) {
       await page.goto("/briefing");
 
       // Quick wizard fill
-      await page.getByText("Approval").click();
-      await page.getByText("EXCO").click();
-      await page.getByText("Presenting").click();
+      await page.getByText("Approval", { exact: true }).click();
+      await page.getByText("EXCO", { exact: true }).click();
+      await page.getByText("Presenting", { exact: true }).click();
       await page.getByRole("button", { name: /Next/i }).click();
       await page.getByLabel(/key message/i).fill("Digital outreach pilot");
       await page.getByLabel(/the ask/i).fill("Approve budget");
       await page.getByRole("button", { name: /Next/i }).click();
       await page.getByRole("button", { name: /Next/i }).click();
-      await page.getByText("Proposal").click();
+      await page.getByText("Proposal Arc").click();
       await page.getByRole("button", { name: /Next/i }).click();
       await page.getByRole("button", { name: /Generate Outline/i }).click();
       await expect(page).toHaveURL(/\/outline/, { timeout: 90_000 });
