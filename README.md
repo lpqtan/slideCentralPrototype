@@ -298,6 +298,70 @@ npm run lint
 
 ---
 
+## Testing
+
+The project uses **Vitest** for unit tests and **Playwright** for end-to-end tests.
+
+### Prerequisites
+
+```bash
+npm install                               # installs vitest + playwright as devDependencies
+npx playwright install --with-deps chromium   # download Chromium for E2E tests
+```
+
+### Unit Tests
+
+```bash
+npm test              # run all unit tests once
+npm run test:watch    # run in watch mode during development
+```
+
+Unit tests cover:
+- **Pure functions:** `extractJson`, `buildSystemPrompt`, `buildUserPrompt`, `buildDeckHtml`, layout definitions, mock deck generation
+- **API route handlers:** `/api/generate-outline-stream`, `/api/build-deck-stream`, `/api/export-pptx`, `/api/health` (called directly without a server)
+
+### E2E Tests
+
+```bash
+npm run test:e2e          # run all E2E tests (starts dev server automatically)
+npm run test:e2e:ui       # run with Playwright's interactive UI
+```
+
+E2E tests cover:
+- **Mock flow:** Full user journey — landing page, 5-step briefing wizard, outline generation, deck building, preview page, download buttons
+- **LLM flow:** Outline generation and deck building across providers (Gemini, Groq, OpenRouter, OpenAI)
+- **Settings page:** Strategy selection, provider selection, persistence
+
+#### LLM Provider Tests
+
+LLM E2E tests are **parameterised** across all 4 providers. Each provider's tests are **skipped** if its API key isn't available. Set env vars to enable them:
+
+```bash
+export GEMINI_API_KEY="your-key"       # enables Gemini tests
+export GROQ_API_KEY="your-key"         # enables Groq tests
+export OPENROUTER_API_KEY="your-key"   # enables OpenRouter tests
+export OPENAI_API_KEY="your-key"       # enables OpenAI tests
+
+npm run test:e2e
+```
+
+### CI / GitHub Actions
+
+The `.github/workflows/ci.yml` workflow runs on every push and PR:
+
+| Job | What it does |
+|---|---|
+| **Lint & Typecheck** | `npm run lint` + `npx tsc --noEmit` |
+| **Unit Tests** | `npm test` (Vitest) |
+| **E2E Tests** | `npm run test:e2e` (Playwright with Chromium) |
+
+To enable LLM E2E tests in CI, add repository secrets:
+`GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`
+
+Playwright reports are uploaded as artifacts on every CI run.
+
+---
+
 ## Project Structure
 
 ```
@@ -312,8 +376,15 @@ slideCentralPrototype/
 ├── package.json
 ├── tsconfig.json
 ├── next.config.ts
+├── vitest.config.ts              # Vitest unit test configuration
+├── playwright.config.ts          # Playwright E2E test configuration
 ├── postcss.config.mjs
 ├── eslint.config.mjs
+├── .github/workflows/ci.yml     # GitHub Actions CI pipeline
+├── e2e/                          # Playwright E2E tests
+│   ├── mock-flow.spec.ts         # Full user flow with mock strategy
+│   ├── llm-flow.spec.ts          # Multi-provider LLM flow tests
+│   └── settings.spec.ts          # Settings page tests
 └── src/
     ├── app/
     │   ├── globals.css              # Tailwind v4 + CPF brand @theme tokens
@@ -331,7 +402,6 @@ slideCentralPrototype/
     │   └── api/
     │       ├── health/route.ts          # Strategy health check (POST)
     │       ├── health/mongo/route.ts    # MongoDB health check (GET)
-    │       ├── generate-outline/route.ts    # JSON outline endpoint
     │       ├── generate-outline-stream/route.ts  # SSE outline endpoint
     │       ├── build-deck-stream/route.ts   # Deck building SSE endpoint
     │       ├── export-pptx/route.ts     # PowerPoint export from HTML
