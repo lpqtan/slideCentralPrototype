@@ -1,5 +1,4 @@
 import type { SlideContent, TextBlock } from "@/lib/types";
-import { LAYOUTS } from "@/lib/layouts";
 import { LOGO_GREEN_URI, LOGO_WHITE_URI } from "@/lib/logos";
 
 function escapeHtml(str: string): string {
@@ -413,7 +412,7 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
             const cells = r.split("|").map((c) => c.trim());
             const isTotal = ri === rows.length - 1 && r.toLowerCase().includes("total");
             return `<tr class="${isTotal ? "total" : ""}">${cells.map((c, ci) => {
-              const isNum = ci > 0 && /^[\d\.,\+\-\$%sS]+[%\d]?$/.test(c);
+              const isNum = ci > 0 && /^[\d.,+\-$%sS]+[%\d]?$/.test(c);
               return `<td class="${isNum ? "num" : ci === 0 ? "label" : ""}">${escapeHtml(c)}</td>`;
             }).join("")}</tr>`;
           }).join("")}
@@ -561,8 +560,7 @@ function slideHtml(slide: SlideContent, index: number, _total: number): string {
   }
 
   // ── Bullet List (default) ────────────────────
-  const layoutInfo = LAYOUTS.find((l) => l.id === layoutId);
-  const layoutName = layoutInfo?.name ?? "Content";
+
 
   return `<section class="${layoutClass}" data-slide="${index + 1}">
   <div class="design-bar"></div>
