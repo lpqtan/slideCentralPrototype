@@ -50,16 +50,16 @@ for (const provider of providers) {
       await page.goto("/briefing");
 
       // Step 1: Context
-      await page.getByText("Seek Approval").click();
-      await page.getByText("ExCo").click();
+      await page.getByText("Approval").click();
+      await page.getByText("EXCO").click();
       await page.getByText("Presenting").click();
       await page.getByRole("button", { name: /Next/i }).click();
 
       // Step 2: Message
-      await page.getByPlaceholder(/key message/i).fill(
+      await page.getByLabel(/key message/i).fill(
         "Member engagement is declining — we need $500k for digital outreach pilots"
       );
-      await page.getByPlaceholder(/ask/i).fill(
+      await page.getByLabel(/the ask/i).fill(
         "Approve budget and nominate a department lead"
       );
       await page.getByRole("button", { name: /Next/i }).click();
@@ -92,12 +92,12 @@ for (const provider of providers) {
       await page.goto("/briefing");
 
       // Quick wizard fill
-      await page.getByText("Seek Approval").click();
-      await page.getByText("ExCo").click();
+      await page.getByText("Approval").click();
+      await page.getByText("EXCO").click();
       await page.getByText("Presenting").click();
       await page.getByRole("button", { name: /Next/i }).click();
-      await page.getByPlaceholder(/key message/i).fill("Digital outreach pilot");
-      await page.getByPlaceholder(/ask/i).fill("Approve budget");
+      await page.getByLabel(/key message/i).fill("Digital outreach pilot");
+      await page.getByLabel(/the ask/i).fill("Approve budget");
       await page.getByRole("button", { name: /Next/i }).click();
       await page.getByRole("button", { name: /Next/i }).click();
       await page.getByText("Proposal").click();
