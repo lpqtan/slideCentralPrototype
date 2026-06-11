@@ -13,7 +13,14 @@ export interface UseHistoryReturn<T> {
   canRedo: boolean;
 }
 
-export function useHistory<T>(initial: T): UseHistoryReturn<T> {
+/**
+ * @param initial  Initial state value
+ * @param enableKeyboard  Whether to register Ctrl+Z / Ctrl+Shift+Z on window.
+ *                        Only ONE instance per page should set this to true to
+ *                        avoid multiple competing keydown handlers.
+ *                        Defaults to true for backwards compatibility.
+ */
+export function useHistory<T>(initial: T, enableKeyboard = true): UseHistoryReturn<T> {
   const [past, setPast] = useState<T[]>([]);
   const [current, setCurrent] = useState<T>(initial);
   const [future, setFuture] = useState<T[]>([]);
@@ -52,6 +59,7 @@ export function useHistory<T>(initial: T): UseHistoryReturn<T> {
   }, []);
 
   useEffect(() => {
+    if (!enableKeyboard) return;
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && !e.altKey) {
         if (e.shiftKey && e.key === "z") {
@@ -65,7 +73,7 @@ export function useHistory<T>(initial: T): UseHistoryReturn<T> {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [undo, redo]);
+  }, [enableKeyboard, undo, redo]);
 
   return {
     state: current,

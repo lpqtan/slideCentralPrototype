@@ -22,19 +22,15 @@ const BYOK_PROVIDERS = [
 ] as const;
 
 const DAEMON_AGENTS = [
-  { id: "opencode", label: "OpenCode", description: "Open source coding agent" },
+  { id: "opencode", label: "OpenCode", description: "Default — open source coding agent" },
   { id: "claude", label: "Claude Code", description: "Anthropic's coding agent" },
   { id: "codex", label: "Codex CLI", description: "OpenAI's coding agent" },
   { id: "gemini", label: "Gemini CLI", description: "Google's coding agent" },
   { id: "cursor-agent", label: "Cursor Agent", description: "Cursor's coding agent" },
   { id: "qwen", label: "Qwen Code", description: "Alibaba's coding agent" },
-  { id: "opencode", label: "OpenCode", description: "Default — open source coding agent" },
 ] as const;
 
-// Deduplicate by id
-const DAEMON_AGENTS_UNIQUE = DAEMON_AGENTS.filter(
-  (a, i, arr) => arr.findIndex((x) => x.id === a.id) === i
-);
+const DAEMON_AGENTS_UNIQUE = DAEMON_AGENTS;
 
 const FREE_MODELS = [
   { id: "opencode/big-pickle", label: "Big Pickle", description: "Free — general purpose" },
