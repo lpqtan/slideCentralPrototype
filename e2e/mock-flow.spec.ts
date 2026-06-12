@@ -19,19 +19,19 @@ async function fillWizard(page: import("@playwright/test").Page, opts?: { keyMes
   await page.getByRole("button", { name: /Approval/ }).click();
   await page.getByRole("button", { name: /EXCO/ }).click();
   await page.getByRole("button", { name: /Presenting/ }).click();
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
 
   // Step 2: Message — fill key message and audience ask
   await page.getByLabel(/key message/i).fill(opts?.keyMessage ?? "Test key message");
   await page.getByLabel(/the ask/i).fill(opts?.ask ?? "Approve the test budget");
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
 
   // Step 3: Content — skip (optional)
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
 
   // Step 4: Narrative — select an arc
   await page.getByRole("button", { name: /Proposal Arc/ }).click();
-  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
 
   // Step 5: Template — skip (optional), click Generate
   await page.getByRole("button", { name: /Generate Outline/i }).click();
