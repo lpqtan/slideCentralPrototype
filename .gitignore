@@ -45,3 +45,7 @@ slideCentral/
 
 # Dockerfile
 Dockerfile
+
+# test stuff
+playwright-report/
+test-results/
